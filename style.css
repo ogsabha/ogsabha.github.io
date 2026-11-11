@@ -213,3 +213,69 @@ dialog button.ghost{background:transparent;color:#111}
 dialog .row{margin-top:18px}
 .page-head .back{text-decoration:none}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* =========================================================
+   v3 overrides: foody Food, academic Classes, black & white About
+========================================================= */
+.foodstrip{display:none}
+body[data-theme="food"] .foodstrip{display:block;overflow:hidden;background:#3b1a0e;color:#ffc94d;margin:0 0 26px;padding:10px 0}
+.foodstrip .track{display:flex;width:max-content;animation:scroll 32s linear infinite}
+.foodstrip span{font-family:"Playfair Display",serif;font-style:italic;font-weight:600;white-space:nowrap;padding-right:1.4rem}
+@keyframes scroll{to{transform:translateX(-50%)}}
+
+/* FOOD: turmeric page, chilli red, menu-card cards */
+body[data-theme="food"]{
+  --bg:#fff3d6;--ink:#3b1a0e;--muted:#8a5a3c;--cbg:#fffaf0;--cink:#3b1a0e;--accent:#d62d20;--on-accent:#fff;--line:#3b1a0e;
+  --head:"Playfair Display",Georgia,serif;--hw:800;--hcase:none;--hls:-.02em;--shadow:6px 6px 0 #3b1a0e;
+  background:radial-gradient(rgba(214,45,32,.10) 2px,transparent 2.5px) 0 0/26px 26px,#fff3d6}
+body[data-theme="food"] .art{background:radial-gradient(circle,#fff 0 56%,#ecdcb8 57% 62%,#fff 63%);border:10px solid #3b1a0e;box-shadow:12px 12px 0 #ffc94d}
+body[data-theme="food"] .hero h1{font-style:italic}
+body[data-theme="food"] .now>div{box-shadow:5px 5px 0 #3b1a0e;border:2px solid #3b1a0e;backdrop-filter:none}
+body[data-theme="food"] nav{border:2px solid #3b1a0e;box-shadow:4px 4px 0 #3b1a0e;backdrop-filter:none}
+body[data-theme="food"] #food-list .card{border:2px solid #3b1a0e;box-shadow:6px 6px 0 #d62d20;backdrop-filter:none}
+body[data-theme="food"] #food-list .card.live{background:#d62d20;box-shadow:6px 6px 0 #3b1a0e}
+body[data-theme="food"] .plate{background:#ffc94d;border:2px solid #3b1a0e}
+body[data-theme="food"] button{border:2px solid #3b1a0e}
+body[data-theme="food"] tr td:first-child{border-left-color:#d62d20}
+body[data-theme="food"] td{border-color:#3b1a0e}
+
+/* CLASSES: ruled paper, navy ink, chalkboard */
+body[data-theme="classes"]{
+  --bg:#f7f5ef;--ink:#14213d;--muted:#5b6479;--cbg:#fff;--cink:#14213d;--accent:#14213d;--on-accent:#fff;--line:rgba(20,33,61,.18);
+  --head:"Playfair Display",Georgia,serif;--hw:800;--hcase:none;--hls:-.02em;--shadow:0 14px 28px -20px rgba(20,33,61,.5);--radius:14px;
+  background:#f7f5ef repeating-linear-gradient(transparent 0 31px,rgba(20,33,61,.08) 31px 32px)}
+body[data-theme="classes"] .art{border-radius:14px;background:#1f3b2f;border:12px solid #8b5a2b;box-shadow:0 16px 30px -16px rgba(0,0,0,.6)}
+body[data-theme="classes"] .now>div:first-child{background:#14213d}
+body[data-theme="classes"] .card.live,body[data-theme="classes"] tr.current td{background:#14213d;color:#fff}
+body[data-theme="classes"] tr td:first-child{border-left-color:#14213d}
+body[data-theme="classes"] tr.current td:first-child{border-left-color:#8c1c2b}
+body[data-theme="classes"] td{border-radius:0}
+body[data-theme="classes"] td:last-child{border-radius:0 12px 12px 0}
+body[data-theme="classes"] td:first-child{border-radius:12px 0 0 12px}
+body[data-theme="classes"] h2{font-size:1.6rem;border-bottom:2px solid #14213d;padding-bottom:6px}
+.quote{margin:0 0 20px;padding:20px 24px 18px 28px;background:#fffdf6;border:1px solid var(--line);border-left:6px solid #8c1c2b;border-radius:12px;box-shadow:var(--shadow)}
+.quote blockquote{margin:0;font-family:"Playfair Display",Georgia,serif;font-style:italic;font-weight:600;font-size:clamp(1.2rem,3.4vw,1.6rem);line-height:1.35}
+.quote blockquote::before{content:"\201C";color:#8c1c2b;font-size:2.4rem;line-height:0;vertical-align:-.35em;margin-right:6px}
+.quote figcaption{margin-top:10px;font-size:.85rem;font-weight:600;color:#8c1c2b}
+.quote figcaption::before{content:"\2014\00a0"}
+body:not([data-theme="classes"]) .quote{display:none}
+
+/* ABOUT: black and white */
+body[data-theme="about"]{
+  --bg:#000;--ink:#fff;--muted:#a8a8a8;--cbg:#0c0c0c;--cink:#fff;--accent:#fff;--on-accent:#000;--line:#fff;--field:#0c0c0c;--fink:#fff;
+  --shadow:none;--radius:6px;--head:"Instrument Serif",Georgia,serif;background:#000}
+body[data-theme="about"] .art{background:#fff;border:0;border-radius:50%}
+body[data-theme="about"] .art span{filter:grayscale(1) contrast(2)}
+body[data-theme="about"] .tab.active{background:#fff;color:#000}
+body[data-theme="about"] .now>div:first-child{background:#fff;color:#000}
+body[data-theme="about"] :focus-visible{outline-color:#fff}
+body[data-theme="about"] .card{border:1px solid #fff;backdrop-filter:none}
+body[data-theme="about"] .chip{border-color:#fff}
+.team{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:14px}
+@media(min-width:720px){.team{grid-template-columns:repeat(4,1fr)}}
+.member h4{margin:10px 0 0;font-family:var(--head);font-size:1.3rem;font-weight:400}
+.member .muted{margin:0;opacity:.7}
+.photo{position:relative;aspect-ratio:4/5;overflow:hidden;border:1px solid #fff;border-radius:6px;display:grid;place-items:center;
+  background:repeating-linear-gradient(45deg,#0c0c0c 0 10px,#1a1a1a 10px 20px)}
+.photo .ph{font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:#a8a8a8}
+.photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.08)}

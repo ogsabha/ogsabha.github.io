@@ -135,7 +135,7 @@ document.querySelectorAll(".tab").forEach((btn) => {
     const sub = document.querySelector(".sub");
     if (sub) sub.textContent = subs[btn.dataset.tab];
     document.querySelector('meta[name="theme-color"]')
-      ?.setAttribute("content", { food: "#f1f1ef", classes: "#e8edf8", wall: "#080304", gigs: "#f4f4f2", about: "#f4f4f2" }[btn.dataset.tab]);
+      ?.setAttribute("content", { food: "#fff3d6", classes: "#f7f5ef", wall: "#080304", gigs: "#f4f4f2", about: "#000000" }[btn.dataset.tab]);
     const r = btn.getBoundingClientRect();
     burst(r.left + r.width / 2, r.top + r.height / 2, TAB_EMOJI[btn.dataset.tab], 8);
   });
@@ -901,17 +901,39 @@ if (ready) {
   $("login-form").hidden = true;
 }
 
+/* ---------- quote of the day (Classes tab) ---------- */
+const QUOTES = [
+  ["Education is the most powerful weapon which you can use to change the world.", "Nelson Mandela"],
+  ["Arise, awake, and stop not till the goal is reached.", "Swami Vivekananda"],
+  ["Dream, dream, dream. Dreams transform into thoughts, and thoughts result in action.", "A. P. J. Abdul Kalam"],
+  ["The beautiful thing about learning is that no one can take it away from you.", "B. B. King"],
+  ["An investment in knowledge pays the best interest.", "Benjamin Franklin"],
+  ["It does not matter how slowly you go as long as you do not stop.", "Confucius"],
+  ["Excellence is not an act, but a habit.", "Will Durant"],
+  ["Knowledge is power.", "Francis Bacon"],
+  ["The more that you read, the more things you will know.", "Dr. Seuss"],
+  ["Learning never exhausts the mind.", "Leonardo da Vinci"]
+];
+function renderQuote() {
+  const p = istParts();
+  const day = Math.floor((Date.UTC(+p.year, +p.month - 1, +p.day) - Date.UTC(+p.year, 0, 0)) / 864e5);
+  const [text, by] = QUOTES[day % QUOTES.length];
+  $("quote-text").textContent = text;
+  $("quote-by").textContent = by;
+}
+
 /* ---------- start ---------- */
 initFood().catch(showLoadError);
 initClasses().catch(showLoadError);
 initWall();
 initGigs();
 initNotices();
+renderQuote();
 
 /* ---------- interactive hero ---------- */
 const hero = $("hero");
 const lines = { food: "good food, on time.", classes: "know your day.", wall: "say it. nobody knows.", gigs: "hire a classmate.", about: "made by students." };
-const ART = { food: "🍛", classes: "📚", wall: "🎈", gigs: "🛠️", about: "✨" };
+const ART = { food: "🍛", classes: "🎓", wall: "🎈", gigs: "🛠️", about: "👥" };
 document.querySelectorAll(".tab").forEach((b) =>
   b.addEventListener("click", () => {
     const h = $("h1-line");

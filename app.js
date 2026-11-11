@@ -219,7 +219,12 @@ function activateTab(name, byUser = false) {
   const sub = document.querySelector(".sub");
   if (sub) sub.textContent = TAB_SUBS[name];
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLORS[name]);
-  if (byUser) window.scrollTo({ top: 0, behavior: "auto" });
+  if (byUser) {
+    window.scrollTo({ top: 0, behavior: "auto" });
+    // Remember the tab so a refresh stays on it (and the address bar link opens it).
+    store.set("tab", name);
+    try { history.replaceState(null, "", "#" + name); } catch (e) { /* ignore */ }
+  }
   if (name === "food") tickClock();
 }
 document.querySelectorAll(".tab").forEach((btn) => {
@@ -231,7 +236,8 @@ document.querySelectorAll(".tab").forEach((btn) => {
 });
 // Footer links like #gigs and #wall open that tab.
 function openFromHash() {
-  const name = location.hash.replace("#", "");
+  let name = location.hash.replace("#", "");
+  if (!TABS.includes(name)) name = store.get("tab", "");   // no link in the address: reopen the last tab
   if (TABS.includes(name)) { activateTab(name); window.scrollTo(0, 0); }
 }
 window.addEventListener("hashchange", openFromHash);

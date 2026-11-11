@@ -135,7 +135,7 @@ document.querySelectorAll(".tab").forEach((btn) => {
     const sub = document.querySelector(".sub");
     if (sub) sub.textContent = subs[btn.dataset.tab];
     document.querySelector('meta[name="theme-color"]')
-      ?.setAttribute("content", { food: "#ffffff", classes: "#c8d8bc", wall: "#080304", gigs: "#f6f5f2", about: "#000000" }[btn.dataset.tab]);
+      ?.setAttribute("content", { food: "#ffffff", classes: "#c8d8bc", wall: "#080304", gigs: "#7a2a0c", about: "#000000" }[btn.dataset.tab]);
     const r = btn.getBoundingClientRect();
     if (TAB_EMOJI[btn.dataset.tab].length) burst(r.left + r.width / 2, r.top + r.height / 2, TAB_EMOJI[btn.dataset.tab], 8);
   });
@@ -785,27 +785,25 @@ function phoneLink(contact) {
 
 const ARC_TINTS = ["#e4e4e0", "#d9f99d", "#e9d5ff", "#fed7aa", "#bfdbfe", "#fbcfe8", "#bbf7d0", "#fde68a", "#cbd5e1"];
 
-// Frosted category cards (they filter the board) plus the little live-count card.
+const CHIP_POS = { "Design": [30, 14], "Photo & video": [62, 8], "Errands & help": [13, 32], "Coding & tech": [36, 38],
+  "Writing & editing": [74, 28], "Music & events": [63, 52], "Tutoring": [22, 56], "Other": [87, 46] };
+
+// Category chips around the globe (they filter the board) plus the live-count card.
 function renderArc() {
-  const arc = $("gig-arc");
-  if (!arc) return;
+  const box = $("gig-arc");
+  if (!box) return;
   const staff = !!currentUser;
   const live = gigsApproved.filter((g) => (staff || (g.reports || 0) < 3) && g.status !== "closed");
-  const keep = arc.scrollLeft;
-  arc.replaceChildren();
-  ["all", ...GIG_CATS].forEach((c, i) => {
+  box.replaceChildren();
+  GIG_CATS.forEach((c, i) => {
     const on = gigFilter.cat === c;
-    const n = c === "all" ? live.length : live.filter((g) => g.category === c).length;
-    arc.append(el("button", {
-      type: "button", class: "arc-card glass" + (on ? " on" : ""), style: `--c:${ARC_TINTS[i]}`, "aria-pressed": String(on),
-      onclick: () => { gigFilter.cat = c; $("gig-cat-filter").value = c; renderGigs(); }
-    },
-      el("i", { text: c === "all" ? "∗" : c.charAt(0) }),
-      el("strong", { text: c === "all" ? "All gigs" : c }),
-      el("span", { text: `${n} open` })));
+    const n = live.filter((g) => g.category === c).length;
+    const [x, y] = CHIP_POS[c] || [50, 50];
+    box.append(el("button", {
+      type: "button", class: "chip-g" + (on ? " on" : ""), style: `--x:${x};--y:${y};--c:${ARC_TINTS[i + 1]}`, "aria-pressed": String(on),
+      onclick: () => { gigFilter.cat = on ? "all" : c; $("gig-cat-filter").value = gigFilter.cat; renderGigs(); }
+    }, el("i"), c, el("em", { text: n })));
   });
-  arc.scrollLeft = keep;
-
   const wanted = live.filter((g) => g.kind === "wanted").length;
   $("gig-stat").textContent = `${live.length} live`;
   $("gig-stat-sub").textContent = live.length ? `${wanted} wanted, ${live.length - wanted} offering` : "Be the first to post.";
@@ -1034,7 +1032,7 @@ renderQuote();
 
 /* ---------- interactive hero ---------- */
 const hero = $("hero");
-const lines = { food: "good food, on time.", classes: "The day worth\nshowing up for.", wall: "the walls are listening.", gigs: "Hire a classmate.\nOr get hired.", about: "made by students." };
+const lines = { food: "good food, on time.", classes: "The day worth\nshowing up for.", wall: "the walls are listening.", gigs: "Hire top student talent\nwithout leaving campus.", about: "made by students." };
 document.querySelectorAll(".tab").forEach((b) =>
   b.addEventListener("click", () => {
     const h = $("h1-line");
@@ -1124,6 +1122,67 @@ function noteColor(id) {
   for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return h % 4;
 }
+
+/* ---------- gigs globe: a slowly turning network sphere ---------- */
+(() => {
+  const cv = $("gig-globe");
+  if (!cv) return;
+  const ctx = cv.getContext("2d");
+  const N = 170, pts = [], links = [];
+  for (let i = 0; i < N; i++) {
+    const y = 1 - (i / (N - 1)) * 2, r = Math.sqrt(1 - y * y), th = i * 2.399963;
+    pts.push([Math.cos(th) * r, y, Math.sin(th) * r]);
+  }
+  for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
+    if (Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1], pts[i][2] - pts[j][2]) < 0.34) links.push([i, j]);
+  }
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let w = 0, h = 0, dpr = 1, t = 0;
+
+  const draw = () => {
+    const cw = cv.clientWidth, ch = cv.clientHeight;
+    if (!cw) return;
+    const d = Math.min(devicePixelRatio || 1, 2);
+    if (cw !== w || ch !== h || d !== dpr) { w = cw; h = ch; dpr = d; cv.width = w * d; cv.height = h * d; }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const cx = w / 2, cy = h * 0.56, R = Math.min(w * 0.36, h * 0.38);
+    const g = ctx.createRadialGradient(cx, cy, R * 0.1, cx, cy, R * 1.3);
+    g.addColorStop(0, "rgba(255,196,130,.6)"); g.addColorStop(0.6, "rgba(255,120,40,.28)"); g.addColorStop(1, "rgba(255,120,40,0)");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    const ca = Math.cos(t), sa = Math.sin(t), ct = Math.cos(0.35), st = Math.sin(0.35);
+    const P = pts.map(([x, y, z]) => {
+      const x1 = x * ca + z * sa, z1 = -x * sa + z * ca;
+      return [cx + x1 * R, cy + (y * ct - z1 * st) * R, y * st + z1 * ct];
+    });
+    ctx.lineWidth = 0.7;
+    for (const [i, j] of links) {
+      ctx.strokeStyle = `rgba(255,255,255,${0.1 + 0.32 * ((P[i][2] + P[j][2]) / 2 + 1) / 2})`;
+      ctx.beginPath(); ctx.moveTo(P[i][0], P[i][1]); ctx.lineTo(P[j][0], P[j][1]); ctx.stroke();
+    }
+    for (const p of P) {
+      ctx.fillStyle = `rgba(255,255,255,${0.35 + 0.65 * (p[2] + 1) / 2})`;
+      ctx.beginPath(); ctx.arc(p[0], p[1], 1 + 1.4 * (p[2] + 1) / 2, 0, 6.2832); ctx.fill();
+    }
+    if (matchMedia("(min-width:760px)").matches) {
+      ctx.strokeStyle = "rgba(255,255,255,.75)"; ctx.lineWidth = 1.2;
+      for (const [x, y] of Object.values(CHIP_POS)) {
+        const px = x / 100 * w, py = y / 100 * h, tx = cx + (px - cx) * 0.45, ty = cy + (py - cy) * 0.45;
+        ctx.beginPath(); ctx.moveTo(px, py);
+        ctx.quadraticCurveTo((px + tx) / 2 + (py - cy) * 0.25, (py + ty) / 2 - (px - cx) * 0.25, tx, ty);
+        ctx.stroke();
+      }
+    }
+  };
+  const frame = () => {
+    if (document.body.dataset.theme === "gigs") { draw(); t += 0.004; }
+    requestAnimationFrame(frame);
+  };
+  if (reduce) {
+    document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => setTimeout(draw, 60)));
+    addEventListener("resize", draw);
+  } else requestAnimationFrame(frame);
+})();
 
 /* ---------- installable app (PWA) ---------- */
 if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(console.warn));

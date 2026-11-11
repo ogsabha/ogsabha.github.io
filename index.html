@@ -86,6 +86,14 @@
     <span class="chip" id="greet">hey</span>
   </div>
 
+  <nav role="tablist" aria-label="Sections">
+    <button class="tab active" id="tab-food" role="tab" aria-selected="true" aria-controls="food" data-tab="food">Food</button>
+    <button class="tab" id="tab-classes" role="tab" aria-selected="false" aria-controls="classes" data-tab="classes">Classes</button>
+    <button class="tab" id="tab-wall" role="tab" aria-selected="false" aria-controls="wall" data-tab="wall">Wall</button>
+    <button class="tab" id="tab-gigs" role="tab" aria-selected="false" aria-controls="gigs" data-tab="gigs">Gigs</button>
+    <button class="tab" id="tab-about" role="tab" aria-selected="false" aria-controls="about" data-tab="about">About</button>
+  </nav>
+
   <header class="hero" id="hero">
     <div class="hero-text">
       <h1 id="h1-line">good food, on time.</h1>
@@ -97,14 +105,6 @@
   <div class="foodstrip" aria-hidden="true"><div class="track"><span>🍛 biriyani ✦ 🥞 palappam ✦ 🐟 fish curry ✦ ☕ chaya ✦ 🍌 banana fry ✦ 🥟 samosa ✦ 🍚 ghee rice ✦ 🍮 payasam ✦</span><span>🍛 biriyani ✦ 🥞 palappam ✦ 🐟 fish curry ✦ ☕ chaya ✦ 🍌 banana fry ✦ 🥟 samosa ✦ 🍚 ghee rice ✦ 🍮 payasam ✦</span></div></div>
 
   <div id="now-strip" class="now" aria-live="polite"></div>
-
-  <nav role="tablist" aria-label="Sections">
-    <button class="tab active" id="tab-food" role="tab" aria-selected="true" aria-controls="food" data-tab="food">Food</button>
-    <button class="tab" id="tab-classes" role="tab" aria-selected="false" aria-controls="classes" data-tab="classes">Classes</button>
-    <button class="tab" id="tab-wall" role="tab" aria-selected="false" aria-controls="wall" data-tab="wall">Wall</button>
-    <button class="tab" id="tab-gigs" role="tab" aria-selected="false" aria-controls="gigs" data-tab="gigs">Gigs</button>
-    <button class="tab" id="tab-about" role="tab" aria-selected="false" aria-controls="about" data-tab="about">About</button>
-  </nav>
 
   <p id="setup-note" class="note" hidden>
     Firebase is not connected yet. The menu and timetable work, but ratings,

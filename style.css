@@ -565,3 +565,17 @@ button.chip-g.on{background:#2a1007;color:#fff}
   .fl-left{left:2%;bottom:12%}
   .fl-right{right:2%;bottom:2%;background:rgba(40,10,0,.38)}
 }
+
+/* =========================================================
+   v9: requested tweaks
+========================================================= */
+/* 1. Wall and About tabs: hide the footer "About Og Sabha" text (the one that mentions the mess and the class timetable) */
+body[data-theme="wall"] footer .about,
+body[data-theme="about"] footer .about{display:none}
+
+/* 2. Gigs tab: globe first, then the headline (hero), then the rest.
+      main and the gigs panel stop being boxes so their children can be ordered inside the body's flex column. */
+body[data-theme="gigs"] main,
+body[data-theme="gigs"] #gigs.active{display:contents}
+body[data-theme="gigs"] #gigs > *{width:min(960px,calc(100% - 32px));margin-left:auto;margin-right:auto}
+body[data-theme="gigs"] #gigs > .orbit{order:-1;margin-top:10px}

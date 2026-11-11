@@ -135,7 +135,7 @@ document.querySelectorAll(".tab").forEach((btn) => {
     const sub = document.querySelector(".sub");
     if (sub) sub.textContent = subs[btn.dataset.tab];
     document.querySelector('meta[name="theme-color"]')
-      ?.setAttribute("content", { food: "#fff3d6", classes: "#c8d8bc", wall: "#080304", gigs: "#f4f4f2", about: "#000000" }[btn.dataset.tab]);
+      ?.setAttribute("content", { food: "#ffffff", classes: "#c8d8bc", wall: "#080304", gigs: "#f4f4f2", about: "#000000" }[btn.dataset.tab]);
     const r = btn.getBoundingClientRect();
     if (TAB_EMOJI[btn.dataset.tab].length) burst(r.left + r.width / 2, r.top + r.height / 2, TAB_EMOJI[btn.dataset.tab], 8);
   });
@@ -170,48 +170,93 @@ async function initFood() {
   setInterval(renderFood, 60000);
 }
 
+let featuredMeal = null; // meal picked by tapping a card (resets when the day changes)
+const noPhoto = new Set();
+
+// A round plate. Shows food/<meal>.jpg when that photo exists, otherwise the meal's name.
+function plateArt(m, big) {
+  const p = el("div", { class: "plate-art" + (big ? " big" : "") },
+    el("span", { class: "plate-name", text: big ? m.name : m.name.charAt(0) }));
+  if (!noPhoto.has(m.name)) {
+    const img = el("img", { src: `food/${m.name.toLowerCase()}.jpg`, alt: "", loading: "lazy" });
+    img.addEventListener("error", () => { noPhoto.add(m.name); img.remove(); });
+    p.append(img);
+  }
+  return p;
+}
+
 function renderFood() {
   if (!menu) return;
   const day = $("day-select").value;
   const isToday = day === todayName();
   const nm = nowMin();
+  const dayMenu = menu.days[day] || {};
+  const liveOf = (m) => isToday && nm >= toMin(m.start) && nm < toMin(m.end);
+  const pick = (name) => { featuredMeal = name; renderFood(); };
+  const feat = menu.meals.find((m) => m.name === featuredMeal) || menu.meals.find(liveOf)
+    || (isToday && menu.meals.find((m) => toMin(m.start) > nm)) || menu.meals[0];
+
+  // day links
+  const nav = $("day-nav");
+  nav.replaceChildren();
+  [1, 2, 3, 4, 5, 6, 0].map((i) => DAYS[i]).forEach((d) => nav.append(el("button", {
+    type: "button", class: "dchip" + (d === day ? " active" : ""), text: d.slice(0, 3), "aria-label": d,
+    onclick: () => { $("day-select").value = d; featuredMeal = null; renderFood(); }
+  })));
+
+  // rating box for the featured meal
+  let rateBox = null;
+  if (isToday && ready) {
+    const stats = ratingStats[feat.name];
+    rateBox = el("div", { class: "rate" },
+      el("p", { class: "muted", text: stats ? `★ ${(stats.sum / stats.count).toFixed(1)} from ${stats.count} ratings today` : "No ratings yet today" }));
+    if (nm >= toMin(feat.start)) {
+      const mine = Number(store.get(`rated_${todayStr()}_${feat.name}`, 0));
+      const stars = el("div", { class: "stars" });
+      for (let i = 1; i <= 5; i++) {
+        stars.append(el("button", { type: "button", class: i <= mine ? "on" : "", "aria-label": `${i} star${i > 1 ? "s" : ""}`, text: "★", onclick: () => rate(feat.name, i) }));
+      }
+      rateBox.append(stars);
+    } else rateBox.append(el("p", { class: "muted", text: "Rating opens when the meal starts." }));
+  }
+
+  // big feature: plate on a dark panel, headline, description, serving time
+  $("food-feature").replaceChildren(
+    el("div", { class: "stage" },
+      el("div", { class: "slab" }),
+      el("div", { class: "rail" }, menu.meals.map((m) => el("button", { type: "button", class: "rail-btn" + (m.name === feat.name ? " on" : ""), text: m.name, onclick: () => pick(m.name) }))),
+      plateArt(feat, true)),
+    el("div", { class: "copy" },
+      liveOf(feat) ? el("span", { class: "badge pulse", text: "Serving now" }) : null,
+      el("h2", { text: `${day} ${feat.name}` }),
+      el("p", { class: "desc", text: dayMenu[feat.name] || "Not added yet" }),
+      el("p", { class: "when" }, `${fmt12(feat.start)} – ${fmt12(feat.end)}`, el("small", { text: "serving time" })),
+      rateBox,
+      el("a", { class: "darkbtn", href: "mess-menu.html", text: "Full week menu" }))
+  );
+
+  // one dark card per meal
   const list = $("food-list");
   list.replaceChildren();
-
   menu.meals.forEach((m) => {
-    const live = isToday && nm >= toMin(m.start) && nm < toMin(m.end);
-    const card = el("div", { class: "card" + (live ? " live" : "") },
-      el("div", { class: "row" },
-        el("h3", { text: m.name }),
-        live ? el("span", { class: "badge pulse", text: "Serving now" }) : null
-      ),
-      el("p", { class: "muted", text: `${fmt12(m.start)} – ${fmt12(m.end)}` }),
-      el("p", { text: (menu.days[day] || {})[m.name] || "Not added yet" })
-    );
-
-    if (isToday && ready) {
-      const stats = ratingStats[m.name];
-      const avg = stats ? (stats.sum / stats.count).toFixed(1) : null;
-      card.append(el("p", { class: "muted", text: stats ? `★ ${avg} (${stats.count} ratings today)` : "No ratings yet today" }));
-
-      if (nm >= toMin(m.start)) {
-        const mine = Number(store.get(`rated_${todayStr()}_${m.name}`, 0));
-        const stars = el("div", { class: "stars" });
-        for (let i = 1; i <= 5; i++) {
-          stars.append(el("button", {
-            class: i <= mine ? "on" : "",
-            "aria-label": `${i} star${i > 1 ? "s" : ""}`,
-            text: "★",
-            onclick: (e) => { burst(e.clientX, e.clientY, ["⭐", "✨", "🎉"], 12); rate(m.name, i); }
-          }));
-        }
-        card.append(stars);
-      } else {
-        card.append(el("p", { class: "muted", text: "Rating opens when the meal starts." }));
-      }
-    }
-    list.append(card);
+    const stats = isToday ? ratingStats[m.name] : null;
+    list.append(el("button", {
+      type: "button", class: "tile" + (m.name === feat.name ? " on" : ""), "aria-pressed": String(m.name === feat.name), onclick: () => pick(m.name)
+    },
+      plateArt(m, false),
+      el("span", { class: "tile-time", text: fmt12(m.start) }),
+      el("span", { class: "tile-name", text: m.name }),
+      el("span", { class: "tile-sub", text: (dayMenu[m.name] || "Not added yet").split(/[,(]/)[0].trim() }),
+      el("span", { class: "tile-foot" },
+        el("span", { text: liveOf(m) ? "Serving now" : stats ? `★ ${(stats.sum / stats.count).toFixed(1)}` : "" }),
+        el("span", { "aria-hidden": "true", text: "›" }))
+    ));
   });
+
+  // dots under the cards
+  const dots = $("food-dots");
+  dots.replaceChildren();
+  menu.meals.forEach((m) => dots.append(el("button", { type: "button", class: m.name === feat.name ? "on" : "", "aria-label": m.name, onclick: () => pick(m.name) })));
   renderNow();
 }
 

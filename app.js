@@ -1657,6 +1657,40 @@ if (ready) {
   $("login-form").hidden = true;
 }
 
+/* ---------- ABOUT: three-step story, 01 --- 03 ---------- */
+const ABOUT_STEPS = [
+  { k: "Our story", t: "Og Sabha", p: "Made by the UG 2026 batch of DCSMAT, Vagamon. We got tired of asking \u201cwhat\u2019s for lunch?\u201d and \u201cwhich hour is this?\u201d, so we built one place for both." },
+  { k: "What you can do", t: "Four tabs", p: "Food: today\u2019s mess menu and meal ratings. Classes: your live timetable and notices. Wall: post anonymously, every post is checked first. Gigs: offer a skill or hire a classmate." },
+  { k: "Say hello", t: "Contact", p: "Found a mistake or want to join the team? Message us on Instagram: [@your_handle]." }
+];
+function initAbout() {
+  const root = $("ab2");
+  if (!root) return;
+  let i = 0, busy = 0;
+  const show = (n) => {
+    n = (n + ABOUT_STEPS.length) % ABOUT_STEPS.length;
+    if (n === i && root.dataset.ready) return;
+    root.dataset.ready = "1";
+    clearTimeout(busy);
+    root.classList.add("swap");
+    busy = setTimeout(() => {
+      i = n;
+      const s = ABOUT_STEPS[i];
+      $("ab2-kicker").textContent = s.k; $("ab2-title").textContent = s.t; $("ab2-text").textContent = s.p;
+      $("ab2-n").textContent = pad(i + 1);
+      root.dataset.i = String(i);
+      root.style.setProperty("--p", String(i + 1));
+      root.querySelectorAll(".ab2-links button").forEach((b) => b.classList.toggle("on", Number(b.dataset.go) === i));
+      root.classList.remove("swap");
+    }, reduceMotion ? 0 : 280);
+  };
+  $("ab2-next").addEventListener("click", () => show(i + 1));
+  $("ab2-bar").addEventListener("click", () => show(i + 1));
+  root.querySelectorAll(".ab2-links button").forEach((b) => b.addEventListener("click", () => show(Number(b.dataset.go))));
+  root.style.setProperty("--p", "1");
+  root.querySelector(".ab2-links button").classList.add("on");
+}
+
 /* ---------- start ---------- */
 const safe = (fn) => { try { const r = fn(); if (r && r.catch) r.catch((e) => console.error(e)); } catch (e) { console.error(e); } };
 safe(greet);
@@ -1666,6 +1700,7 @@ initClasses().catch(showLoadError);
 safe(initWall);
 safe(initGigs);
 safe(initGlobe);
+safe(initAbout);
 safe(openFromHash);
 
 // Offline support (sw.js is network-first, so updates always arrive).

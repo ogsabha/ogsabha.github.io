@@ -705,3 +705,94 @@ body[data-theme="wall"] .wp-copy h2{animation:wpglitch 7s infinite}
   .wposter::before,.wposter::after,.wp-fog,.wp-scrawl span,.wp-clown .lid,body[data-theme="wall"] .wp-copy h2{animation:none}
   .wposter::after{background:radial-gradient(circle 300px at var(--mx) var(--my),rgba(0,0,0,0) 0,rgba(0,0,0,.2) 50%,rgba(0,0,0,.6) 100%)}
 }
+
+/* =========================================================
+   7. WALL: full screen + deeper horror
+   The poster now fills the whole screen (no card). The top bar and tabs float over it.
+========================================================= */
+body[data-theme="wall"] main{width:100%;max-width:none;margin:0}
+body[data-theme="wall"] .topbar{position:absolute;top:0;left:0;right:0;z-index:12}
+body[data-theme="wall"] nav{position:fixed;top:68px;left:0;right:0;margin:0 auto;z-index:12}
+body[data-theme="wall"] .drips{z-index:11}
+
+body[data-theme="wall"] .wposter{
+  width:100%;min-height:100vh;min-height:100svh;margin:0;border-radius:0;padding-top:150px;box-shadow:none;
+  grid-template-columns:clamp(36px,6vw,96px) minmax(0,1fr) minmax(0,1fr);
+  background:radial-gradient(1100px 760px at 72% 46%,#5a0a10 0%,#2b0508 42%,#060102 100%)}
+body[data-theme="wall"] .wposter::after{
+  background:radial-gradient(circle 230px at var(--mx) var(--my),rgba(0,0,0,0) 0,rgba(0,0,0,.35) 40%,rgba(0,0,0,.93) 100%);animation:wpflick 9s infinite}
+
+/* bigger, colder type */
+body[data-theme="wall"] .wp-copy{padding:40px 0 90px 8px}
+body[data-theme="wall"] .wp-copy h2{
+  font-size:clamp(2.6rem,7vw,6rem);line-height:.98;max-width:8.5em;color:#f4e9e9;font-style:italic;
+  text-shadow:0 0 34px rgba(217,0,0,.55),0 2px 0 #3a0306}
+body[data-theme="wall"] .wp-copy h2::after{
+  display:block;content:"";width:7px;height:46px;margin:10px 0 0 .35em;background:linear-gradient(#7a0000,#c40000);
+  border-radius:0 0 7px 7px;transform-origin:top;animation:wph2drip 6s ease-in infinite}
+@keyframes wph2drip{0%,10%{transform:scaleY(.15);opacity:0}30%{opacity:1}70%{transform:scaleY(1.5);opacity:1}100%{transform:scaleY(1.6);opacity:0}}
+body[data-theme="wall"] .wp-copy p{font-size:clamp(.85rem,1.2vw,1rem);max-width:42ch;color:#e6c9c9;text-shadow:0 0 10px #000}
+body[data-theme="wall"] button.wp-btn.solid{background:#b00000;color:#fff;border-color:#ff2b2b;box-shadow:0 0 26px rgba(255,0,0,.5)}
+body[data-theme="wall"] button.wp-btn.solid:hover{background:#ff1a1a}
+body[data-theme="wall"] button.wp-btn.ghost{border-color:rgba(255,120,120,.6);color:#ffd9d9}
+body[data-theme="wall"] button.wp-btn.ghost:hover{background:#b00000;color:#fff}
+body[data-theme="wall"] .wp-info dt{color:#f4e9e9;text-shadow:0 0 14px rgba(217,0,0,.5)}
+body[data-theme="wall"] .wp-info dd{color:#d9b8b8}
+body[data-theme="wall"] .wp-info{right:clamp(16px,3vw,48px)}
+
+/* clown + balloon scale with the screen */
+body[data-theme="wall"] .wp-clown{right:16%;top:12%;height:88%;
+  animation:wpbreathe 7s ease-in-out infinite,wplunge 17s infinite}
+body[data-theme="wall"] .wp-balloon{right:-7%;top:8%;width:26%;height:96%}
+@keyframes wplunge{0%,79%,83%,100%{scale:1}80%{scale:1.14}81%{scale:1.2}82%{scale:1.1}}
+
+/* new horror layers */
+.wp-pulse{position:absolute;inset:0;z-index:6;pointer-events:none;box-shadow:inset 0 0 170px 40px rgba(190,0,0,.6);animation:wpbeat 1.7s infinite}
+@keyframes wpbeat{0%,100%{opacity:.3}12%{opacity:.95}24%{opacity:.4}38%{opacity:.8}60%{opacity:.3}}
+.wp-bleed{position:absolute;inset:0 0 auto 0;height:100%;z-index:6;pointer-events:none;overflow:hidden}
+.wp-bleed i{position:absolute;top:0;left:var(--l);width:var(--w);height:0;background:linear-gradient(#4a0000,#a00000);border-radius:0 0 999px 999px;
+  filter:drop-shadow(0 0 5px rgba(255,0,0,.45));animation:wpdrip var(--d) ease-in infinite;animation-delay:var(--s)}
+@keyframes wpdrip{0%{height:0;opacity:1}65%{height:var(--h)}92%{height:var(--h);opacity:1}100%{height:var(--h);opacity:0}}
+.wp-track{position:absolute;left:0;right:0;top:-20%;height:16%;z-index:7;pointer-events:none;
+  background:linear-gradient(transparent,rgba(255,255,255,.06),rgba(255,255,255,.02),transparent);animation:wptrack 7s linear infinite}
+@keyframes wptrack{to{top:115%}}
+.wp-flash{position:absolute;inset:0;z-index:9;pointer-events:none;background:#c80000;mix-blend-mode:screen;opacity:0;animation:wpflash 17s infinite}
+@keyframes wpflash{0%,79.4%,82%,100%{opacity:0}80%{opacity:.4}81%{opacity:.12}81.5%{opacity:.3}}
+.wp-scratch{position:absolute;left:3%;bottom:4%;width:clamp(120px,15vw,220px);z-index:2;pointer-events:none;opacity:.7;filter:drop-shadow(0 0 8px rgba(200,0,0,.5))}
+.wp-rec{position:absolute;right:clamp(16px,3vw,48px);bottom:24px;z-index:9;display:flex;align-items:center;gap:8px;
+  font:400 .95rem "Special Elite","Courier New",monospace;letter-spacing:.14em;color:#ffdada;text-shadow:0 0 8px #000;opacity:.85}
+.wp-rec i{width:11px;height:11px;border-radius:50%;background:#ff1a1a;box-shadow:0 0 10px #ff1a1a;animation:wprec 1.2s steps(1) infinite}
+@keyframes wprec{50%{opacity:0}}
+body[data-theme="wall"] button.wp-down{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:9;display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:6px 12px;border:0;background:none;box-shadow:none;color:#d9a3a3;font:400 .85rem "Special Elite","Courier New",monospace;letter-spacing:.12em;cursor:pointer;text-shadow:0 0 10px #000}
+body[data-theme="wall"] button.wp-down span{font-size:1.3rem;animation:wpdown 1.6s ease-in-out infinite}
+body[data-theme="wall"] button.wp-down:hover{color:#fff}
+@keyframes wpdown{50%{transform:translateY(6px)}}
+body[data-theme="wall"] .wp-scrawl span{font-size:clamp(1.1rem,2.6vw,2rem);color:#ff2a1f}
+
+/* below the poster: the form and posts get a narrow column again and a darker, grimier look */
+body[data-theme="wall"] #wall > :not(.wposter){width:min(960px,calc(100% - 32px));margin-left:auto;margin-right:auto}
+body[data-theme="wall"] .wposter + form{margin-top:56px}
+body[data-theme="wall"] #post-form textarea{background:#050101;color:#f1d4d4;font-family:"Special Elite","Courier New",monospace;border:1px solid #5a0000;
+  box-shadow:inset 0 0 40px rgba(0,0,0,.9)}
+body[data-theme="wall"] #post-form textarea::placeholder{color:#8a4a4a}
+#post-list .card:nth-child(3n){animation:wpcard 6s infinite}
+@keyframes wpcard{0%,92%,100%{opacity:1}93%{opacity:.45}94%{opacity:1}96%{opacity:.6}97%{opacity:1}}
+
+@media(max-width:760px){
+  body[data-theme="wall"] .wposter{grid-template-columns:1fr;min-height:100svh;padding-top:140px}
+  body[data-theme="wall"] .wp-copy{padding:400px 22px 70px}
+  body[data-theme="wall"] .wp-clown{right:50%;margin-right:-130px;top:140px;height:300px;-webkit-mask-image:none;mask-image:none}
+  body[data-theme="wall"] .wp-balloon{display:none}
+  body[data-theme="wall"] .wp-info{position:static;transform:none;text-align:left;grid-template-columns:1fr 1fr;padding:0 22px 70px;gap:14px 18px}
+  body[data-theme="wall"] .wp-copy h2{font-size:clamp(2.2rem,11vw,3.4rem)}
+  body[data-theme="wall"] .wp-scratch{width:110px;opacity:.5}
+  body[data-theme="wall"] .wp-rec{bottom:60px;right:16px;font-size:.8rem}
+  body[data-theme="wall"] .wposter::after{background:radial-gradient(circle 200px at var(--mx) var(--my),rgba(0,0,0,0) 0,rgba(0,0,0,.35) 40%,rgba(0,0,0,.9) 100%)}
+}
+@media(prefers-reduced-motion:reduce){
+  .wp-pulse,.wp-bleed i,.wp-track,.wp-flash,.wp-rec i,body[data-theme="wall"] .wp-clown,body[data-theme="wall"] .wp-copy h2::after,
+  body[data-theme="wall"] button.wp-down span,#post-list .card:nth-child(3n){animation:none}
+  .wp-bleed i{height:var(--h)}
+  .wp-flash{display:none}
+}

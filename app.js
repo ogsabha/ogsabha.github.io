@@ -25,7 +25,7 @@ const firebaseConfig = {
 const BAD_WORDS = ["idiot", "stupid", "slut", "bitch"];
 
 const MEAL_EMOJI = { Breakfast: "🍳", Lunch: "🍛", Snacks: "🍟", Dinner: "🌙" };
-const TAB_EMOJI = { food: ["🍛", "🍟", "🧁"], classes: ["📚", "✏️", "💡"], wall: ["💬", "🤫", "🌙"], gigs: ["🛠️", "💸", "🎨"] };
+const TAB_EMOJI = { food: ["🍛", "🍟", "🧁"], classes: ["📚", "✏️", "💡"], wall: ["💬", "🤫", "🌙"], gigs: ["🛠️", "💸", "🎨"], about: ["✨", "💛", "🎓"] };
 
 /* --------------------------------------------------------------- */
 
@@ -129,12 +129,13 @@ document.querySelectorAll(".tab").forEach((btn) => {
       food: "Today's menu, what's being served now, and how it actually tastes.",
       classes: "Stay on top of your day: who is teaching, and where.",
       wall: "Say what you can't say out loud. Anonymous, always kind.",
-      gigs: "Need a hand? Got a skill? Post it, get hired, earn a little."
+      gigs: "Need a hand? Got a skill? Post it, get hired, earn a little.",
+      about: "Who made this, what it does, and how to reach us."
     };
     const sub = document.querySelector(".sub");
     if (sub) sub.textContent = subs[btn.dataset.tab];
     document.querySelector('meta[name="theme-color"]')
-      ?.setAttribute("content", { food: "#FFF0C2", classes: "#DDD6FF", wall: "#130F1E", gigs: "#C9F4E3" }[btn.dataset.tab]);
+      ?.setAttribute("content", { food: "#f1f1ef", classes: "#e8edf8", wall: "#080304", gigs: "#f4f4f2", about: "#f4f4f2" }[btn.dataset.tab]);
     const r = btn.getBoundingClientRect();
     burst(r.left + r.width / 2, r.top + r.height / 2, TAB_EMOJI[btn.dataset.tab], 8);
   });
@@ -181,7 +182,7 @@ function renderFood() {
     const live = isToday && nm >= toMin(m.start) && nm < toMin(m.end);
     const card = el("div", { class: "card" + (live ? " live" : "") },
       el("div", { class: "row" },
-        el("h3", { text: `${MEAL_EMOJI[m.name] || "🍽️"} ${m.name}` }),
+        el("div", { class: "ttl" }, el("span", { class: "plate", text: MEAL_EMOJI[m.name] || "🍽️" }), el("h3", { text: m.name })),
         live ? el("span", { class: "badge pulse", text: "Serving now" }) : null
       ),
       el("p", { class: "muted", text: `${fmt12(m.start)} – ${fmt12(m.end)}` }),
@@ -262,6 +263,7 @@ function statusBadge(cls, period) {
 
 function renderClasses() {
   if (!tt) return;
+  renderNotices();
   const cls = $("class-select").value;
   const slots = (tt.classes[cls] || {})[todayName()] || [];
   const periodOf = (no) => tt.periods.find((p) => p.no === no);
@@ -334,6 +336,58 @@ async function setAttendance(cls, period, present) {
 async function clearAttendance(cls, period) {
   try { await deleteDoc(doc(db, "attendance", `${todayStr()}_${cls}_${period}`)); }
   catch (e) { console.error(e); alert("Could not clear."); }
+}
+
+/* =================================================================
+   NOTICES (admins post per class, everyone reads)
+================================================================= */
+let notices = [];
+
+function initNotices() {
+  const t = $("notice-text");
+  t.addEventListener("input", () => { $("notice-count").textContent = `${t.value.length} / 400`; });
+  $("notice-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = $("notice-msg"), text = t.value.trim(), cls = $("class-select").value;
+    if (!text || !currentUser) return;
+    try {
+      await addDoc(collection(db, "notices"), { cls, text, createdAt: serverTimestamp() });
+      t.value = ""; $("notice-count").textContent = "0 / 400";
+      msg.textContent = `Published to ${cls}.`;
+    } catch (err) {
+      console.error(err);
+      msg.textContent = "Could not publish. Log in as an admin and try again.";
+    }
+  });
+  if (ready) {
+    onSnapshot(collection(db, "notices"),
+      (snap) => { notices = snap.docs.map((d) => ({ id: d.id, ...d.data() })); renderNotices(); },
+      (err) => console.warn("Could not read notices:", err.code));
+  }
+}
+
+function renderNotices() {
+  if (!ready || !$("notice-list")) return;
+  const cls = $("class-select").value;
+  $("notice-compose").hidden = !currentUser;
+  $("notice-to").textContent = cls;
+  const box = $("notice-list");
+  box.replaceChildren();
+  notices
+    .filter((n) => n.cls === cls)
+    .sort((a, b) => (b.createdAt?.seconds ?? 9e9) - (a.createdAt?.seconds ?? 9e9))
+    .forEach((n) => box.append(el("div", { class: "card" },
+      el("p", { class: "notice-head", text: `📌 Notice for ${n.cls} · ${postTime(n)}` }),
+      el("p", { text: n.text }),
+      currentUser ? el("div", { class: "actions" },
+        el("button", { class: "danger", text: "Delete notice", onclick: () => removeNotice(n.id) })) : null
+    )));
+}
+
+async function removeNotice(id) {
+  if (!confirm("Delete this notice?")) return;
+  try { await deleteDoc(doc(db, "notices", id)); }
+  catch (e) { console.error(e); alert("Not allowed."); }
 }
 
 /* =================================================================
@@ -852,14 +906,17 @@ initFood().catch(showLoadError);
 initClasses().catch(showLoadError);
 initWall();
 initGigs();
+initNotices();
 
 /* ---------- interactive hero ---------- */
 const hero = $("hero");
-const lines = { food: "eat up.", classes: "show up.", wall: "speak up.", gigs: "get hired." };
+const lines = { food: "good food, on time.", classes: "know your day.", wall: "say it. nobody knows.", gigs: "hire a classmate.", about: "made by students." };
+const ART = { food: "🍛", classes: "📚", wall: "🎈", gigs: "🛠️", about: "✨" };
 document.querySelectorAll(".tab").forEach((b) =>
   b.addEventListener("click", () => {
     const h = $("h1-line");
     h.textContent = lines[b.dataset.tab];
+    document.querySelector("#hero-art span").textContent = ART[b.dataset.tab];
     h.classList.remove("pop"); void h.offsetWidth; h.classList.add("pop");
   }));
 

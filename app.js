@@ -129,13 +129,13 @@ document.querySelectorAll(".tab").forEach((btn) => {
       food: "Today's menu, what's being served now, and how it actually tastes.",
       classes: "Every period, every teacher, and a notice from your admins when plans change.",
       wall: "Confess in the dark. No names, no faces, only whispers.",
-      gigs: "Need a hand? Got a skill? Post it, get hired, earn a little.",
+      gigs: "Post a job or advertise a skill. Replies stay private, and every post is checked before it goes live.",
       about: "Who made this, what it does, and how to reach us."
     };
     const sub = document.querySelector(".sub");
     if (sub) sub.textContent = subs[btn.dataset.tab];
     document.querySelector('meta[name="theme-color"]')
-      ?.setAttribute("content", { food: "#ffffff", classes: "#c8d8bc", wall: "#080304", gigs: "#f4f4f2", about: "#000000" }[btn.dataset.tab]);
+      ?.setAttribute("content", { food: "#ffffff", classes: "#c8d8bc", wall: "#080304", gigs: "#f6f5f2", about: "#000000" }[btn.dataset.tab]);
     const r = btn.getBoundingClientRect();
     if (TAB_EMOJI[btn.dataset.tab].length) burst(r.left + r.width / 2, r.top + r.height / 2, TAB_EMOJI[btn.dataset.tab], 8);
   });
@@ -638,6 +638,9 @@ function initGigs() {
   $("gig-name").value = store.get("gigName", "");
 
   $("gig-form").addEventListener("submit", submitGig);
+  $("gig-cta-post").addEventListener("click", () => { const d = $("gig-compose"); d.open = true; d.scrollIntoView({ behavior: "smooth", block: "center" }); });
+  $("gig-cta-browse").addEventListener("click", () => $("gig-board").scrollIntoView({ behavior: "smooth", block: "start" }));
+  renderArc();
   $("apply-form").addEventListener("submit", submitApplication);
   $("apply-cancel").addEventListener("click", () => $("apply-dialog").close());
 
@@ -780,6 +783,38 @@ function phoneLink(contact) {
   return `https://wa.me/${n.length === 10 ? "91" + n : n}`;
 }
 
+const ARC_TINTS = ["#e4e4e0", "#d9f99d", "#e9d5ff", "#fed7aa", "#bfdbfe", "#fbcfe8", "#bbf7d0", "#fde68a", "#cbd5e1"];
+
+// Frosted category cards (they filter the board) plus the little live-count card.
+function renderArc() {
+  const arc = $("gig-arc");
+  if (!arc) return;
+  const staff = !!currentUser;
+  const live = gigsApproved.filter((g) => (staff || (g.reports || 0) < 3) && g.status !== "closed");
+  const keep = arc.scrollLeft;
+  arc.replaceChildren();
+  ["all", ...GIG_CATS].forEach((c, i) => {
+    const on = gigFilter.cat === c;
+    const n = c === "all" ? live.length : live.filter((g) => g.category === c).length;
+    arc.append(el("button", {
+      type: "button", class: "arc-card glass" + (on ? " on" : ""), style: `--c:${ARC_TINTS[i]}`, "aria-pressed": String(on),
+      onclick: () => { gigFilter.cat = c; $("gig-cat-filter").value = c; renderGigs(); }
+    },
+      el("i", { text: c === "all" ? "∗" : c.charAt(0) }),
+      el("strong", { text: c === "all" ? "All gigs" : c }),
+      el("span", { text: `${n} open` })));
+  });
+  arc.scrollLeft = keep;
+
+  const wanted = live.filter((g) => g.kind === "wanted").length;
+  $("gig-stat").textContent = `${live.length} live`;
+  $("gig-stat-sub").textContent = live.length ? `${wanted} wanted, ${live.length - wanted} offering` : "Be the first to post.";
+  const av = $("gig-avatars");
+  av.replaceChildren();
+  live.slice(0, 4).forEach((g, i) => av.append(el("span", { style: `--c:${ARC_TINTS[1 + ((g.title.length + i) % 8)]}`, text: (g.name || "S").charAt(0).toUpperCase() })));
+  if (live.length > 4) av.append(el("span", { class: "more", text: `+${live.length - 4}` }));
+}
+
 function gigCard(g, staff, reported) {
   const mine = !!me && g.ownerUid === me.uid;
   const closed = g.status === "closed";
@@ -830,6 +865,7 @@ function replyRow(g, r) {
 
 function renderGigs() {
   if (!ready) return;
+  renderArc();
   const staff = !!currentUser;
   const reported = reportedGigs();
 
@@ -998,7 +1034,7 @@ renderQuote();
 
 /* ---------- interactive hero ---------- */
 const hero = $("hero");
-const lines = { food: "good food, on time.", classes: "The day worth\nshowing up for.", wall: "the walls are listening.", gigs: "hire a classmate.", about: "made by students." };
+const lines = { food: "good food, on time.", classes: "The day worth\nshowing up for.", wall: "the walls are listening.", gigs: "Hire a classmate.\nOr get hired.", about: "made by students." };
 document.querySelectorAll(".tab").forEach((b) =>
   b.addEventListener("click", () => {
     const h = $("h1-line");

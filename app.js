@@ -1216,6 +1216,16 @@ function noteColor(id) {
     go(d.dataset.go);
   }));
 
+  const poster = document.querySelector(".wposter");
+  if (poster) {
+    // A torch beam: the poster stays dark except around the pointer.
+    poster.addEventListener("pointermove", (e) => {
+      const r = poster.getBoundingClientRect();
+      poster.style.setProperty("--mx", `${e.clientX - r.left}px`);
+      poster.style.setProperty("--my", `${e.clientY - r.top}px`);
+    });
+    poster.addEventListener("pointerleave", () => { poster.style.removeProperty("--mx"); poster.style.removeProperty("--my"); });
+  }
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const pupils = document.querySelectorAll(".wp-clown .pupil");
   document.addEventListener("pointermove", (e) => {

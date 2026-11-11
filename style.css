@@ -569,9 +569,9 @@ button.chip-g.on{background:#2a1007;color:#fff}
 /* =========================================================
    v9: requested tweaks
 ========================================================= */
-/* 1. Wall and About tabs: hide the footer "About Og Sabha" text (the one that mentions the mess and the class timetable) */
-body[data-theme="wall"] footer .about,
-body[data-theme="about"] footer .about{display:none}
+/* 1. Wall and About tabs: hide the "In the mess / In class" strip (Food and Gigs already hide it) */
+body[data-theme="wall"] .now,
+body[data-theme="about"] .now{display:none}
 
 /* 2. Gigs tab: globe first, then the headline (hero), then the rest.
       main and the gigs panel stop being boxes so their children can be ordered inside the body's flex column. */

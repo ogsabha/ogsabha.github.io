@@ -75,8 +75,8 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=Poppins:wght@400;500;600;700&display=swap">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=Poppins:wght@400;500;600;700&display=swap"></noscript>
+  <link rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Poppins:wght@400;500;600;700&display=swap">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-theme="food">
@@ -93,6 +93,8 @@
     </div>
     <div class="art" id="hero-art" role="img" aria-label="Section illustration"><span>🍛</span></div>
   </header>
+
+  <div class="foodstrip" aria-hidden="true"><div class="track"><span>🍛 biriyani ✦ 🥞 palappam ✦ 🐟 fish curry ✦ ☕ chaya ✦ 🍌 banana fry ✦ 🥟 samosa ✦ 🍚 ghee rice ✦ 🍮 payasam ✦</span><span>🍛 biriyani ✦ 🥞 palappam ✦ 🐟 fish curry ✦ ☕ chaya ✦ 🍌 banana fry ✦ 🥟 samosa ✦ 🍚 ghee rice ✦ 🍮 payasam ✦</span></div></div>
 
   <div id="now-strip" class="now" aria-live="polite"></div>
 
@@ -128,6 +130,10 @@
       <label>Your class
         <select id="class-select"></select>
       </label>
+      <figure class="quote" id="quote">
+        <blockquote id="quote-text"></blockquote>
+        <figcaption id="quote-by"></figcaption>
+      </figure>
       <div id="notice-box">
         <div id="notice-list"></div>
         <details id="notice-compose" hidden>
@@ -235,6 +241,32 @@
         <div class="card">
           <h3>Who we are</h3>
           <p>Og Sabha is made by the UG 2026 batch of DCSMAT, Vagamon. We got tired of asking "what's for lunch?" and "which hour is this?", so we built one place for both. [Add your team names and a line about yourselves here.]</p>
+        </div>
+        <div class="card">
+          <h3>The team</h3>
+          <p class="muted">To add photos, create a folder called members next to index.html and save pictures as member-1.jpg, member-2.jpg and so on. They show in black and white automatically.</p>
+          <div class="team">
+          <div class="member">
+            <div class="photo"><span class="ph">photo</span><img src="members/member-1.jpg" alt="Team member 1" loading="lazy" onerror="this.remove()"></div>
+            <h4>Member name</h4>
+            <p class="muted">Role, e.g. Design</p>
+          </div>
+          <div class="member">
+            <div class="photo"><span class="ph">photo</span><img src="members/member-2.jpg" alt="Team member 2" loading="lazy" onerror="this.remove()"></div>
+            <h4>Member name</h4>
+            <p class="muted">Role, e.g. Design</p>
+          </div>
+          <div class="member">
+            <div class="photo"><span class="ph">photo</span><img src="members/member-3.jpg" alt="Team member 3" loading="lazy" onerror="this.remove()"></div>
+            <h4>Member name</h4>
+            <p class="muted">Role, e.g. Design</p>
+          </div>
+          <div class="member">
+            <div class="photo"><span class="ph">photo</span><img src="members/member-4.jpg" alt="Team member 4" loading="lazy" onerror="this.remove()"></div>
+            <h4>Member name</h4>
+            <p class="muted">Role, e.g. Design</p>
+          </div>
+          </div>
         </div>
         <div class="card">
           <h3>What you can do here</h3>

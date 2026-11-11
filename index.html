@@ -75,36 +75,24 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=DM+Sans:wght@400;500;700&display=swap">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=DM+Sans:wght@400;500;700&display=swap"></noscript>
+  <link rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=Poppins:wght@400;500;600;700&display=swap">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-theme="food">
-  <header class="hero" id="hero">
-    <div class="orb o1"></div>
-    <div class="orb o2"></div>
-
-    <!-- stickers: drag them around, tap the star -->
-    <div class="sticker s1" aria-hidden="true"><span class="bob">🍛</span></div>
-    <div class="sticker s2" id="planet" role="img" aria-label="Star sticker. Tap to spin."><span class="bob">⭐</span></div>
-    <div class="sticker s3" aria-hidden="true"><span class="bob">📚</span></div>
-    <div class="sticker s4" aria-hidden="true"><span class="bob">💬</span></div>
-
-    <div class="hero-text">
-      <span class="chip" id="greet">hey 👋</span>
-      <h1><span>DCSMAT</span><span class="sr-only"> Vagamon student hub: Og Sabha mess menu, class timetable and gigs</span></h1>
-      <p id="h1-line" class="tagline" aria-hidden="true">eat up.</p>
-      <p class="sub">Mess menu, live classes, an anonymous wall and a skill board. Made by UG 2026 students, Vagamon.</p>
-      <p class="hint">psst: drag the stickers</p>
-    </div>
-  </header>
-
-  <div class="marquee" aria-hidden="true">
-    <div class="track">
-      <span>✦ mess menu ✦ live classes ✦ the wall ✦ gigs ✦ hire a classmate ✦ made by students ✦ vagamon ✦ rate your lunch ✦ no one will know ✦</span>
-      <span>✦ mess menu ✦ live classes ✦ the wall ✦ gigs ✦ hire a classmate ✦ made by students ✦ vagamon ✦ rate your lunch ✦ no one will know ✦</span>
-    </div>
+  <div class="topbar">
+    <span class="brand">Og Sabha</span>
+    <span class="chip" id="greet">hey</span>
   </div>
+
+  <header class="hero" id="hero">
+    <div class="hero-text">
+      <h1 id="h1-line">good food, on time.</h1>
+      <p class="sr-only">DCSMAT Vagamon student hub: Og Sabha mess menu, class timetable, anonymous wall and gigs board.</p>
+      <p class="sub">Mess menu, live classes, an anonymous wall and a skill board. Made by UG 2026 students, Vagamon.</p>
+    </div>
+    <div class="art" id="hero-art" role="img" aria-label="Section illustration"><span>🍛</span></div>
+  </header>
 
   <div id="now-strip" class="now" aria-live="polite"></div>
 
@@ -113,6 +101,7 @@
     <button class="tab" id="tab-classes" role="tab" aria-selected="false" aria-controls="classes" data-tab="classes">📚 Classes</button>
     <button class="tab" id="tab-wall" role="tab" aria-selected="false" aria-controls="wall" data-tab="wall">💬 Wall</button>
     <button class="tab" id="tab-gigs" role="tab" aria-selected="false" aria-controls="gigs" data-tab="gigs">🛠️ Gigs</button>
+    <button class="tab" id="tab-about" role="tab" aria-selected="false" aria-controls="about" data-tab="about">✨ About</button>
   </nav>
 
   <p id="setup-note" class="note" hidden>
@@ -139,6 +128,21 @@
       <label>Your class
         <select id="class-select"></select>
       </label>
+      <div id="notice-box">
+        <div id="notice-list"></div>
+        <details id="notice-compose" hidden>
+          <summary>＋ Post a notice (admins only)</summary>
+          <form id="notice-form">
+            <p class="muted">Posting to <strong id="notice-to"></strong>. Everyone in that class will see it at the top of the timetable.</p>
+            <textarea id="notice-text" maxlength="400" rows="4" required placeholder="Test moved to Friday, bring your ID card..."></textarea>
+            <div class="row">
+              <span id="notice-count" class="muted">0 / 400</span>
+              <button type="submit">Publish notice</button>
+            </div>
+            <p id="notice-msg" class="muted"></p>
+          </form>
+        </details>
+      </div>
       <div id="class-now"></div>
       <h2>Today's timetable</h2>
       <div id="class-table"></div>
@@ -223,6 +227,33 @@
 
       <h2>The board</h2>
       <div id="gig-list"></div>
+    </section>
+    <!-- ABOUT -->
+    <section id="about" class="panel" role="tabpanel" aria-labelledby="tab-about">
+      <div class="about-wrap">
+        <p class="about-lead">Built by students, for the people who share the same mess, classrooms and corridors.</p>
+        <div class="card">
+          <h3>Who we are</h3>
+          <p>Og Sabha is made by the UG 2026 batch of DCSMAT, Vagamon. We got tired of asking "what's for lunch?" and "which hour is this?", so we built one place for both. [Add your team names and a line about yourselves here.]</p>
+        </div>
+        <div class="card">
+          <h3>What you can do here</h3>
+          <ul>
+            <li>Food: see today's mess menu, what is being served now, and rate your meal.</li>
+            <li>Classes: follow your live timetable and read notices from your class admins.</li>
+            <li>Wall: post anonymously. Every post is checked before it goes up.</li>
+            <li>Gigs: offer a skill or hire a classmate. Replies stay private.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Please note</h3>
+          <p>This is not an official college site. Menu and timetable can change, so confirm with the college when it matters.</p>
+        </div>
+        <div class="card">
+          <h3>Say hello</h3>
+          <p>Found a mistake or want to join the team? Message us on Instagram: [@your_handle].</p>
+        </div>
+      </div>
     </section>
   </main>
 

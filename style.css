@@ -892,3 +892,78 @@ body.wl-lamp .wl-whisper{display:none}
   .wl-scene::after{opacity:1}
   .wl-scene::after,.wl-watcher,.wl-label::after,.wl-whisper{animation:none}
 }
+
+
+/* =========================================================
+   ABOUT: dark charcoal card, red disc, three-step story (01 --- 03)
+========================================================= */
+body[data-theme="about"]{--bg:#1a1b1d;--ink:#fff;--muted:#b9b9bd;--accent:#e23a3a;--on-accent:#fff;--line:rgba(255,255,255,.25);
+  background:#1a1b1d radial-gradient(70vmax 50vmax at 50% 0,#26272a,transparent 70%);font-family:"Montserrat","Inter",system-ui,sans-serif}
+body[data-theme="about"] .hero{position:absolute;width:1px;height:1px;margin:-1px;padding:0;min-height:0;overflow:hidden;clip:rect(0,0,0,0)}
+body[data-theme="about"] nav:not(.ab2-links){background:#232426;border:1px solid rgba(255,255,255,.08)}
+body[data-theme="about"] .tab.active{background:#e23a3a;color:#fff}
+body[data-theme="about"] :focus-visible{outline:2px solid #e23a3a;outline-offset:3px}
+
+.ab2{width:min(1100px,calc(100% - 32px));margin:10px auto 60px}
+.ab2-card{position:relative;overflow:hidden;min-height:min(620px,86svh);border-radius:14px;color:#fff;
+  background:linear-gradient(100deg,#121314 0%,#1b1213 55%,#3a1316 100%);box-shadow:0 30px 60px -30px #000,inset 0 0 0 1px rgba(255,255,255,.05)}
+
+.ab2-top{position:absolute;z-index:3;left:clamp(22px,6%,60px);top:34px;display:flex;align-items:center;gap:clamp(22px,5vw,64px)}
+.ab2-logo{display:grid;gap:3px;transform:skewY(-14deg)}
+.ab2-logo i{display:block;width:22px;height:6px;background:#e23a3a;border-radius:1px}
+.ab2-logo i:nth-child(2){width:18px;background:#b82d31}.ab2-logo i:nth-child(3){width:14px;background:#8a2226}
+.ab2-links{display:flex;gap:clamp(14px,3vw,34px)}
+.ab2-links button{padding:6px 0;border:0;border-bottom:1px solid transparent;border-radius:0;background:none;color:#fff;box-shadow:none;
+  font:500 .62rem "Montserrat",sans-serif;letter-spacing:.14em;text-transform:uppercase;opacity:.8;cursor:pointer;min-height:0}
+.ab2-links button:hover,.ab2-links button.on{opacity:1;border-bottom-color:#e23a3a;transform:none;box-shadow:none}
+
+.ab2-copy{position:absolute;z-index:3;left:clamp(22px,6%,60px);top:50%;transform:translateY(-46%);width:min(430px,46%)}
+.ab2-kicker{margin:0 0 6px;font:500 .72rem "Montserrat",sans-serif;letter-spacing:.14em;text-transform:uppercase}
+.ab2-title{margin:0 0 18px;font:700 clamp(2.4rem,6.4vw,4.2rem)/1 "Montserrat",sans-serif;letter-spacing:.01em;text-transform:uppercase;color:#fff}
+.ab2-text{margin:0 0 30px;max-width:40ch;font:400 .82rem/1.75 "Montserrat",sans-serif;color:#eee}
+.ab2-kicker,.ab2-title,.ab2-text{transition:opacity .35s,transform .35s}
+.ab2.swap .ab2-kicker,.ab2.swap .ab2-title,.ab2.swap .ab2-text{opacity:0;transform:translateY(8px)}
+.ab2-more{display:inline-flex;align-items:center;gap:14px;padding:0;border:0;background:none;box-shadow:none;color:#fff;font:600 .78rem "Montserrat",sans-serif;cursor:pointer;min-height:0}
+.ab2-more:hover{transform:none;box-shadow:none}
+.ab2-ring{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;border:1px solid rgba(255,255,255,.3);
+  background:rgba(255,255,255,.03);font-size:1.15rem;transition:background .25s,border-color .25s,transform .25s}
+.ab2-more:hover .ab2-ring{background:#e23a3a;border-color:#e23a3a;transform:translateX(3px)}
+
+.ab2-art{position:absolute;z-index:1;inset:0;pointer-events:none}
+.ab2-disc{position:absolute;right:5%;top:8%;width:min(52%,500px);aspect-ratio:1;border-radius:50%;overflow:hidden;
+  background:radial-gradient(circle at 50% 18%,#a9262a,#e23a3a 55%,#d63337);transition:transform .8s cubic-bezier(.2,.7,.2,1)}
+.ab2-fig{position:absolute;inset:6% 4% -6%;width:92%;height:100%;fill:#5c0f13;opacity:.85}
+.ab2-disc img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.15) brightness(.9)}
+.ab2-tint{position:absolute;inset:0;background:#d7262d;mix-blend-mode:multiply;opacity:.85}
+.ab2-dot{position:absolute;left:calc(46% + var(--dx,0px));bottom:-46px;width:clamp(90px,14%,130px);aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle at 50% 20%,#c93036,#e23a3a);transition:left .8s cubic-bezier(.2,.7,.2,1),bottom .8s}
+.ab2[data-i="0"] .ab2-disc{transform:rotate(0)}
+.ab2[data-i="1"] .ab2-disc{transform:translate(-3%,2%) scale(1.04)}
+.ab2[data-i="2"] .ab2-disc{transform:translate(2%,-2%) scale(.97)}
+.ab2[data-i="1"] .ab2-dot{left:60%;bottom:-30px}
+.ab2[data-i="2"] .ab2-dot{left:34%;bottom:-54px}
+
+.ab2-prog{position:absolute;z-index:3;left:clamp(22px,6%,60px);bottom:26px;display:flex;align-items:center;gap:14px;font:500 .62rem "Montserrat",sans-serif;letter-spacing:.06em}
+.ab2-bar{position:relative;width:min(140px,28vw);height:20px;padding:0;border:0;border-radius:0;background:none;box-shadow:none;cursor:pointer;min-height:0}
+.ab2-bar::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(255,255,255,.28)}
+.ab2-bar i{position:absolute;left:0;top:50%;height:1px;width:calc((var(--p,1) / 3) * 100%);background:#fff;transition:width .6s}
+.ab2-bar:hover{transform:none;box-shadow:none}
+.ab2-note{margin:16px 4px 0;font-size:.72rem;line-height:1.6;color:#9a9a9f;text-align:center}
+.ab2-note a{color:#cfcfd4;text-decoration:underline;text-underline-offset:3px}
+
+@media(max-width:760px){
+  .ab2-card{min-height:0;display:flex;flex-direction:column;padding:92px 22px 70px}
+  .ab2-art{position:relative;order:-1;inset:auto;height:min(74vw,300px);margin:0 0 22px}
+  .ab2-disc{right:auto;left:50%;top:0;width:min(74vw,300px);transform:translateX(-50%)}
+  .ab2[data-i="0"] .ab2-disc{transform:translateX(-50%)}
+  .ab2[data-i="1"] .ab2-disc{transform:translateX(-50%) scale(1.04)}
+  .ab2[data-i="2"] .ab2-disc{transform:translateX(-50%) scale(.97)}
+  .ab2-dot{display:none}
+  .ab2-copy{position:relative;left:auto;top:auto;transform:none;width:100%}
+  .ab2-top{left:22px;top:26px}
+  .ab2-prog{left:22px;bottom:22px}
+}
+@media(prefers-reduced-motion:reduce){.ab2-disc,.ab2-dot,.ab2-bar i,.ab2-kicker,.ab2-title,.ab2-text,.ab2-ring{transition:none}}
+
+/* About: the small top links are plain text, no pill (override the global nav style) */
+body[data-theme="about"] nav.ab2-links{background:none;border:0;box-shadow:none;border-radius:0;padding:0;margin:0;width:auto;position:static;backdrop-filter:none}

@@ -56,7 +56,7 @@ def page(*, path, title, desc, h1, lead, body, crumb):
             },
         ],
     }
-    fonts = "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Caveat:wght@500&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Instrument+Serif:ital@0;1&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Poppins:wght@400;500;600;700&family=Special+Elite&display=swap"
+    fonts = "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Caveat:wght@500&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Poppins:wght@400;500;600;700&family=Special+Elite&display=swap"
     return f"""<!DOCTYPE html>
 <html lang="en-IN">
 <head>
@@ -76,9 +76,9 @@ def page(*, path, title, desc, h1, lead, body, crumb):
   <meta property="og:image" content="{SITE}/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="/favicon.ico" sizes="48x48">
-  <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="icon" href="favicon.ico" sizes="48x48">
+  <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <script type="application/ld+json">{json.dumps(ld, indent=2, ensure_ascii=False)}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -95,7 +95,7 @@ def page(*, path, title, desc, h1, lead, body, crumb):
 </head>
 <body data-theme="food">
   <header class="page-head">
-    <a class="back" href="/">&larr; Og Sabha, DCSMAT Vagamon student hub</a>
+    <a class="back" href="./">&larr; Og Sabha, DCSMAT Vagamon student hub</a>
     <h1>{esc(h1)}</h1>
     <p class="lead">{lead}</p>
   </header>
@@ -103,7 +103,7 @@ def page(*, path, title, desc, h1, lead, body, crumb):
 {body}
   </main>
   <footer>
-    <p class="muted"><a href="/">Home</a> &middot; <a href="mess-menu.html">Mess menu</a> &middot; <a href="timetable.html">Class timetable</a></p>
+    <p class="muted"><a href="./">Home</a> &middot; <a href="mess-menu.html">Mess menu</a> &middot; <a href="timetable.html">Class timetable</a></p>
     <p class="muted">Made by UG 2026 students of DCSMAT, Vagamon. Not an official college site. Always confirm with the college.</p>
   </footer>
 </body>
@@ -156,7 +156,7 @@ def build_timetable(tt):
             for s in sorted(slots, key=lambda x: x["period"]):
                 p = periods[s["period"]]
                 parts.append(
-                    f'      <tr><td class="muted">{s["period"]}</td><td class="muted">{esc(t12(p["start"]))}</td>'
+                    f'      <tr><td class="muted">{s["period"]}</td><td class="muted">{esc(rng(p["start"], p["end"]))}</td>'
                     f'<td><strong>{esc(s["subject"])}</strong></td><td>{esc(s["teacher"])}</td></tr>')
             parts.append("    </table>")
         parts.append("    </section>")

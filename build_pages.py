@@ -56,7 +56,7 @@ def page(*, path, title, desc, h1, lead, body, crumb):
             },
         ],
     }
-    fonts = "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=Poppins:wght@400;500;600;700&display=swap"
+    fonts = "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Poppins:wght@400;500;600;700&display=swap"
     return f"""<!DOCTYPE html>
 <html lang="en-IN">
 <head>

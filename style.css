@@ -510,3 +510,58 @@ button.arc-card.on i{color:#111}
 .seg-btn.active{background:#111}
 body[data-theme="gigs"] h2{font-size:2.4rem;font-style:italic}
 body[data-theme="gigs"] .card.gig{border:1px solid #fff;background:linear-gradient(145deg,rgba(255,255,255,.92),rgba(255,255,255,.55))}
+
+/* =========================================================
+   v8: GIGS redesign (burnt-orange hiring landing): white sans headline, glowing globe, frosted cards
+========================================================= */
+body[data-theme="gigs"]{
+  --bg:#7a2a0c;--ink:#fff;--muted:rgba(255,255,255,.78);--cbg:rgba(255,255,255,.14);--cink:#fff;--accent:#fff;--on-accent:#3a1204;
+  --line:rgba(255,255,255,.32);--field:rgba(255,255,255,.16);--fink:#fff;--radius:12px;--shadow:none;
+  --head:"Inter",system-ui,sans-serif;--body:"Inter",system-ui,sans-serif;--hw:500;--hcase:none;--hls:-.03em;
+  display:flex;flex-direction:column;
+  background:radial-gradient(800px 420px at 100% 0,rgba(255,150,80,.5),transparent 70%),linear-gradient(180deg,#4a1604 0,#8a2e0d 35%,#b8481a 100%)}
+body[data-theme="gigs"] .topbar{order:-3}
+body[data-theme="gigs"] nav{order:-2;max-width:480px;margin-top:6px;background:rgba(40,10,0,.35);border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(10px)}
+body[data-theme="gigs"] .brand{color:#fff;font-size:1.25rem;font-weight:600}
+body[data-theme="gigs"] .chip{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.35)}
+body[data-theme="gigs"] .tab{color:#fff}
+body[data-theme="gigs"] .tab.active{background:rgba(255,255,255,.28);color:#fff}
+body[data-theme="gigs"] .hero{padding:26px 0 8px}
+body[data-theme="gigs"] .hero h1{font-size:clamp(2.2rem,6.6vw,4rem);line-height:1.08;font-weight:500;font-style:normal;color:#fff}
+body[data-theme="gigs"] .sub{color:rgba(255,255,255,.85);max-width:56ch}
+body[data-theme="gigs"] :is(select,input,textarea):focus{outline-color:#fff}
+body[data-theme="gigs"] :focus-visible{outline-color:#fff}
+body[data-theme="gigs"] h2{font-size:1.9rem;font-style:normal;font-weight:500}
+body[data-theme="gigs"] .card,body[data-theme="gigs"] .compose{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.32);backdrop-filter:blur(12px);box-shadow:none}
+body[data-theme="gigs"] .card.gig{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.32)}
+body[data-theme="gigs"] .card.gig h3{font-size:1.35rem;font-weight:500}
+body[data-theme="gigs"] .compose summary{font-size:1.1rem;font-weight:500}
+body[data-theme="gigs"] .seg-btn{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.3)}
+body[data-theme="gigs"] .seg-btn.active{background:#fff;color:#3a1204}
+body[data-theme="gigs"] button.ghost{color:#fff}
+.pill.dark{background:#fff;color:#2a1007;box-shadow:0 10px 30px -8px rgba(255,200,150,.7)}
+.pill.light{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.4)}
+
+.orbit{display:block;position:relative;margin:4px 0 6px}
+.stage{position:relative;height:clamp(250px,68vw,480px)}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 12px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+button.chip-g{flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;padding:7px 14px;background:#fff;color:#2a1007;font-size:.78rem;font-weight:500;box-shadow:0 8px 18px -8px rgba(0,0,0,.55);transform:none}
+.chip-g i{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.chip-g em{font-style:normal;opacity:.55}
+button.chip-g.on{background:#2a1007;color:#fff}
+.info{background:rgba(255,255,255,.16);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.35);border-radius:10px;padding:14px 16px;color:#fff;margin:10px 0}
+.info strong{display:block;font-size:.95rem;font-weight:500}
+.info p{margin:4px 0 0;font-size:.76rem;opacity:.85}
+.avatars{display:flex;margin-bottom:10px;min-height:30px}
+.avatars span{display:grid;place-items:center;width:30px;height:30px;margin-right:-8px;border-radius:50%;background:var(--c,#eee);color:#2a1007;border:2px solid #7a2a0c;font-size:.75rem;font-weight:600}
+.avatars .more{background:#fff}
+@media(min-width:760px){
+  .chips{position:absolute;inset:0;display:block;overflow:visible;padding:0;pointer-events:none}
+  button.chip-g{position:absolute;left:calc(var(--x) * 1%);top:calc(var(--y) * 1%);transform:translate(-50%,-50%);pointer-events:auto}
+  button.chip-g:hover,button.chip-g:active{transform:translate(-50%,-50%) scale(1.06)}
+  .info{position:absolute;width:236px;margin:0}
+  .fl-left{left:2%;bottom:12%}
+  .fl-right{right:2%;bottom:2%;background:rgba(40,10,0,.38)}
+}

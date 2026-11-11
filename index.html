@@ -119,10 +119,11 @@
   <main>
     <!-- FOOD -->
     <section id="food" class="panel active" role="tabpanel" aria-labelledby="tab-food">
-      <label>Day
-        <select id="day-select"></select>
-      </label>
+      <label hidden>Day <select id="day-select"></select></label>
+      <div id="day-nav" class="daynav" role="group" aria-label="Day of the week"></div>
+      <div id="food-feature" class="feature" aria-live="polite"></div>
       <div id="food-list"></div>
+      <div id="food-dots" class="dots"></div>
     </section>
 
     <!-- CLASSES -->

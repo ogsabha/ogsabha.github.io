@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {
   getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, getDocs,
-  query, where, onSnapshot, serverTimestamp, increment
+  query, where, onSnapshot, serverTimestamp, increment, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import {
   getAuth, signInWithEmailAndPassword, signInAnonymously, signOut, onAuthStateChanged
@@ -48,14 +48,6 @@ const store = {
   get(k, fallback = null) { try { return localStorage.getItem(k) ?? fallback; } catch { return fallback; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch { /* ignore */ } }
 };
-const deviceId = (() => {
-  let id = store.get("deviceId");
-  if (!id) {
-    id = (crypto.randomUUID ? crypto.randomUUID() : `d${Date.now()}${Math.random().toString(16).slice(2)}`);
-    store.set("deviceId", id);
-  }
-  return id;
-})();
 
 // Builds DOM safely. Text is always set as text, never as HTML.
 function el(tag, props = {}, ...kids) {
@@ -107,7 +99,7 @@ const TAB_EMOJI = { food: ["🍛", "🍟", "🧁"], classes: ["📚", "✏️", 
 const TAB_LINES = {
   food: "eat up.",
   classes: "your day,\nat a glance.",
-  wall: "speak up.",
+  wall: "the walls\nare listening.",
   gigs: "turn skills into\npocket money.",
   about: "made by students,\nfor students."
 };
@@ -118,7 +110,7 @@ const TAB_SUBS = {
   gigs: "Need a hand? Got a skill? Post it, get hired, earn a little.",
   about: "The story behind Og Sabha, and how to reach us."
 };
-const THEME_COLORS = { food: "#FFFFFF", classes: "#C8D8BC", wall: "#080304", gigs: "#4A1604", about: "#000000" };
+const THEME_COLORS = { food: "#FFFFFF", classes: "#C8D8BC", wall: "#0b0908", gigs: "#4A1604", about: "#000000" };
 const TABS = Object.keys(TAB_LINES);
 
 // Looks in data/ first, then the main folder, so it works wherever the JSON files were uploaded.
@@ -199,6 +191,7 @@ function activateTab(name, byUser = false) {
   });
   document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.id === name));
   document.body.dataset.theme = name; // switches the whole look
+  wallActive(name === "wall");
   const h = $("h1-line");
   if (h) {
     h.textContent = TAB_LINES[name];
@@ -491,9 +484,10 @@ function renderFood() {
 
 async function rate(meal, stars) {
   const date = todayStr();
+  if (!me) { alert("Still connecting. Try again in a moment."); return; }
   try {
-    // One document per device per meal per day, so rating again just replaces your old rating.
-    await setDoc(doc(db, "ratings", `${date}_${meal}_${deviceId}`), { date, meal, stars });
+    // One document per person per meal per day. The id must end with your login id, because the rules check that.
+    await setDoc(doc(db, "ratings", `${date}_${meal}_${me.uid}`), { date, meal, stars });
     store.set(`rated_${date}_${meal}`, stars);
     renderFood();
   } catch (e) {
@@ -656,7 +650,7 @@ async function setAttendance(cls, period, present) {
     await setDoc(doc(db, "attendance", `${date}_${cls}_${period}`), { date, cls, period, present });
   } catch (e) {
     console.error(e);
-    alert("You are not allowed to change this. Log in with a class rep account.");
+    alert("You are not allowed to change this. Log in with a staff account.");
   }
 }
 async function clearAttendance(cls, period) {
@@ -704,14 +698,14 @@ function initNoticeForm() {
     if (!body) return;
     try {
       await addDoc(collection(db, "notices"), {
-        cls: $("class-select").value, text: body, by: currentUser.email, createdAt: serverTimestamp()
+        cls: $("class-select").value, text: body, createdAt: serverTimestamp()
       });
       text.value = "";
       $("notice-count").textContent = "0 / 400";
       msg.textContent = "Notice published.";
     } catch (err) {
       console.error(err);
-      msg.textContent = "Not allowed. Check your Firestore rules for the notices collection.";
+      msg.textContent = "Not allowed. Only staff accounts listed in the Firestore rules can post notices.";
     }
   });
 }
@@ -722,7 +716,11 @@ async function removeNotice(id) {
 }
 
 /* =================================================================
-   WALL (anonymous posts)
+   WALL: a haunted wall.
+   - Posts sit dim in the dark. A torch beam follows the mouse (or your finger) and wakes whatever it touches.
+   - Eyes creep in from the edges and slowly get closer. Shine the light on them, or tap them, to drive them off.
+     Ignore them and they lunge.
+   - "Turn on the lights" makes everything readable. Sound is opt-in. Reduced motion turns off the creeping bits.
 ================================================================= */
 let approvedPosts = [];
 let pendingPosts = [];
@@ -730,6 +728,58 @@ let unsubPending = null;
 const reportedKey = "reportedPosts";
 const reportedSet = () => { try { return new Set(JSON.parse(store.get(reportedKey, "[]"))); } catch { return new Set(); } };
 
+const EYE_LIFE = 13000;
+const idHash = (id) => { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
+const WL = {
+  on: false, lamp: store.get("wlLamp") === "1",
+  x: innerWidth / 2, y: innerHeight * 0.4, tx: innerWidth / 2, ty: innerHeight * 0.4, r: 190,
+  lastInput: 0, focusEl: null, raf: 0, tick: 0, dipUntil: 0,
+  eyes: [], eyeTimer: 0, beatTimer: 0, dread: 0, posts: [],
+  fx: null, pulse: null, eyesBox: null, watcher: null, title: null, look: 0
+};
+
+/* ---------- sound (opt-in): a low drone, plus a heartbeat that quickens when something is close ---------- */
+const Snd = {
+  ctx: null, master: null, filt: null, on: false, active: true,
+  start() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return false;
+    if (!this.ctx) {
+      const c = (this.ctx = new AC());
+      this.master = c.createGain(); this.master.gain.value = 0; this.master.connect(c.destination);
+      this.filt = c.createBiquadFilter(); this.filt.type = "lowpass"; this.filt.frequency.value = 150; this.filt.Q.value = 3; this.filt.connect(this.master);
+      [[46, "sawtooth", 0.16], [46.7, "sawtooth", 0.16], [92.3, "sine", 0.1], [138, "triangle", 0.03]].forEach(([f, type, g]) => {
+        const o = c.createOscillator(), og = c.createGain();
+        o.type = type; o.frequency.value = f; og.gain.value = g;
+        o.connect(og); og.connect(this.filt); o.start();
+      });
+      const lfo = c.createOscillator(), lg = c.createGain();
+      lfo.frequency.value = 0.07; lg.gain.value = 60; lfo.connect(lg); lg.connect(this.filt.frequency); lfo.start();
+    }
+    this.ctx.resume?.();
+    this.on = true; this.apply();
+    return true;
+  },
+  stop() { this.on = false; this.apply(); },
+  apply() { if (this.master) this.master.gain.setTargetAtTime(this.on && this.active ? 0.55 : 0, this.ctx.currentTime, 0.4); },
+  setActive(a) { this.active = a; this.apply(); },
+  tense(d) { if (this.filt && this.on) this.filt.frequency.setTargetAtTime(150 + d * 260, this.ctx.currentTime, 0.5); },
+  thump(s = 0.6) {
+    if (!this.on || !this.active || !this.ctx) return;
+    const c = this.ctx, t = c.currentTime;
+    [0, 0.19].forEach((dt, i) => {
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(95, t + dt); o.frequency.exponentialRampToValueAtTime(48, t + dt + 0.16);
+      g.gain.setValueAtTime(0.0001, t + dt);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.001, s * (i ? 0.6 : 1) * 0.9), t + dt + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dt + 0.2);
+      o.connect(g); g.connect(this.master); o.start(t + dt); o.stop(t + dt + 0.25);
+    });
+  }
+};
+
+/* ---------- setup ---------- */
 function initWall() {
   const text = $("post-text");
   text.addEventListener("input", () => { $("post-count").textContent = `${text.value.length} / 300`; });
@@ -740,6 +790,7 @@ function initWall() {
     const body = text.value.trim();
     if (!ready) { msg.textContent = "The wall is not connected yet."; return; }
     if (!body) return;
+    if (!me) { msg.textContent = anonFailed ? "Posting is unavailable right now." : "Still connecting. Try again in a few seconds."; return; }
 
     const last = Number(store.get("lastPost", 0));
     if (Date.now() - last < 60000) { msg.textContent = "Please wait a minute between posts."; return; }
@@ -751,8 +802,8 @@ function initWall() {
       store.set("lastPost", Date.now());
       text.value = "";
       $("post-count").textContent = "0 / 300";
-      msg.textContent = "Thanks! Your post will appear after it is approved.";
-      burst(innerWidth / 2, innerHeight / 2, ["💌", "✨", "🤫"], 14);
+      msg.textContent = "The wall heard you. It will appear once a person approves it.";
+      carve();
     } catch (err) {
       console.error(err);
       msg.textContent = "Could not post. Try again later.";
@@ -765,47 +816,200 @@ function initWall() {
       renderWall();
     }, (err) => console.warn("Could not read posts:", err.code));
   } else {
-    $("post-list").append(el("p", { class: "muted", text: "Posts will show here once Firebase is connected." }));
+    $("post-list").append(el("p", { class: "wl-empty", text: "Posts will show here once Firebase is connected." }));
   }
 
-  initWallPoster();
+  initWallScene();
 }
 
-// Poster extras: side dots, down arrow, torch beam and the clown's eyes follow the pointer.
-function initWallPoster() {
-  const poster = document.querySelector(".wposter");
-  if (!poster) return;
-
-  document.querySelectorAll(".wp-dot").forEach((b) => b.addEventListener("click", () => {
-    document.querySelectorAll(".wp-dot").forEach((x) => x.classList.toggle("on", x === b));
-    const id = b.dataset.go;
-    if (id === "wall") window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
-    else if (!$(id) || $(id).hidden) goTo("post-list", "center");
-    else goTo(id, "center");
-  }));
-  $("wp-down")?.addEventListener("click", () => goTo("post-form", "center"));
-
-  if (reduceMotion) return;
-  poster.addEventListener("pointermove", (e) => {
-    const r = poster.getBoundingClientRect();
-    poster.style.setProperty("--mx", `${(((e.clientX - r.left) / r.width) * 100).toFixed(1)}%`);
-    poster.style.setProperty("--my", `${(((e.clientY - r.top) / r.height) * 100).toFixed(1)}%`);
-  });
-
-  const clown = document.querySelector(".wp-clown");
-  const pupils = document.querySelectorAll(".wp-clown .pupil");
-  if (!clown || !pupils.length) return;
-  window.addEventListener("pointermove", (e) => {
-    if (document.body.dataset.theme !== "wall") return;
-    const r = clown.getBoundingClientRect();
-    const dx = e.clientX - (r.left + r.width * 0.5);
-    const dy = e.clientY - (r.top + r.height * 0.43);
-    const k = Math.min(1, Math.hypot(dx, dy) / 320), a = Math.atan2(dy, dx);
-    const tx = (Math.cos(a) * k * 9).toFixed(2), ty = (Math.sin(a) * k * 5).toFixed(2);
-    pupils.forEach((p) => { p.style.transform = `translate(${tx}px, ${ty}px)`; });
-  });
+// A scratch across the form, then something notices.
+function carve() {
+  const f = $("post-form");
+  f.classList.remove("carved"); void f.offsetWidth; f.classList.add("carved");
+  setTimeout(() => f.classList.remove("carved"), 1100);
+  Snd.thump(0.8);
+  pulse(0.5);
+  setTimeout(() => spawnEye(), 1500);
 }
 
+function syncWallButtons() {
+  const lamp = $("wl-lamp"), snd = $("wl-sound");
+  if (lamp) { lamp.textContent = WL.lamp ? "Turn off the lights" : "Turn on the lights"; lamp.setAttribute("aria-pressed", String(WL.lamp)); }
+  if (snd) { snd.textContent = Snd.on ? "Sound: on" : "Sound: off"; snd.setAttribute("aria-pressed", String(Snd.on)); }
+}
+function setHint(t) { const h = $("wl-hint"); if (h) h.textContent = t; }
+const aim = (x, y) => { WL.tx = x; WL.ty = y; WL.lastInput = performance.now(); };
+const sizeTorch = () => { WL.r = Math.max(125, Math.min(230, Math.min(innerWidth, innerHeight) * 0.32)); };
+
+function initWallScene() {
+  WL.fx = $("wl-fx"); WL.pulse = $("wl-pulse"); WL.eyesBox = $("wl-eyes");
+  WL.watcher = $("wl-watcher"); WL.title = document.querySelector(".wl-title");
+  document.body.classList.toggle("wl-lamp", WL.lamp);
+  syncWallButtons();
+  setHint(matchMedia("(pointer: coarse)").matches
+    ? "Something is watching. Drag your finger to move the light. Tap its eyes."
+    : "Something is watching. Move the light over its eyes.");
+
+  $("wl-lamp").addEventListener("click", () => {
+    WL.lamp = !WL.lamp;
+    store.set("wlLamp", WL.lamp ? "1" : "0");
+    document.body.classList.toggle("wl-lamp", WL.lamp);
+    if (WL.lamp) { clearEyes(); setHint("The lights are on. It is still there."); }
+    syncWallButtons();
+  });
+  $("wl-sound").addEventListener("click", () => {
+    if (Snd.on) Snd.stop();
+    else if (!Snd.start()) setHint("This browser cannot play the sound.");
+    syncWallButtons();
+  });
+  $("wl-down").addEventListener("click", () => goTo("post-form", "center"));
+
+  window.addEventListener("pointermove", (e) => { if (WL.on && e.pointerType !== "touch") aim(e.clientX, e.clientY); });
+  const onTouch = (e) => { const t = WL.on && e.touches[0]; if (t) aim(t.clientX, t.clientY - 70); }; // beam sits just above the fingertip
+  window.addEventListener("touchstart", onTouch, { passive: true });
+  window.addEventListener("touchmove", onTouch, { passive: true });
+  // while you type, the light rests on the box you are writing in
+  document.addEventListener("focusin", (e) => { if (WL.on && e.target.matches?.("#post-text")) WL.focusEl = e.target; });
+  document.addEventListener("focusout", () => { WL.focusEl = null; });
+  window.addEventListener("resize", sizeTorch);
+  sizeTorch();
+}
+
+// Called from activateTab.
+function wallActive(on) {
+  if (WL.on === on) return;
+  WL.on = on;
+  Snd.setActive(on);
+  cancelAnimationFrame(WL.raf); clearTimeout(WL.eyeTimer); clearTimeout(WL.beatTimer);
+  if (on) {
+    WL.lastInput = performance.now();
+    WL.raf = requestAnimationFrame(wallFrame);
+    scheduleEye(); beat();
+  } else {
+    clearEyes();
+  }
+}
+
+/* ---------- the loop: torch, what it lights, eyes, dread ---------- */
+function wallFrame(now) {
+  if (!WL.on) return;
+  WL.raf = requestAnimationFrame(wallFrame);
+  if (document.hidden || !WL.fx) return;
+  WL.tick++;
+  const t = now || performance.now();
+
+  let tx = WL.tx, ty = WL.ty;
+  if (WL.focusEl && WL.focusEl.isConnected) {
+    const r = WL.focusEl.getBoundingClientRect();
+    tx = r.left + r.width / 2; ty = r.top + Math.min(r.height / 2, 150);
+  } else if (t - WL.lastInput > 3000 && !reduceMotion) {
+    tx = innerWidth * (0.5 + 0.28 * Math.sin(t / 2300)); ty = innerHeight * (0.45 + 0.22 * Math.sin(t / 1700 + 1)); // nobody holding it: it drifts
+  }
+  const k = reduceMotion ? 1 : 0.1;
+  WL.x += (tx - WL.x) * k; WL.y += (ty - WL.y) * k;
+
+  let r = WL.r;
+  if (!reduceMotion) {
+    r *= 1 + 0.025 * Math.sin(t / 90) + 0.02 * Math.sin(t / 37);
+    if (t < WL.dipUntil) r *= 0.62; else if (Math.random() < 0.004) WL.dipUntil = t + 140; // now and then the beam stutters
+  }
+  const fx = WL.fx.style;
+  fx.setProperty("--tx", `${WL.x.toFixed(1)}px`); fx.setProperty("--ty", `${WL.y.toFixed(1)}px`); fx.setProperty("--r", `${r.toFixed(0)}px`);
+  if (WL.title) {
+    WL.title.style.setProperty("--gx", ((WL.x / innerWidth - 0.5) * 2).toFixed(2));
+    WL.title.style.setProperty("--gy", ((WL.y / innerHeight - 0.5) * 2).toFixed(2));
+  }
+  if (WL.tick % 2) return;
+
+  const reach = WL.r * 0.9;
+  for (const p of WL.posts) {
+    const b = p.getBoundingClientRect();
+    if (b.bottom < 0 || b.top > innerHeight) { p.classList.remove("lit"); continue; }
+    const dx = Math.max(b.left - WL.x, 0, WL.x - b.right), dy = Math.max(b.top - WL.y, 0, WL.y - b.bottom);
+    p.classList.toggle("lit", Math.hypot(dx, dy) < reach);
+  }
+
+  if (WL.watcher) {
+    const b = WL.watcher.getBoundingClientRect();
+    if (b.bottom > 0 && b.top < innerHeight) {
+      const cx = b.left + b.width / 2, cy = b.top + b.height * 0.25;
+      WL.watcher.classList.toggle("lit", Math.hypot(cx - WL.x, cy - WL.y) < reach);
+      const look = Math.max(-1, Math.min(1, (WL.x - cx) / (innerWidth * 0.45)));
+      if (Math.abs(look - WL.look) > 0.03) { WL.look = look; WL.watcher.style.setProperty("--look", look.toFixed(2)); }
+    }
+  }
+
+  const nowMs = performance.now();
+  let dread = 0;
+  for (const it of [...WL.eyes]) {
+    const b = it.e.getBoundingClientRect();
+    const cx = b.left + b.width / 2, cy = b.top + b.height / 2;
+    const dx = WL.x - cx, dy = WL.y - cy, d = Math.hypot(dx, dy) || 1;
+    it.e.style.setProperty("--px", (dx / d).toFixed(2)); it.e.style.setProperty("--py", (dy / d).toFixed(2));
+    const age = nowMs - it.born;
+    if (age > 700 && d < reach * 0.8) { fleeEye(it); setHint("It will be back."); continue; }
+    dread = Math.max(dread, Math.min(1, age / EYE_LIFE));
+  }
+  WL.dread += (dread - WL.dread) * 0.1;
+  Snd.tense(WL.dread);
+}
+
+/* ---------- eyes ---------- */
+function scheduleEye() {
+  clearTimeout(WL.eyeTimer);
+  if (!WL.on || reduceMotion) return;
+  WL.eyeTimer = setTimeout(() => { spawnEye(); scheduleEye(); }, 6000 + Math.random() * 7000);
+}
+function spawnEye() {
+  if (!WL.on || WL.lamp || reduceMotion || document.hidden || !WL.eyesBox) return;
+  if (WL.eyes.length >= (isPhone() ? 1 : 2)) return;
+  const s = isPhone() ? 46 : 60, w = innerWidth, h = innerHeight, side = Math.random();
+  let x, y;
+  if (side < 0.4) { x = 0.07 + Math.random() * 0.1; y = 0.2 + Math.random() * 0.6; }
+  else if (side < 0.8) { x = 0.83 + Math.random() * 0.1; y = 0.2 + Math.random() * 0.6; }
+  else { x = 0.15 + Math.random() * 0.7; y = Math.random() < 0.5 ? 0.1 : 0.9; }
+  const px = Math.min(Math.max(x * w, s), w - s), py = Math.min(Math.max(y * h, s), h - s);
+  const e = el("div", { class: "wl-eye", style: `--x:${px}px;--y:${py}px;--s:${s}px` },
+    el("span", { class: "eb" }, el("b")), el("span", { class: "eb" }, el("b")));
+  const it = { e, born: performance.now(), gone: false };
+  e.addEventListener("click", () => { fleeEye(it); setHint("It will be back."); });
+  WL.eyesBox.append(e); WL.eyes.push(it);
+  requestAnimationFrame(() => requestAnimationFrame(() => e.classList.add("in")));
+  it.timer = setTimeout(() => lungeEye(it), EYE_LIFE);
+  Snd.thump(0.35);
+}
+function dropEye(it) { it.gone = true; clearTimeout(it.timer); WL.eyes = WL.eyes.filter((x) => x !== it); setTimeout(() => it.e.remove(), 400); }
+function fleeEye(it) {
+  if (it.gone) return;
+  it.e.style.transform = getComputedStyle(it.e).transform; // freeze at the current size, then fade
+  it.e.classList.add("out");
+  dropEye(it);
+}
+function lungeEye(it) { // it got too close
+  if (it.gone) return;
+  it.e.classList.add("lunge");
+  dropEye(it);
+  pulse(0.75); Snd.thump(1);
+  setHint("It was right there.");
+}
+function clearEyes() { [...WL.eyes].forEach((it) => { it.gone = true; clearTimeout(it.timer); it.e.remove(); }); WL.eyes = []; WL.dread = 0; }
+
+/* ---------- heartbeat (the red vignette, and the thump when sound is on) ---------- */
+function pulse(strength) {
+  const p = WL.pulse;
+  if (!p || reduceMotion) return;
+  p.style.setProperty("--pi", strength.toFixed(2));
+  p.classList.remove("b"); void p.offsetWidth; p.classList.add("b");
+}
+function beat() {
+  clearTimeout(WL.beatTimer);
+  if (!WL.on) return;
+  const d = WL.dread;
+  if (d > 0.12) { pulse(Math.min(0.2 + d * 0.45, 0.65)); Snd.thump(0.4 + d * 0.6); }
+  WL.beatTimer = setTimeout(beat, 1500 - 900 * d);
+}
+
+/* ---------- posts ---------- */
 function subscribePending() {
   if (unsubPending) { unsubPending(); unsubPending = null; }
   pendingPosts = [];
@@ -824,29 +1028,32 @@ function renderWall() {
   const staff = !!currentUser;
   const reported = reportedSet();
 
-  // Students hide posts that got 3+ reports. Staff still see them with the count.
-  const visible = approvedPosts
-    .filter((p) => staff || (p.reports || 0) < 3)
-    .sort(newestFirst);
+  // Students never see posts with 3+ reports. Staff still do, with the count.
+  const visible = approvedPosts.filter((p) => staff || (p.reports || 0) < 3).sort(newestFirst);
 
   const list = $("post-list");
   list.replaceChildren();
-  if (!visible.length) list.append(el("p", { class: "muted", text: "No posts yet. Be the first." }));
+  if (!visible.length) list.append(el("p", { class: "wl-empty", text: "Nothing on the wall yet. It is waiting for you." }));
   visible.forEach((p) => {
-    const actions = el("div", { class: "actions" });
-    actions.append(el("button", {
-      class: "ghost",
-      text: reported.has(p.id) ? "Reported" : "Report",
-      disabled: reported.has(p.id) ? "" : null,
-      onclick: () => reportPost(p.id)
-    }));
-    if (staff) actions.append(el("button", { class: "danger", text: `Delete (${p.reports || 0} reports)`, onclick: () => removePost(p.id) }));
-    list.append(el("div", { class: `card post c${noteColor(p.id)}` },
-      el("p", { text: p.text }),
-      el("p", { class: "muted", text: postTime(p) }),
-      actions
-    ));
+    const h = idHash(p.id);
+    const done = reported.has(p.id);
+    const actions = el("div", { class: "wl-act" },
+      el("button", { type: "button", class: "wl-mini", text: done ? "Hushed" : "Hush", disabled: done ? "" : null, onclick: () => reportPost(p.id) }),
+      staff ? el("button", { type: "button", class: "wl-mini danger", text: `Delete (${p.reports || 0} reports)`, onclick: () => removePost(p.id) }) : null
+    );
+    const card = el("article", { class: `wl-post v${h % 4}`, style: `--rot:${((((h >> 3) % 9) - 4) * 0.45).toFixed(2)}deg` },
+      el("p", { class: "wl-text", text: p.text }),
+      el("p", { class: "wl-meta", text: `heard ${postTime(p)}` }),
+      actions);
+    // touch it and it stirs
+    card.addEventListener("click", (e) => {
+      if (e.target.closest("button")) return;
+      card.classList.remove("stir"); void card.offsetWidth; card.classList.add("stir");
+    });
+    list.append(card);
   });
+  WL.posts = [...list.querySelectorAll(".wl-post")];
+  $("wl-count").textContent = visible.length ? `${visible.length} ${visible.length === 1 ? "voice" : "voices"} on the wall` : "";
 
   $("pending-box").hidden = !staff;
   const pl = $("pending-list");
@@ -854,24 +1061,36 @@ function renderWall() {
   if (staff) {
     if (!pendingPosts.length) pl.append(el("p", { class: "muted", text: "Nothing waiting." }));
     [...pendingPosts].sort((a, b) => -newestFirst(a, b)).forEach((p) => {
-      pl.append(el("div", { class: "card" },
+      pl.append(el("div", { class: "wl-pend" },
         el("p", { text: p.text }),
-        el("div", { class: "actions" },
-          el("button", { text: "Approve", onclick: () => approvePost(p.id) }),
-          el("button", { class: "danger", text: "Delete", onclick: () => removePost(p.id) })
+        el("div", { class: "wl-act" },
+          el("button", { type: "button", class: "wl-mini", text: "Approve", onclick: () => approvePost(p.id) }),
+          el("button", { type: "button", class: "wl-mini danger", text: "Delete", onclick: () => removePost(p.id) })
         )
       ));
     });
   }
 }
 
+// The rules allow one report per person: the report counter and a posts/{id}/reports/{uid} marker must be written together.
 async function reportPost(id) {
+  if (!me) { alert("Still connecting. Try again in a moment."); return; }
   try {
-    await updateDoc(doc(db, "posts", id), { reports: increment(1) });
-    const set = reportedSet(); set.add(id);
-    store.set(reportedKey, JSON.stringify([...set]));
-    renderWall();
-  } catch (e) { console.error(e); alert("Could not report."); }
+    const batch = writeBatch(db);
+    batch.update(doc(db, "posts", id), { reports: increment(1) });
+    batch.set(doc(db, "posts", id, "reports", me.uid), { createdAt: serverTimestamp() });
+    await batch.commit();
+    markReported(id);
+  } catch (e) {
+    console.error(e);
+    if (e.code === "permission-denied") { markReported(id); alert("You have already reported this one."); }
+    else alert("Could not report.");
+  }
+}
+function markReported(id) {
+  const set = reportedSet(); set.add(id);
+  store.set(reportedKey, JSON.stringify([...set]));
+  renderWall();
 }
 async function approvePost(id) {
   try { await updateDoc(doc(db, "posts", id), { approved: true }); }
@@ -1228,11 +1447,23 @@ function renderGigs() {
 
 async function reportGig(id) {
   try {
-    await updateDoc(doc(db, "gigs", id), { reports: increment(1) });
+    if (!me) { alert("Still connecting. Try again in a moment."); return; }
+    // The rules allow one report per person: the counter and a gigs/{id}/reports/{uid} marker are written together.
+    const batch = writeBatch(db);
+    batch.update(doc(db, "gigs", id), { reports: increment(1) });
+    batch.set(doc(db, "gigs", id, "reports", me.uid), { createdAt: serverTimestamp() });
+    await batch.commit();
     const set = reportedGigs(); set.add(id);
     store.set(reportedGigsKey, JSON.stringify([...set]));
     renderGigs();
-  } catch (e) { console.error(e); alert("Could not report."); }
+  } catch (e) {
+    console.error(e);
+    if (e.code === "permission-denied") {
+      const set = reportedGigs(); set.add(id);
+      store.set(reportedGigsKey, JSON.stringify([...set]));
+      renderGigs(); alert("You have already reported this one.");
+    } else alert("Could not report.");
+  }
 }
 async function approveGig(id) {
   try { await updateDoc(doc(db, "gigs", id), { approved: true }); }

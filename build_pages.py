@@ -66,7 +66,7 @@ def page(*, path, title, desc, h1, lead, body, crumb):
   <meta name="description" content="{esc(desc)}">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <link rel="canonical" href="{url}">
-  <meta name="theme-color" content="#FFF0C2">
+  <meta name="theme-color" content="#FFFFFF">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Og Sabha">
   <meta property="og:locale" content="en_IN">

@@ -252,6 +252,7 @@ const noPhoto = new Set();
 // A round plate. Shows food/<meal>.jpg when that photo exists, otherwise the meal's name.
 function plateArt(m, big) {
   const p = el("div", { class: "plate-art" + (big ? " big" : "") });
+  if (!big) p.dataset.emoji = MEAL_EMOJI[m.name] || ""; // phones show this until a photo exists
   if (big) { p.append(watchFace(), el("span", { class: "plate-name", text: m.name })); }
   if (!noPhoto.has(m.name)) {
     const img = el("img", { src: `food/${m.name.toLowerCase()}.jpg`, alt: "", loading: "lazy" });
@@ -279,6 +280,10 @@ function renderFood() {
     type: "button", class: "dchip" + (d === day ? " active" : ""), text: d.slice(0, 3), "aria-label": d,
     onclick: () => { $("day-select").value = d; featuredMeal = null; renderFood(); }
   })));
+
+  // phones: day strip scrolls sideways, keep the chosen day in the middle
+  const activeChip = nav.querySelector(".dchip.active");
+  if (activeChip) nav.scrollLeft = activeChip.offsetLeft - (nav.clientWidth - activeChip.offsetWidth) / 2;
 
   // rating box for the featured meal
   let rateBox = null;
@@ -323,6 +328,7 @@ function renderFood() {
       el("span", { class: "tile-time", text: fmt12(m.start) }),
       el("span", { class: "tile-name", text: m.name }),
       el("span", { class: "tile-sub", text: (dayMenu[m.name] || "Not added yet").split(/[,(]/)[0].trim() }),
+      el("span", { class: "tile-more", text: dayMenu[m.name] || "Not added yet" }), // shown on phones only
       el("span", { class: "tile-foot" },
         el("span", { text: liveOf(m) ? "Serving now" : stats ? `★ ${(stats.sum / stats.count).toFixed(1)}` : "" }),
         el("span", { "aria-hidden": "true", text: "›" }))

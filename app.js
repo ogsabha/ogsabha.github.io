@@ -25,7 +25,7 @@ const firebaseConfig = {
 const BAD_WORDS = ["idiot", "stupid", "slut", "bitch"];
 
 const MEAL_EMOJI = { Breakfast: "🍳", Lunch: "🍛", Snacks: "🍟", Dinner: "🌙" };
-const TAB_EMOJI = { food: ["🍛", "🍟", "🧁"], classes: ["📚", "✏️", "💡"], wall: ["💬", "🤫", "🌙"], gigs: ["🛠️", "💸", "🎨"], about: ["✨", "💛", "🎓"] };
+const TAB_EMOJI = { food: ["🍛", "🍟", "🧁"], classes: [], wall: ["💬", "🤫", "🌙"], gigs: ["🛠️", "💸", "🎨"], about: [] };
 
 /* --------------------------------------------------------------- */
 
@@ -109,10 +109,10 @@ function renderNow() {
   const classTitle = cur ? cur.subject : nxt ? `Next: ${nxt.subject}` : "No more classes today";
   const classSub = cur ? cur.teacher : nxt ? `${fmt12(per(nxt.period).start)} · ${nxt.teacher}` : "";
   box.replaceChildren(
-    el("div", {}, el("span", { class: "k", text: "🍽️ In the mess" }),
+    el("div", {}, el("span", { class: "k", text: "In the mess" }),
       el("strong", { text: meal ? `${meal.name} is being served` : "Nothing being served" }),
       el("span", { class: "muted", text: mealText })),
-    el("div", {}, el("span", { class: "k", text: "📚 In class" }),
+    el("div", {}, el("span", { class: "k", text: "In class" }),
       el("strong", { text: classTitle }),
       el("span", { class: "muted", text: classSub }))
   );
@@ -127,17 +127,17 @@ document.querySelectorAll(".tab").forEach((btn) => {
     history.replaceState(null, "", `#${btn.dataset.tab}`);
     const subs = {
       food: "Today's menu, what's being served now, and how it actually tastes.",
-      classes: "Stay on top of your day: who is teaching, and where.",
-      wall: "Say what you can't say out loud. Anonymous, always kind.",
+      classes: "Every period, every teacher, and a notice from your admins when plans change.",
+      wall: "Confess in the dark. No names, no faces, only whispers.",
       gigs: "Need a hand? Got a skill? Post it, get hired, earn a little.",
       about: "Who made this, what it does, and how to reach us."
     };
     const sub = document.querySelector(".sub");
     if (sub) sub.textContent = subs[btn.dataset.tab];
     document.querySelector('meta[name="theme-color"]')
-      ?.setAttribute("content", { food: "#fff3d6", classes: "#f7f5ef", wall: "#080304", gigs: "#f4f4f2", about: "#000000" }[btn.dataset.tab]);
+      ?.setAttribute("content", { food: "#fff3d6", classes: "#c8d8bc", wall: "#080304", gigs: "#f4f4f2", about: "#000000" }[btn.dataset.tab]);
     const r = btn.getBoundingClientRect();
-    burst(r.left + r.width / 2, r.top + r.height / 2, TAB_EMOJI[btn.dataset.tab], 8);
+    if (TAB_EMOJI[btn.dataset.tab].length) burst(r.left + r.width / 2, r.top + r.height / 2, TAB_EMOJI[btn.dataset.tab], 8);
   });
 });
 
@@ -182,7 +182,7 @@ function renderFood() {
     const live = isToday && nm >= toMin(m.start) && nm < toMin(m.end);
     const card = el("div", { class: "card" + (live ? " live" : "") },
       el("div", { class: "row" },
-        el("div", { class: "ttl" }, el("span", { class: "plate", text: MEAL_EMOJI[m.name] || "🍽️" }), el("h3", { text: m.name })),
+        el("h3", { text: m.name }),
         live ? el("span", { class: "badge pulse", text: "Serving now" }) : null
       ),
       el("p", { class: "muted", text: `${fmt12(m.start)} – ${fmt12(m.end)}` }),
@@ -234,6 +234,7 @@ async function rate(meal, stars) {
 ================================================================= */
 let tt = null;
 let attendance = {}; // "Class A_3" -> true/false for today
+let classDay = null;  // day shown in the timetable (null = today)
 
 async function initClasses() {
   tt = await loadJSON("timetable.json");
@@ -266,6 +267,9 @@ function renderClasses() {
   renderNotices();
   const cls = $("class-select").value;
   const slots = (tt.classes[cls] || {})[todayName()] || [];
+  const viewDay = classDay || todayName();
+  const viewSlots = (tt.classes[cls] || {})[viewDay] || [];
+  renderDayChips(viewDay);
   const periodOf = (no) => tt.periods.find((p) => p.no === no);
   const nm = nowMin();
 
@@ -280,14 +284,14 @@ function renderClasses() {
     const startM = toMin(p.start), endM = toMin(p.end);
     const pct = Math.round(((nm - startM) / (endM - startM)) * 100);
     nowBox.append(el("div", { class: "card live" },
-      el("div", { class: "row" }, el("h3", { text: "🔴 Now" }), ready ? statusBadge(cls, current.period) : null),
+      el("div", { class: "row" }, el("h3", { text: "Now" }), ready ? statusBadge(cls, current.period) : null),
       el("p", { text: `Period ${current.period} · ${current.subject}` }),
       el("p", { class: "muted", text: `${current.teacher} · ${fmt12(p.start)} – ${fmt12(p.end)} · ${endM - nm} min left` }),
       el("div", { class: "bar", "aria-hidden": "true" }, el("i", { style: `--w:${pct}%` }))
     ));
   } else {
     nowBox.append(el("div", { class: "card" },
-      el("h3", { text: "😴 No class right now" }),
+      el("h3", { text: "No class right now" }),
       next
         ? el("p", { class: "muted", text: `Next: ${next.subject} with ${next.teacher} at ${fmt12(periodOf(next.period).start)}` })
         : el("p", { class: "muted", text: slots.length ? "No more classes today." : "No classes today." })
@@ -296,32 +300,49 @@ function renderClasses() {
 
   const table = $("class-table");
   table.replaceChildren();
-  if (!slots.length) { table.append(el("p", { class: "muted", text: "No classes scheduled today." })); return; }
+  const isToday = viewDay === todayName();
+  if (!viewSlots.length) { table.append(el("p", { class: "muted", text: isToday ? "No classes scheduled today." : `No classes on ${viewDay}.` })); return; }
 
-  const tbl = el("table");
-  slots.forEach((s) => {
+  const tl = el("ol", { class: "timeline" });
+  viewSlots.forEach((s) => {
     const p = periodOf(s.period);
-    const isCurrent = s === current;
-    const cell = el("td", {},
+    const isCurrent = isToday && s === current;
+    const [clock, ap] = p ? fmt12(p.start).split(" ") : ["", ""];
+    const card = el("div", { class: "slot-card" },
       el("strong", { text: s.subject }),
       el("div", { class: "muted", text: s.teacher })
     );
-    if (ready) {
-      cell.append(statusBadge(cls, s.period));
+    if (ready && isToday) {
+      card.append(statusBadge(cls, s.period));
       if (currentUser) {
-        cell.append(el("div", { class: "actions" },
+        card.append(el("div", { class: "actions" },
           el("button", { text: "Mark present", onclick: () => setAttendance(cls, s.period, true) }),
           el("button", { class: "danger", text: "Mark absent", onclick: () => setAttendance(cls, s.period, false) }),
           el("button", { class: "ghost", text: "Clear", onclick: () => clearAttendance(cls, s.period) })
         ));
       }
     }
-    tbl.append(el("tr", { class: isCurrent ? "current" : "" },
-      el("td", { class: "muted", text: p ? `P${s.period} · ${fmt12(p.start)}` : `P${s.period}` }),
-      cell
+    tl.append(el("li", { class: "slot" + (isCurrent ? " current" : "") },
+      el("div", { class: "slot-time" }, el("b", { text: clock }), el("span", { text: ap }), el("em", { text: `Period ${s.period}` })),
+      el("span", { class: "dot" }),
+      card
     ));
   });
-  table.append(tbl);
+  table.append(tl);
+}
+
+function renderDayChips(viewDay) {
+  const box = $("day-chips");
+  box.replaceChildren();
+  ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].forEach((d) => {
+    box.append(el("button", {
+      type: "button",
+      class: (d === viewDay ? "active " : "") + (d === todayName() ? "today" : ""),
+      text: d.slice(0, 3),
+      "aria-label": d,
+      onclick: () => { classDay = d === todayName() ? null : d; renderClasses(); }
+    }));
+  });
 }
 
 async function setAttendance(cls, period, present) {
@@ -377,7 +398,7 @@ function renderNotices() {
     .filter((n) => n.cls === cls)
     .sort((a, b) => (b.createdAt?.seconds ?? 9e9) - (a.createdAt?.seconds ?? 9e9))
     .forEach((n) => box.append(el("div", { class: "card" },
-      el("p", { class: "notice-head", text: `📌 Notice for ${n.cls} · ${postTime(n)}` }),
+      el("p", { class: "notice-head", text: `Notice for ${n.cls} · ${postTime(n)}` }),
       el("p", { text: n.text }),
       currentUser ? el("div", { class: "actions" },
         el("button", { class: "danger", text: "Delete notice", onclick: () => removeNotice(n.id) })) : null
@@ -422,7 +443,7 @@ function initWall() {
       text.value = "";
       $("post-count").textContent = "0 / 300";
       msg.textContent = "Thanks! Your post will appear after it is approved.";
-      burst(innerWidth / 2, innerHeight / 2, ["💌", "✨", "🤫"], 14);
+      burst(innerWidth / 2, innerHeight / 2, ["🩸", "👁️", "🕯️"], 14);
     } catch (err) {
       console.error(err);
       msg.textContent = "Could not post. Try again later.";
@@ -932,13 +953,11 @@ renderQuote();
 
 /* ---------- interactive hero ---------- */
 const hero = $("hero");
-const lines = { food: "good food, on time.", classes: "know your day.", wall: "say it. nobody knows.", gigs: "hire a classmate.", about: "made by students." };
-const ART = { food: "🍛", classes: "🎓", wall: "🎈", gigs: "🛠️", about: "👥" };
+const lines = { food: "good food, on time.", classes: "The day worth\nshowing up for.", wall: "the walls are listening.", gigs: "hire a classmate.", about: "made by students." };
 document.querySelectorAll(".tab").forEach((b) =>
   b.addEventListener("click", () => {
     const h = $("h1-line");
     h.textContent = lines[b.dataset.tab];
-    document.querySelector("#hero-art span").textContent = ART[b.dataset.tab];
     h.classList.remove("pop"); void h.offsetWidth; h.classList.add("pop");
   }));
 

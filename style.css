@@ -675,3 +675,33 @@ body[data-theme="wall"] .wp-info dt{font-family:"Playfair Display",Georgia,serif
   .wp-info dd{margin-left:0;max-width:none}
 }
 @media(prefers-reduced-motion:reduce){.wp-clown,.wp-balloon{animation:none}}
+
+/* 6. WALL: horror pass: torch beam, flicker, film grain, fog, whispers, blinking eyes */
+.wposter{--mx:73%;--my:46%;background:radial-gradient(800px 520px at 12% 38%,#9a1018 0%,#590a0f 46%,#120304 100%);isolation:isolate}
+.wposter::before{content:"";position:absolute;inset:-20%;z-index:7;pointer-events:none;opacity:.16;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:wpgrain .9s steps(6) infinite}
+@keyframes wpgrain{0%{transform:translate(0,0)}20%{transform:translate(-3%,2%)}40%{transform:translate(2%,-3%)}60%{transform:translate(-2%,-1%)}80%{transform:translate(3%,3%)}100%{transform:translate(0,0)}}
+.wposter::after{content:"";position:absolute;inset:0;z-index:5;pointer-events:none;
+  background:radial-gradient(circle 250px at var(--mx) var(--my),rgba(0,0,0,0) 0,rgba(0,0,0,.3) 42%,rgba(0,0,0,.84) 100%);
+  animation:wpflick 9s infinite}
+@keyframes wpflick{0%,100%{opacity:1}3%{opacity:.35}4%{opacity:1}5%{opacity:.6}6%{opacity:1}44%{opacity:1}45%{opacity:.25}46%{opacity:.9}47%{opacity:.4}48%{opacity:1}78%{opacity:1}79%{opacity:.5}80%{opacity:1}}
+.wp-copy,.wp-info,.wp-rail{z-index:8}
+.wp-clown{filter:brightness(.86) contrast(1.12) drop-shadow(0 20px 40px rgba(0,0,0,.7))}
+.wp-clown .lid{transform-box:fill-box;transform-origin:50% 0;transform:scaleY(0);animation:wpblink 7s infinite}
+@keyframes wpblink{0%,93%,100%{transform:scaleY(0)}95%{transform:scaleY(1.9)}97%{transform:scaleY(0)}}
+.wp-fog{position:absolute;inset:auto 0 0 0;height:55%;z-index:3;pointer-events:none;opacity:.5;
+  background:radial-gradient(60% 70% at 20% 90%,rgba(255,255,255,.14),transparent 70%),radial-gradient(50% 60% at 70% 100%,rgba(255,200,200,.12),transparent 70%);
+  background-size:160% 100%;animation:wpfog 22s ease-in-out infinite alternate}
+@keyframes wpfog{from{background-position:0 0}to{background-position:100% 0}}
+.wp-scrawl{position:absolute;inset:0;z-index:2;pointer-events:none;font-family:"Special Elite","Courier New",monospace;color:#ff3b30}
+.wp-scrawl span{position:absolute;font-size:clamp(.9rem,2vw,1.35rem);opacity:.1;transform:rotate(var(--r,0deg));letter-spacing:.08em;animation:wpscrawl 8s ease-in-out infinite}
+.wp-scrawl span:nth-child(2){animation-delay:-2s}.wp-scrawl span:nth-child(3){animation-delay:-4.5s}.wp-scrawl span:nth-child(4){animation-delay:-6s}
+@keyframes wpscrawl{0%,70%,100%{opacity:.08}78%{opacity:.4}86%{opacity:.08}}
+body[data-theme="wall"] .wp-copy h2{animation:wpglitch 7s infinite}
+@keyframes wpglitch{0%,91%,100%{text-shadow:none;transform:none}92%{text-shadow:3px 0 #ff1a1a,-3px 0 #00e5ff;transform:translateX(-2px)}94%{text-shadow:-3px 0 #ff1a1a,3px 0 #00e5ff;transform:translateX(2px) skewX(-4deg)}96%{text-shadow:none;transform:none}}
+@media(max-width:760px){.wposter::after{background:radial-gradient(circle 190px at var(--mx) var(--my),rgba(0,0,0,0) 0,rgba(0,0,0,.3) 42%,rgba(0,0,0,.84) 100%)}.wposter{--mx:50%;--my:30%}}
+@media(prefers-reduced-motion:reduce){
+  .wposter::before,.wposter::after,.wp-fog,.wp-scrawl span,.wp-clown .lid,body[data-theme="wall"] .wp-copy h2{animation:none}
+  .wposter::after{background:radial-gradient(circle 300px at var(--mx) var(--my),rgba(0,0,0,0) 0,rgba(0,0,0,.2) 50%,rgba(0,0,0,.6) 100%)}
+}

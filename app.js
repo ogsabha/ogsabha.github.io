@@ -895,16 +895,38 @@ function initWallScene() {
   sizeTorch();
 }
 
+/* ---------- whispers: faint words flash in the dark, now and then ---------- */
+const WHISPERS = ["behind you", "we can see you", "it read this too", "don't turn around", "still here", "you are not alone in here", "it heard that", "keep the light on"];
+let whisperTimer = 0;
+function scheduleWhisper() {
+  clearTimeout(whisperTimer);
+  if (!WL.on || reduceMotion) return;
+  whisperTimer = setTimeout(() => {
+    if (WL.on && !WL.lamp && !document.hidden) {
+      const w = document.createElement("div");
+      w.className = "wl-whisper";
+      w.setAttribute("aria-hidden", "true");
+      w.textContent = WHISPERS[Math.floor(Math.random() * WHISPERS.length)];
+      w.style.left = (6 + Math.random() * 62) + "%";
+      w.style.top = (14 + Math.random() * 68) + "%";
+      w.style.setProperty("--r", (Math.random() * 14 - 7).toFixed(1) + "deg");
+      document.body.append(w);
+      setTimeout(() => w.remove(), 2000);
+    }
+    scheduleWhisper();
+  }, 12000 + Math.random() * 18000);
+}
+
 // Called from activateTab.
 function wallActive(on) {
   if (WL.on === on) return;
   WL.on = on;
   Snd.setActive(on);
-  cancelAnimationFrame(WL.raf); clearTimeout(WL.eyeTimer); clearTimeout(WL.beatTimer);
+  cancelAnimationFrame(WL.raf); clearTimeout(WL.eyeTimer); clearTimeout(WL.beatTimer); clearTimeout(whisperTimer);
   if (on) {
     WL.lastInput = performance.now();
     WL.raf = requestAnimationFrame(wallFrame);
-    scheduleEye(); beat();
+    scheduleEye(); beat(); scheduleWhisper();
   } else {
     clearEyes();
   }

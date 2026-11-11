@@ -179,13 +179,36 @@
 
     <!-- GIGS -->
     <section id="gigs" class="panel" role="tabpanel" aria-labelledby="tab-gigs">
+      <div class="gig-cta">
+        <button type="button" class="pill dark" id="gig-cta-post">Post a gig <span aria-hidden="true">↗</span></button>
+        <button type="button" class="pill light" id="gig-cta-browse">Browse the board</button>
+      </div>
+
+      <div class="orbit">
+        <svg class="spin-badge" viewBox="0 0 120 120" aria-hidden="true">
+          <defs><path id="circ" d="M60,60 m-46,0 a46,46 0 1,1 92,0 a46,46 0 1,1 -92,0"/></defs>
+          <text font-size="9.5" fill="#111" font-weight="500"><textPath href="#circ" textLength="285" lengthAdjust="spacing">HIRE A CLASSMATE · EARN A LITTLE · </textPath></text>
+          <path d="M60 44C61 54 66 59 76 60C66 61 61 66 60 76C59 66 54 61 44 60C54 59 59 54 60 44Z" fill="#111"/>
+        </svg>
+        <aside class="float glass fl-left">
+          <strong>Turn skills into pocket money.</strong>
+          <p>Post what you can do, or what you need done.</p>
+        </aside>
+        <div class="arc" id="gig-arc" role="group" aria-label="Categories"></div>
+        <aside class="float glass fl-right">
+          <div class="avatars" id="gig-avatars"></div>
+          <strong id="gig-stat">0 live</strong>
+          <p id="gig-stat-sub">Be the first to post.</p>
+        </aside>
+      </div>
+
       <div class="seg" role="group" aria-label="Show">
         <button type="button" class="seg-btn active" data-kind="all">All</button>
         <button type="button" class="seg-btn" data-kind="wanted">🔍 Wanted</button>
         <button type="button" class="seg-btn" data-kind="offer">✋ Offering</button>
       </div>
 
-      <label>Category
+      <label hidden>Category
         <select id="gig-cat-filter"></select>
       </label>
 
@@ -233,7 +256,7 @@
         <div id="gig-pending"></div>
       </div>
 
-      <h2>The board</h2>
+      <h2 id="gig-board">The board</h2>
       <div id="gig-list"></div>
     </section>
     <!-- ABOUT -->

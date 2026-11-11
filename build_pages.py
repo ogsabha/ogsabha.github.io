@@ -56,7 +56,7 @@ def page(*, path, title, desc, h1, lead, body, crumb):
             },
         ],
     }
-    fonts = "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=DM+Sans:wght@400;500;700&display=swap"
+    fonts = "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=Poppins:wght@400;500;600;700&display=swap"
     return f"""<!DOCTYPE html>
 <html lang="en-IN">
 <head>
@@ -86,10 +86,10 @@ def page(*, path, title, desc, h1, lead, body, crumb):
   <link rel="stylesheet" href="style.css">
   <style>
     .page-head{{width:min(720px,calc(100% - 32px));margin:32px auto 8px}}
-    .page-head .back{{font-weight:700;color:var(--ink)}}
+    .page-head .back{{font-weight:600}}
     .page-head h1{{font-size:clamp(2rem,8vw,3.2rem);margin:14px 0 10px;line-height:1.05}}
     .lead{{color:var(--muted);font-weight:500;margin:0}}
-    th{{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;padding:0 14px;color:var(--muted)}}
+    th{{text-align:left;font-size:.8rem;font-weight:600;padding:0 14px;color:var(--muted)}}
     main h2{{margin-top:28px}} main h3{{margin:22px 0 6px;font-size:1.1rem}}
   </style>
 </head>

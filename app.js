@@ -1211,6 +1211,11 @@ function noteColor(id) {
   };
   $("wp-whisper")?.addEventListener("click", () => { go("post-form"); setTimeout(() => $("post-text")?.focus({ preventScroll: true }), 350); });
   $("wp-read")?.addEventListener("click", () => go("post-list"));
+  $("wp-down")?.addEventListener("click", () => go("post-form"));
+  // Found-footage timecode on the wall poster.
+  const tc = $("wp-tc");
+  if (tc) { const t0 = Date.now(); const pad = (n) => String(n).padStart(2, "0");
+    setInterval(() => { const s = Math.floor((Date.now() - t0) / 1000); tc.textContent = `${pad(Math.floor(s / 3600))}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`; }, 1000); }
   document.querySelectorAll(".wp-dot").forEach((d) => d.addEventListener("click", () => {
     document.querySelectorAll(".wp-dot").forEach((x) => x.classList.toggle("on", x === d));
     go(d.dataset.go);

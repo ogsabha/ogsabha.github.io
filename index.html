@@ -173,12 +173,15 @@
             <button type="button" class="wp-btn ghost" id="wp-read">Read posts</button>
           </div>
         </div>
+        <div class="wp-fog" aria-hidden="true"></div>
+        <div class="wp-scrawl" aria-hidden="true"><span style="left:8%;top:14%;--r:-6deg">we see you</span><span style="left:46%;top:8%;--r:4deg">behind you</span><span style="left:20%;top:84%;--r:-3deg">don't look</span><span style="left:52%;top:90%;--r:5deg">still here</span></div>
         <div class="wp-balloon" aria-hidden="true"></div>
         <svg class="wp-clown" viewBox="0 0 400 460" aria-hidden="true">
           <defs>
             <radialGradient id="wcSkin" cx="55%" cy="38%" r="70%"><stop offset="0" stop-color="#f6f1ee"/><stop offset=".6" stop-color="#d9d1ce"/><stop offset="1" stop-color="#8e8081"/></radialGradient>
             <radialGradient id="wcIris" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#ffd467"/><stop offset="1" stop-color="#d9780c"/></radialGradient>
             <radialGradient id="wcNose" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#ff5b4d"/><stop offset=".55" stop-color="#c1121a"/><stop offset="1" stop-color="#6a0a10"/></radialGradient>
+            <filter id="wcBlur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6"/></filter>
             <clipPath id="wcClipL"><ellipse cx="140" cy="191" rx="30" ry="16"/></clipPath>
             <clipPath id="wcClipR"><ellipse cx="260" cy="191" rx="30" ry="16"/></clipPath>
           </defs>
@@ -187,7 +190,10 @@
           </g>
           <ellipse cx="200" cy="250" rx="152" ry="192" fill="url(#wcSkin)" stroke="#4a3436" stroke-width="3"/>
           <ellipse cx="92" cy="296" rx="40" ry="26" fill="#c1121a" opacity=".22"/><ellipse cx="310" cy="296" rx="40" ry="26" fill="#c1121a" opacity=".22"/>
+          <ellipse cx="140" cy="200" rx="44" ry="26" fill="#2a0508" opacity=".6" filter="url(#wcBlur)"/><ellipse cx="260" cy="200" rx="44" ry="26" fill="#2a0508" opacity=".6" filter="url(#wcBlur)"/>
+          <g fill="none" stroke="#3a2224" stroke-width="1.6" stroke-linecap="round" opacity=".55"><path d="M300 108 l-12 24 l9 13 l-9 20"/><path d="M92 118 l14 18 l-6 12"/><path d="M168 330 l-6 22 M236 336 l8 20"/><path d="M276 250 l14 16 l-4 14"/></g>
           <g fill="none" stroke="#c1121a" stroke-linecap="round">
+            <path d="M64 294 C44 272 50 246 70 230 M336 294 C356 272 350 246 330 230" stroke-width="8"/>
             <path d="M236 62 C242 120 224 170 242 232" stroke-width="13"/>
             <path d="M130 216 C124 268 140 298 126 336" stroke-width="8"/>
           </g>
@@ -195,10 +201,11 @@
           <path d="M212 191 L260 158 L308 191 L260 224 Z" fill="rgba(193,18,26,.16)" stroke="#c1121a" stroke-width="6" stroke-linejoin="round"/>
           <ellipse cx="140" cy="191" rx="30" ry="16" fill="#f1ebe0" stroke="#4a2a2a" stroke-width="2"/>
           <ellipse cx="260" cy="191" rx="30" ry="16" fill="#f1ebe0" stroke="#4a2a2a" stroke-width="2"/>
-          <g clip-path="url(#wcClipL)"><g class="pupil"><circle cx="140" cy="191" r="14" fill="url(#wcIris)"/><circle cx="140" cy="191" r="6.5" fill="#120405"/><circle cx="144" cy="186" r="2.6" fill="#fff"/></g></g>
-          <g clip-path="url(#wcClipR)"><g class="pupil"><circle cx="260" cy="191" r="14" fill="url(#wcIris)"/><circle cx="260" cy="191" r="6.5" fill="#120405"/><circle cx="264" cy="186" r="2.6" fill="#fff"/></g></g>
+          <g clip-path="url(#wcClipL)"><g class="pupil"><circle cx="140" cy="191" r="14" fill="url(#wcIris)"/><circle cx="140" cy="191" r="4.6" fill="#0a0203"/><circle cx="144" cy="186" r="2.6" fill="#fff"/></g></g>
+          <g clip-path="url(#wcClipR)"><g class="pupil"><circle cx="260" cy="191" r="14" fill="url(#wcIris)"/><circle cx="260" cy="191" r="4.6" fill="#0a0203"/><circle cx="264" cy="186" r="2.6" fill="#fff"/></g></g>
+          <g clip-path="url(#wcClipL)"><ellipse class="lid" cx="140" cy="175" rx="31" ry="17" fill="#cfc6c3"/></g><g clip-path="url(#wcClipR)"><ellipse class="lid" cx="260" cy="175" rx="31" ry="17" fill="#cfc6c3"/></g>
           <path d="M108 191 Q140 166 172 191 M228 191 Q260 166 292 191" fill="none" stroke="#2c1214" stroke-width="3.5" stroke-linecap="round"/>
-          <path d="M90 130 Q140 124 186 158 M310 130 Q260 124 214 158" fill="none" stroke="#c1121a" stroke-width="11" stroke-linecap="round"/>
+          <path d="M88 126 Q140 128 188 164 M312 126 Q260 128 212 164" fill="none" stroke="#c1121a" stroke-width="11" stroke-linecap="round"/>
           <circle cx="200" cy="262" r="30" fill="url(#wcNose)" stroke="#5e080d" stroke-width="2"/><ellipse cx="190" cy="251" rx="8" ry="5" fill="#fff" opacity=".45"/>
           <path d="M62 292 C112 420 288 420 338 292 C300 346 100 346 62 292 Z" fill="#c1121a" stroke="#5e080d" stroke-width="3" stroke-linejoin="round"/>
           <path d="M92 306 C130 395 270 395 308 306 C270 342 130 342 92 306 Z" fill="#140304"/>

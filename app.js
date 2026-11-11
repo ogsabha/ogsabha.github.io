@@ -610,6 +610,8 @@ function renderWall() {
     .filter((p) => staff || (p.reports || 0) < 3)
     .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
+  const wc = $("wp-count");
+  if (wc) wc.textContent = String(visible.length);
   const list = $("post-list");
   list.replaceChildren();
   if (!visible.length) list.append(el("p", { class: "muted", text: "No posts yet. Be the first." }));
@@ -1199,6 +1201,33 @@ function noteColor(id) {
   for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return h % 4;
 }
+
+/* ---------- wall poster: jump buttons + eyes that follow the pointer ---------- */
+(() => {
+  const go = (id) => {
+    const t = $(id);
+    if (!t || t.hidden) return;
+    t.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+  };
+  $("wp-whisper")?.addEventListener("click", () => { go("post-form"); setTimeout(() => $("post-text")?.focus({ preventScroll: true }), 350); });
+  $("wp-read")?.addEventListener("click", () => go("post-list"));
+  document.querySelectorAll(".wp-dot").forEach((d) => d.addEventListener("click", () => {
+    document.querySelectorAll(".wp-dot").forEach((x) => x.classList.toggle("on", x === d));
+    go(d.dataset.go);
+  }));
+
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const pupils = document.querySelectorAll(".wp-clown .pupil");
+  document.addEventListener("pointermove", (e) => {
+    if (document.body.dataset.theme !== "wall") return;
+    pupils.forEach((p) => {
+      const eye = p.parentNode.getBoundingClientRect();
+      const dx = e.clientX - (eye.left + eye.width / 2), dy = e.clientY - (eye.top + eye.height / 2);
+      const d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / 220);
+      p.style.transform = `translate(${(dx / d) * 11 * k}px, ${(dy / d) * 6 * k}px)`; // user units, kept inside the eye by the clip
+    });
+  });
+})();
 
 /* ---------- gigs globe: a slowly turning network sphere ---------- */
 (() => {

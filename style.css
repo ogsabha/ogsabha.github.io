@@ -634,3 +634,44 @@ body[data-theme="about"] main{width:100%;max-width:none;margin:0}
   .ab-art{max-width:260px}
 }
 @media(prefers-reduced-motion:reduce){.ab-art .dot{animation:none}}
+
+/* 5. WALL: cinematic red poster card with an original clown */
+body[data-theme="wall"] .hero{position:absolute;width:1px;height:1px;margin:-1px;padding:0;min-height:0;overflow:hidden;clip:rect(0,0,0,0)}
+.wposter{position:relative;display:grid;grid-template-columns:46px minmax(0,1.05fr) minmax(0,.95fr);align-items:center;min-height:440px;margin:0 0 30px;overflow:hidden;border-radius:6px;color:#fff;
+  background:radial-gradient(800px 520px at 12% 38%,#b8141c 0%,#7a0b12 46%,#1c0507 100%);box-shadow:0 34px 70px -34px rgba(225,6,0,.6),0 0 0 1px rgba(255,255,255,.06)}
+.wp-rail{position:relative;align-self:stretch;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px}
+.wp-rail::before{content:"";position:absolute;left:50%;top:22px;bottom:22px;width:1px;background:rgba(255,255,255,.35)}
+button.wp-dot{position:relative;width:9px;height:9px;padding:0;border-radius:50%;background:rgba(255,255,255,.35);box-shadow:none;border:0;transition:background .2s,transform .2s}
+button.wp-dot:hover{background:#fff;transform:scale(1.35);box-shadow:none}
+button.wp-dot.on{background:#fff}
+.wp-copy{position:relative;z-index:3;padding:40px 0 40px 8px;font-family:"Poppins",system-ui,sans-serif}
+body[data-theme="wall"] .wp-copy h2{font-family:"Playfair Display",Georgia,serif;font-weight:600;font-size:clamp(2rem,4.6vw,2.9rem);line-height:1.05;letter-spacing:-.01em;text-transform:none;margin:0 0 16px;color:#fff;text-shadow:none;font-style:normal;max-width:9em}
+body[data-theme="wall"] .wp-copy h2::after,body[data-theme="wall"] .wp-info dt::after{display:none}
+.wp-copy p{margin:0 0 24px;max-width:38ch;font-size:.78rem;line-height:1.75;font-weight:500;color:rgba(255,255,255,.88)}
+.wp-btns{display:flex;gap:14px;flex-wrap:wrap}
+button.wp-btn{padding:11px 34px;border-radius:5px;font:600 .72rem "Poppins",system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;border:1px solid #fff;box-shadow:none;transition:background .2s,color .2s,transform .2s}
+button.wp-btn.solid{background:#fff;color:#7a0b12}
+button.wp-btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.7)}
+button.wp-btn:hover{transform:translateY(-2px);box-shadow:0 10px 22px -10px rgba(0,0,0,.6)}
+button.wp-btn.ghost:hover{background:#fff;color:#7a0b12}
+.wp-clown{position:absolute;right:11%;top:-9%;height:122%;width:auto;z-index:1;filter:drop-shadow(0 20px 40px rgba(0,0,0,.55));
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 22%);mask-image:linear-gradient(90deg,transparent 0,#000 22%);
+  animation:wpbreathe 7s ease-in-out infinite;transform-origin:70% 60%}
+@keyframes wpbreathe{50%{transform:scale(1.025) rotate(-.6deg)}}
+.wp-balloon{position:absolute;z-index:2;right:-11%;top:10%;width:31%;height:104%;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle at 35% 28%,#e0262e 0%,#a50f16 48%,#3d0609 100%);animation:wpfloat 6s ease-in-out infinite}
+@keyframes wpfloat{50%{translate:0 -10px}}
+.wp-info{position:absolute;z-index:4;right:28px;top:50%;transform:translateY(-50%);margin:0;text-align:right;display:grid;gap:18px;font-family:"Poppins",system-ui,sans-serif}
+.wp-info div{margin:0}
+body[data-theme="wall"] .wp-info dt{font-family:"Playfair Display",Georgia,serif;font-weight:600;font-size:1.3rem;line-height:1.1;text-transform:none;letter-spacing:0;color:#fff}
+.wp-info dd{margin:3px 0 0;font-size:.62rem;font-weight:500;color:rgba(255,255,255,.9);max-width:15ch;margin-left:auto}
+@media(max-width:760px){
+  .wposter{grid-template-columns:1fr;min-height:0}
+  .wp-rail{display:none}
+  .wp-copy{padding:290px 22px 18px}
+  .wp-clown{right:50%;margin-right:-113px;top:14px;height:268px;-webkit-mask-image:none;mask-image:none}
+  .wp-balloon{display:none}
+  .wp-info{position:static;transform:none;text-align:left;grid-template-columns:1fr 1fr;padding:6px 22px 26px;gap:14px 18px}
+  .wp-info dd{margin-left:0;max-width:none}
+}
+@media(prefers-reduced-motion:reduce){.wp-clown,.wp-balloon{animation:none}}

@@ -75,11 +75,12 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Poppins:wght@400;500;600;700&display=swap">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Poppins:wght@400;500;600;700&display=swap"></noscript>
+  <link rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Caveat:wght@500&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Instrument+Serif:ital@0;1&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Poppins:wght@400;500;600;700&family=Special+Elite&display=swap">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Caveat:wght@500&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Instrument+Serif:ital@0;1&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Poppins:wght@400;500;600;700&family=Special+Elite&display=swap"></noscript>
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-theme="food">
+  <div class="drips" aria-hidden="true"></div>
   <div class="topbar">
     <span class="brand">Og Sabha</span>
     <span class="chip" id="greet">hey</span>
@@ -91,7 +92,6 @@
       <p class="sr-only">DCSMAT Vagamon student hub: Og Sabha mess menu, class timetable, anonymous wall and gigs board.</p>
       <p class="sub">Mess menu, live classes, an anonymous wall and a skill board. Made by UG 2026 students, Vagamon.</p>
     </div>
-    <div class="art" id="hero-art" role="img" aria-label="Section illustration"><span>🍛</span></div>
   </header>
 
   <div class="foodstrip" aria-hidden="true"><div class="track"><span>🍛 biriyani ✦ 🥞 palappam ✦ 🐟 fish curry ✦ ☕ chaya ✦ 🍌 banana fry ✦ 🥟 samosa ✦ 🍚 ghee rice ✦ 🍮 payasam ✦</span><span>🍛 biriyani ✦ 🥞 palappam ✦ 🐟 fish curry ✦ ☕ chaya ✦ 🍌 banana fry ✦ 🥟 samosa ✦ 🍚 ghee rice ✦ 🍮 payasam ✦</span></div></div>
@@ -99,11 +99,11 @@
   <div id="now-strip" class="now" aria-live="polite"></div>
 
   <nav role="tablist" aria-label="Sections">
-    <button class="tab active" id="tab-food" role="tab" aria-selected="true" aria-controls="food" data-tab="food">🍛 Food</button>
-    <button class="tab" id="tab-classes" role="tab" aria-selected="false" aria-controls="classes" data-tab="classes">📚 Classes</button>
-    <button class="tab" id="tab-wall" role="tab" aria-selected="false" aria-controls="wall" data-tab="wall">💬 Wall</button>
-    <button class="tab" id="tab-gigs" role="tab" aria-selected="false" aria-controls="gigs" data-tab="gigs">🛠️ Gigs</button>
-    <button class="tab" id="tab-about" role="tab" aria-selected="false" aria-controls="about" data-tab="about">✨ About</button>
+    <button class="tab active" id="tab-food" role="tab" aria-selected="true" aria-controls="food" data-tab="food">Food</button>
+    <button class="tab" id="tab-classes" role="tab" aria-selected="false" aria-controls="classes" data-tab="classes">Classes</button>
+    <button class="tab" id="tab-wall" role="tab" aria-selected="false" aria-controls="wall" data-tab="wall">Wall</button>
+    <button class="tab" id="tab-gigs" role="tab" aria-selected="false" aria-controls="gigs" data-tab="gigs">Gigs</button>
+    <button class="tab" id="tab-about" role="tab" aria-selected="false" aria-controls="about" data-tab="about">About</button>
   </nav>
 
   <p id="setup-note" class="note" hidden>
@@ -130,6 +130,7 @@
       <label>Your class
         <select id="class-select"></select>
       </label>
+      <div id="day-chips" class="day-chips" role="group" aria-label="Day of the week"></div>
       <figure class="quote" id="quote">
         <blockquote id="quote-text"></blockquote>
         <figcaption id="quote-by"></figcaption>
@@ -150,7 +151,7 @@
         </details>
       </div>
       <div id="class-now"></div>
-      <h2>Today's timetable</h2>
+      <h2>Timetable</h2>
       <div id="class-table"></div>
     </section>
 
@@ -158,10 +159,10 @@
     <section id="wall" class="panel" role="tabpanel" aria-labelledby="tab-wall">
       <form id="post-form">
         <textarea id="post-text" maxlength="300" rows="4"
-          placeholder="Share a thought, confession or suggestion. Please do not name or target anyone."></textarea>
+          placeholder="Whisper something into the dark. Please do not name or target anyone."></textarea>
         <div class="row">
           <span id="post-count" class="muted">0 / 300</span>
-          <button type="submit">Post anonymously</button>
+          <button type="submit">Whisper it</button>
         </div>
         <p id="post-msg" class="muted"></p>
       </form>
@@ -241,32 +242,7 @@
         <div class="card">
           <h3>Who we are</h3>
           <p>Og Sabha is made by the UG 2026 batch of DCSMAT, Vagamon. We got tired of asking "what's for lunch?" and "which hour is this?", so we built one place for both. [Add your team names and a line about yourselves here.]</p>
-        </div>
-        <div class="card">
-          <h3>The team</h3>
-          <p class="muted">To add photos, create a folder called members next to index.html and save pictures as member-1.jpg, member-2.jpg and so on. They show in black and white automatically.</p>
-          <div class="team">
-          <div class="member">
-            <div class="photo"><span class="ph">photo</span><img src="members/member-1.jpg" alt="Team member 1" loading="lazy" onerror="this.remove()"></div>
-            <h4>Member name</h4>
-            <p class="muted">Role, e.g. Design</p>
-          </div>
-          <div class="member">
-            <div class="photo"><span class="ph">photo</span><img src="members/member-2.jpg" alt="Team member 2" loading="lazy" onerror="this.remove()"></div>
-            <h4>Member name</h4>
-            <p class="muted">Role, e.g. Design</p>
-          </div>
-          <div class="member">
-            <div class="photo"><span class="ph">photo</span><img src="members/member-3.jpg" alt="Team member 3" loading="lazy" onerror="this.remove()"></div>
-            <h4>Member name</h4>
-            <p class="muted">Role, e.g. Design</p>
-          </div>
-          <div class="member">
-            <div class="photo"><span class="ph">photo</span><img src="members/member-4.jpg" alt="Team member 4" loading="lazy" onerror="this.remove()"></div>
-            <h4>Member name</h4>
-            <p class="muted">Role, e.g. Design</p>
-          </div>
-          </div>
+          <div class="group-photo"><span class="ph">team photo</span><img src="members/team.jpg" alt="The Og Sabha team" loading="lazy" onerror="this.remove()"></div>
         </div>
         <div class="card">
           <h3>What you can do here</h3>

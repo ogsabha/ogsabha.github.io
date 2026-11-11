@@ -394,3 +394,64 @@ body[data-theme="classes"] .card h3{font-weight:600;font-size:1.5rem}
 .slot-card .badge{margin-top:8px}
 .slot.current .slot-card{background:#17291e;color:#eef4e8;border-left:5px solid #d9622b}
 @media(max-width:480px){.slot{grid-template-columns:64px 20px 1fr;gap:0 8px}.slot::before{left:81px}.slot-time b{font-size:1.5rem}}
+
+/* =========================================================
+   v6: FOOD redesign (foodbar layout): plate on a dark panel, big headline, dark cards
+========================================================= */
+body[data-theme="food"]{
+  --bg:#fff;--ink:#1d1d1d;--muted:#6f6f6f;--cbg:#3b302d;--cink:#fff;--accent:#e1251b;--on-accent:#fff;--line:rgba(0,0,0,.12);
+  --head:"Poppins",system-ui,sans-serif;--hw:700;--hcase:lowercase;--hls:-.03em;--shadow:0 20px 40px -22px rgba(0,0,0,.45);background:#fff}
+body[data-theme="food"] .hero{position:absolute;width:1px;height:1px;margin:-1px;padding:0;min-height:0;overflow:hidden;clip:rect(0,0,0,0)}
+body[data-theme="food"] .foodstrip,body[data-theme="food"] .now{display:none}
+body[data-theme="food"] .chip{background:#fff;color:#1d1d1d;border-color:rgba(0,0,0,.12)}
+body[data-theme="food"] nav{background:#fff;border:1px solid rgba(0,0,0,.08);box-shadow:0 12px 30px -16px rgba(0,0,0,.25);backdrop-filter:none}
+body[data-theme="food"] .tab{color:#1d1d1d;font-weight:600}
+body[data-theme="food"] .tab.active{background:transparent;color:#e1251b;position:relative}
+body[data-theme="food"] .tab.active::after{content:"";position:absolute;left:50%;bottom:3px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:#e1251b}
+body[data-theme="food"] button{border:0}
+
+.daynav{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;margin:0 0 18px}
+.dchip{background:none;color:#1d1d1d;padding:4px 2px;font-size:.9rem;position:relative;box-shadow:none}
+.dchip:hover{box-shadow:none;transform:none;color:#e1251b}
+.dchip.active{color:#e1251b}
+.dchip.active::after{content:"";position:absolute;left:50%;bottom:-3px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:#e1251b}
+
+.feature{display:grid;grid-template-columns:1fr;gap:26px;align-items:center;margin-top:6px}
+@media(min-width:760px){.feature{grid-template-columns:1.05fr .95fr;gap:24px}}
+.stage{position:relative;height:clamp(300px,80vw,420px);display:grid;place-items:center}
+.slab{position:absolute;top:0;bottom:0;left:50%;width:min(58%,230px);transform:translateX(-50%);background:#2a2a2a}
+.plate-art{position:relative;display:grid;place-items:center;overflow:hidden;border-radius:50%;background:radial-gradient(circle at 35% 30%,#4a4a4a,#1b1b1b);color:#fff}
+.plate-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.plate-art.big{width:min(88%,330px);aspect-ratio:1;border:14px solid #151515;box-shadow:0 30px 50px -20px rgba(0,0,0,.65),inset 0 0 0 6px #2f2f2f;z-index:1}
+.plate-art.big .plate-name{font-family:var(--head);font-weight:700;font-size:clamp(2rem,8vw,3rem);text-transform:lowercase;letter-spacing:-.03em}
+.rail{display:none;position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:2;flex-direction:column;gap:26px}
+@media(min-width:760px){.rail{display:flex}}
+.rail-btn{writing-mode:vertical-rl;transform:rotate(180deg);background:none;color:#1d1d1d;padding:0;font-size:.82rem;font-weight:600;text-transform:lowercase;box-shadow:none}
+.rail-btn:hover{box-shadow:none;transform:rotate(180deg);color:#e1251b}
+.rail-btn.on{color:#e1251b}
+
+.copy h2{font-size:clamp(2.2rem,7vw,3.3rem);line-height:1.05;margin:10px 0 12px}
+.copy .badge{background:#e1251b;color:#fff}
+.copy .desc{max-width:38ch;color:#555;font-size:.95rem;margin:0}
+.when{color:#e1251b;font-weight:700;font-size:1.6rem;margin:16px 0 0;line-height:1.1}
+.when small{display:block;color:#888;font-size:.65rem;font-weight:400}
+.rate .muted{margin:12px 0 0}
+.darkbtn{display:inline-block;margin-top:16px;background:#2b2a29;color:#fff;padding:10px 24px;border-radius:4px;text-decoration:none;font-weight:600;font-size:.9rem}
+.darkbtn:hover{background:#e1251b}
+
+#food-list{display:grid;grid-template-columns:repeat(2,1fr);gap:40px 16px;padding-top:0;margin-top:34px}
+@media(min-width:720px){#food-list{grid-template-columns:repeat(4,1fr);gap:20px}}
+button.tile{position:relative;display:block;text-align:left;width:100%;background:#3b302d;color:#fff;border-radius:16px;padding:46px 16px 14px;
+  box-shadow:0 22px 30px -18px rgba(0,0,0,.55);font-weight:400;transition:transform .2s,box-shadow .2s}
+button.tile:hover{transform:translateY(-4px)}
+button.tile.on{box-shadow:0 0 0 3px #e1251b,0 22px 30px -18px rgba(0,0,0,.55)}
+.tile .plate-art{position:absolute;top:-26px;left:14px;width:68px;height:68px;border:3px solid #fff;box-shadow:0 10px 18px -8px rgba(0,0,0,.6)}
+.tile .plate-name{font-weight:700;font-size:1.4rem}
+.tile-time{position:absolute;top:14px;right:16px;font-weight:700;font-size:.95rem}
+.tile-name{display:block;font-weight:600;font-size:1rem;margin-top:6px}
+.tile-sub{display:block;font-size:.72rem;opacity:.65;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile-foot{display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-size:.7rem;min-height:1em;color:#ff8c84}
+.dots{display:flex;gap:10px;justify-content:center;margin:28px 0 0}
+.dots button{width:9px;height:9px;padding:0;border-radius:50%;background:#f4b5b0;box-shadow:none}
+.dots button:hover{transform:none;box-shadow:none}
+.dots button.on{background:#e1251b}

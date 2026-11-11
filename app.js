@@ -155,7 +155,7 @@ async function initFood() {
   sel.value = todayName();
   sel.addEventListener("change", renderFood);
   renderFood();
-  startFoodFun();
+  startWatch();
 
   if (ready) {
     onSnapshot(query(collection(db, "ratings"), where("date", "==", todayStr())), (snap) => {
@@ -172,77 +172,78 @@ async function initFood() {
   setInterval(renderFood, 60000);
 }
 
-/* ---------- food: live watch + little touches ---------- */
-function startFoodFun() {
-  const box = $("food-clock");
-  if (box) {
-    let ticks = "";
-    for (let i = 0; i < 12; i++) ticks += `<line x1="50" y1="${i % 3 === 0 ? 8 : 10}" x2="50" y2="${i % 3 === 0 ? 17 : 14}" transform="rotate(${i * 30} 50 50)"/>`;
-    // Static markup only (no user text), so innerHTML is safe here.
-    box.innerHTML =
-      `<svg class="wface" viewBox="0 0 100 100" aria-hidden="true"><circle class="wring" cx="50" cy="50" r="46"/><g class="wticks">${ticks}</g>` +
-      `<line class="wh" x1="50" y1="50" x2="50" y2="28"/><line class="wm" x1="50" y1="50" x2="50" y2="17"/>` +
-      `<line class="ws" x1="50" y1="58" x2="50" y2="12"/><circle class="wdot" cx="50" cy="50" r="3.2"/></svg>` +
-      `<div class="wtext"><b class="wtime"></b><span class="wsub"></span><span class="wbar"><i></i></span></div>`;
-    const hH = box.querySelector(".wh"), hM = box.querySelector(".wm"), hS = box.querySelector(".ws");
-    const tEl = box.querySelector(".wtime"), sEl = box.querySelector(".wsub"), bar = box.querySelector(".wbar i");
-    let turns = 0, lastS = -1;
-    const dur = (sec) => {
-      const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), x = sec % 60;
-      return h > 0 ? `${h}h ${m}m` : `${m}m ${x}s`;
-    };
-    const tick = () => {
-      const sec = new Date().getSeconds();
-      const mins = nowMin() + sec / 60;               // college time (IST), with seconds
-      const h24 = Math.floor(mins / 60), m = Math.floor(mins % 60);
-      if (sec < lastS) turns++;
-      lastS = sec;
-      hS.style.transform = `rotate(${turns * 360 + sec * 6}deg)`;
-      hM.style.transform = `rotate(${(m + sec / 60) * 6}deg)`;
-      hH.style.transform = `rotate(${((h24 % 12) + m / 60) * 30}deg)`;
-      tEl.textContent = `${h24 % 12 || 12}:${pad(m)}:${pad(sec)} ${h24 >= 12 ? "PM" : "AM"}`;
-      if (!menu) return;
-      const meals = menu.meals;
-      const live = meals.find((x) => mins >= toMin(x.start) && mins < toMin(x.end));
-      if (live) {
-        const left = Math.round((toMin(live.end) - mins) * 60);
-        sEl.textContent = `${live.name} serving now · ${dur(left)} left`;
-        bar.style.width = `${((mins - toMin(live.start)) / (toMin(live.end) - toMin(live.start))) * 100}%`;
-        box.classList.add("hot");
-        return;
-      }
-      box.classList.remove("hot");
-      const next = meals.find((x) => toMin(x.start) > mins);
-      if (next) {
-        const prev = [...meals].reverse().find((x) => toMin(x.end) <= mins);
-        const from = prev ? toMin(prev.end) : 0;
-        sEl.textContent = `${next.name} in ${dur(Math.round((toMin(next.start) - mins) * 60))}`;
-        bar.style.width = `${((mins - from) / (toMin(next.start) - from)) * 100}%`;
-      } else {
-        sEl.textContent = `Done for today · ${meals[0].name} tomorrow at ${fmt12(meals[0].start)}`;
-        bar.style.width = "100%";
-      }
-    };
-    tick();
-    setInterval(tick, 1000);
-  }
+/* ---------- food: the big plate is a live watch ---------- */
+let watchTurns = 0, watchLastS = -1; // keeps the second hand turning forward past 12
+let spinK = 0;                       // extra dial turns while the watch is "spinning" (0 = live time)
+let spinning = false;
 
-  // Plate tilts towards the pointer.
-  const feat = $("food-feature");
-  if (feat && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    feat.addEventListener("pointermove", (e) => {
-      const p = feat.querySelector(".plate-art.big");
-      if (!p) return;
-      const r = p.getBoundingClientRect();
-      const x = (e.clientX - (r.left + r.width / 2)) / r.width, y = (e.clientY - (r.top + r.height / 2)) / r.height;
-      p.style.setProperty("--ry", `${Math.max(-1, Math.min(1, x)) * 14}deg`);
-      p.style.setProperty("--rx", `${Math.max(-1, Math.min(1, y)) * -14}deg`);
-    });
-    feat.addEventListener("pointerleave", () => {
-      const p = feat.querySelector(".plate-art.big");
-      if (p) { p.style.setProperty("--rx", "0deg"); p.style.setProperty("--ry", "0deg"); }
-    });
+function watchFace() {
+  let ticks = "";
+  for (let i = 0; i < 60; i++) {
+    const big = i % 5 === 0;
+    ticks += `<line x1="50" y1="${big ? 7 : 8}" x2="50" y2="${big ? 14 : 10.5}" transform="rotate(${i * 6} 50 50)" class="${big ? "tb" : "ts"}"/>`;
   }
+  const wrap = document.createElement("div");
+  wrap.className = "bwrap";
+  // Static markup only (no user text), so innerHTML is safe here.
+  wrap.innerHTML = `<svg class="bw" viewBox="0 0 100 100" aria-hidden="true">${ticks}` +
+    `<text x="50" y="22" class="n">12</text><text x="78" y="50.5" class="n">3</text><text x="50" y="79" class="n">6</text><text x="22" y="50.5" class="n">9</text>` +
+    `<line class="bh" x1="50" y1="54" x2="50" y2="29"/><line class="bm" x1="50" y1="56" x2="50" y2="17"/>` +
+    `<line class="bs" x1="50" y1="62" x2="50" y2="12"/><circle class="bd" cx="50" cy="50" r="3"/></svg>`;
+  return wrap;
+}
+
+function paintWatches() {
+  const hands = document.querySelectorAll(".plate-art.big .bw");
+  if (!hands.length) return;
+  const sec = new Date().getSeconds();
+  const mins = nowMin() + sec / 60; // college time (IST)
+  if (sec < watchLastS) watchTurns++;
+  watchLastS = sec;
+  hands.forEach((svg) => {
+    svg.querySelector(".bs").style.transform = `rotate(${watchTurns * 360 + sec * 6 + spinK * 360 * 24}deg)`;
+    svg.querySelector(".bm").style.transform = `rotate(${(mins % 60) * 6 + spinK * 360 * 12}deg)`;
+    svg.querySelector(".bh").style.transform = `rotate(${((mins / 60) % 12) * 30 + spinK * 360}deg)`;
+    svg.classList.toggle("spin", spinning);
+  });
+}
+
+// Tap the watch: the hands whirl round and settle back on the real time.
+function spinWatch() {
+  if (spinning) return;
+  spinning = true;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) { spinning = false; return; }
+  const t0 = performance.now(), dur = 1700;
+  const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const step = (now) => {
+    const t = Math.min(1, (now - t0) / dur);
+    spinK = ease(t);
+    paintWatches();
+    if (t < 1) requestAnimationFrame(step);
+    else { spinK = 0; paintWatches(); setTimeout(() => { spinning = false; paintWatches(); }, 60); }
+  };
+  requestAnimationFrame(step);
+}
+
+function startWatch() {
+  setInterval(() => { if (!spinning) paintWatches(); }, 1000);
+  const feat = $("food-feature");
+  if (!feat) return;
+  feat.addEventListener("click", (e) => { if (e.target.closest(".plate-art.big")) spinWatch(); });
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  // Plate tilts towards the pointer.
+  feat.addEventListener("pointermove", (e) => {
+    const p = feat.querySelector(".plate-art.big");
+    if (!p) return;
+    const r = p.getBoundingClientRect();
+    const x = (e.clientX - (r.left + r.width / 2)) / r.width, y = (e.clientY - (r.top + r.height / 2)) / r.height;
+    p.style.setProperty("--ry", `${Math.max(-1, Math.min(1, x)) * 14}deg`);
+    p.style.setProperty("--rx", `${Math.max(-1, Math.min(1, y)) * -14}deg`);
+  });
+  feat.addEventListener("pointerleave", () => {
+    const p = feat.querySelector(".plate-art.big");
+    if (p) { p.style.setProperty("--rx", "0deg"); p.style.setProperty("--ry", "0deg"); }
+  });
 }
 
 let featuredMeal = null; // meal picked by tapping a card (resets when the day changes)
@@ -250,8 +251,8 @@ const noPhoto = new Set();
 
 // A round plate. Shows food/<meal>.jpg when that photo exists, otherwise the meal's name.
 function plateArt(m, big) {
-  const p = el("div", { class: "plate-art" + (big ? " big" : "") },
-    el("span", { class: "plate-name", text: big ? m.name : m.name.charAt(0) }));
+  const p = el("div", { class: "plate-art" + (big ? " big" : "") });
+  if (big) { p.append(watchFace(), el("span", { class: "plate-name", text: m.name })); }
   if (!noPhoto.has(m.name)) {
     const img = el("img", { src: `food/${m.name.toLowerCase()}.jpg`, alt: "", loading: "lazy" });
     img.addEventListener("error", () => { noPhoto.add(m.name); img.remove(); });
@@ -299,7 +300,6 @@ function renderFood() {
   $("food-feature").replaceChildren(
     el("div", { class: "stage" },
       el("div", { class: "slab" }),
-      liveOf(feat) ? el("div", { class: "steam", "aria-hidden": "true" }, el("i"), el("i"), el("i")) : null,
       el("div", { class: "rail" }, menu.meals.map((m) => el("button", { type: "button", class: "rail-btn" + (m.name === feat.name ? " on" : ""), text: m.name, onclick: () => pick(m.name) }))),
       plateArt(feat, true)),
     el("div", { class: "copy" },
@@ -333,6 +333,7 @@ function renderFood() {
   const dots = $("food-dots");
   dots.replaceChildren();
   menu.meals.forEach((m) => dots.append(el("button", { type: "button", class: m.name === feat.name ? "on" : "", "aria-label": m.name, onclick: () => pick(m.name) })));
+  paintWatches();
   renderNow();
 }
 

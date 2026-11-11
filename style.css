@@ -602,3 +602,35 @@ button.tile:active{transform:translateY(-1px) scale(.98)}
   .plate-art.big{animation:none}
   .bw .bs,button.tile .plate-art{transition:none}
 }
+
+/* 4. ABOUT: alternating light / dark bands with line-art and orange dots */
+body[data-theme="about"] main{width:100%;max-width:none;margin:0}
+.ab-band{--dot:#ff5a1f}
+.ab-band.light{background:#fff;color:#111;--bandbg:#fff}
+.ab-band.dark{background:#1c1c1c;color:#fff;--bandbg:#1c1c1c}
+.ab-in{width:min(960px,calc(100% - 32px));margin:0 auto;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:36px;min-height:340px;padding:56px 0}
+.ab-in.rev .ab-art{order:2}
+.ab-art{width:100%;max-width:380px;justify-self:center;overflow:visible}
+.ab-art .ln,.ab-art .fl{stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.ab-art .ln{fill:none}
+.ab-art .fl{fill:var(--bandbg)}
+.ab-art .dot{fill:var(--dot);transform-box:fill-box;transform-origin:center;animation:abfloat 4.5s ease-in-out infinite}
+.ab-art .dot:nth-of-type(2n){animation-delay:-1.4s;animation-duration:5.5s}
+.ab-art .dot:nth-of-type(3n){animation-delay:-2.6s}
+@keyframes abfloat{50%{transform:translateY(-9px)}}
+.ab-text h3{font-family:"Poppins",system-ui,sans-serif;font-weight:700;font-size:clamp(1.15rem,3vw,1.6rem);letter-spacing:.16em;text-transform:uppercase;margin:0 0 18px;font-style:normal}
+.ab-text p,.ab-text li{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Courier New",monospace;font-size:.82rem;line-height:1.85}
+.ab-text p{margin:0 0 12px;max-width:46ch}
+.ab-text ul{margin:0 0 22px;padding-left:18px;max-width:46ch}
+.ab-text li{margin-bottom:6px}
+.ab-btn{display:inline-block;margin:4px 6px 0 0;padding:12px 26px;border:2px solid currentColor;background:none;color:inherit;font:700 .68rem "Poppins",system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;transition:background .2s,color .2s}
+.ab-band.light .ab-btn:hover{background:#111;color:#fff}
+.ab-band.dark .ab-btn:hover{background:#fff;color:#1c1c1c}
+.ab-band.light .group-photo{border-color:#111}
+.ab-band.light .group-photo .ph{color:#777}
+@media(max-width:700px){
+  .ab-in{grid-template-columns:1fr;gap:20px;padding:40px 0}
+  .ab-in.rev .ab-art{order:0}
+  .ab-art{max-width:260px}
+}
+@media(prefers-reduced-motion:reduce){.ab-art .dot{animation:none}}

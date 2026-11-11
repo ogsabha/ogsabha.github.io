@@ -125,6 +125,7 @@ document.querySelectorAll(".tab").forEach((btn) => {
     document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.id === btn.dataset.tab));
     document.body.dataset.theme = btn.dataset.tab; // switches the whole look
     history.replaceState(null, "", `#${btn.dataset.tab}`);
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" }); // every section opens from its top
     const subs = {
       food: "Today's menu, what's being served now, and how it actually tastes.",
       classes: "Every period, every teacher, and a notice from your admins when plans change.",

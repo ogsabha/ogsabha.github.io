@@ -355,7 +355,7 @@ body[data-theme="classes"] .card h3{font-weight:600;font-size:1.5rem}
 ========================================================= */
 body[data-theme="food"]{
   --bg:#fff;--ink:#1d1d1d;--muted:#6f6f6f;--cbg:#3b302d;--cink:#fff;--accent:#e1251b;--on-accent:#fff;--line:rgba(0,0,0,.12);
-  --head:"Poppins",system-ui,sans-serif;--hw:700;--hcase:lowercase;--hls:-.03em;--shadow:0 20px 40px -22px rgba(0,0,0,.45);background:#fff}
+  --head:"Poppins",system-ui,sans-serif;--hw:700;--hcase:none;--hls:-.03em;--shadow:0 20px 40px -22px rgba(0,0,0,.45);background:#fff}
 body[data-theme="food"] .hero{position:absolute;width:1px;height:1px;margin:-1px;padding:0;min-height:0;overflow:hidden;clip:rect(0,0,0,0)}
 body[data-theme="food"] .foodstrip,body[data-theme="food"] .now{display:none}
 body[data-theme="food"] .chip{background:#fff;color:#1d1d1d;border-color:rgba(0,0,0,.12)}
@@ -378,10 +378,10 @@ body[data-theme="food"] button{border:0}
 .plate-art{position:relative;display:grid;place-items:center;overflow:hidden;border-radius:50%;background:radial-gradient(circle at 35% 30%,#4a4a4a,#1b1b1b);color:#fff}
 .plate-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .plate-art.big{width:min(88%,330px);aspect-ratio:1;border:14px solid #151515;box-shadow:0 30px 50px -20px rgba(0,0,0,.65),inset 0 0 0 6px #2f2f2f;z-index:1}
-.plate-art.big .plate-name{font-family:var(--head);font-weight:700;font-size:clamp(2rem,8vw,3rem);text-transform:lowercase;letter-spacing:-.03em}
+.plate-art.big .plate-name{font-family:var(--head);font-weight:700;font-size:clamp(2rem,8vw,3rem);text-transform:capitalize;letter-spacing:-.03em}
 .rail{display:none;position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:2;flex-direction:column;gap:26px}
 @media(min-width:760px){.rail{display:flex}}
-.rail-btn{writing-mode:vertical-rl;transform:rotate(180deg);background:none;color:#1d1d1d;padding:0;font-size:.82rem;font-weight:600;text-transform:lowercase;box-shadow:none}
+.rail-btn{writing-mode:vertical-rl;transform:rotate(180deg);background:none;color:#1d1d1d;padding:0;font-size:.82rem;font-weight:600;text-transform:capitalize;box-shadow:none}
 .rail-btn:hover{box-shadow:none;transform:rotate(180deg);color:#e1251b}
 .rail-btn.on{color:#e1251b}
 
@@ -967,3 +967,10 @@ body[data-theme="about"] :focus-visible{outline:2px solid #e23a3a;outline-offset
 
 /* About: the small top links are plain text, no pill (override the global nav style) */
 body[data-theme="about"] nav.ab2-links{background:none;border:0;box-shadow:none;border-radius:0;padding:0;margin:0;width:auto;position:static;backdrop-filter:none}
+
+/* Food: keep the logo lowercase now that headings use their written case */
+body[data-theme="food"] .brand{text-transform:lowercase}
+
+/* Classes: more room between the subtitle and the green water below it */
+/* the green horizon is fixed at 446px, so lift the text instead of making the hero taller */
+body[data-theme="classes"] .hero{min-height:380px;padding-bottom:116px}

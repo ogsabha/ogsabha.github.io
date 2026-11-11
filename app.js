@@ -87,6 +87,25 @@ if (ready) {
 let currentUser = null; // staff only (email login)
 let me = null;          // anyone signed in, including anonymous visitors
 let anonFailed = false;
+let lastAuthError = "";
+
+// Resolves with the signed-in user (anonymous or staff). Waits for / retries the anonymous
+// sign-in instead of giving up, so a slow connection no longer shows "Still connecting".
+let signInPromise = null;
+function ensureMe() {
+  if (me) return Promise.resolve(me);
+  if (!ready) return Promise.resolve(null);
+  if (!signInPromise) {
+    signInPromise = signInAnonymously(auth)
+      .then((cred) => { me = cred.user; anonFailed = false; return me; })
+      .catch((err) => { anonFailed = true; lastAuthError = err.code || String(err); console.error("Anonymous sign-in failed:", lastAuthError); return null; })
+      .finally(() => { signInPromise = null; });
+  }
+  return signInPromise;
+}
+const authProblem = () => lastAuthError === "auth/operation-not-allowed"
+  ? "Sign-in is switched off on the server. Please tell the Og Sabha team."
+  : "Could not connect. Check your internet and try again.";
 
 /* ---------- shared data + state (declared up front so every function can see them) ---------- */
 let menu = null;
@@ -484,10 +503,11 @@ function renderFood() {
 
 async function rate(meal, stars) {
   const date = todayStr();
-  if (!me) { alert("Still connecting. Try again in a moment."); return; }
+  const user = await ensureMe();
+  if (!user) { alert(authProblem()); return; }
   try {
     // One document per person per meal per day. The id must end with your login id, because the rules check that.
-    await setDoc(doc(db, "ratings", `${date}_${meal}_${me.uid}`), { date, meal, stars });
+    await setDoc(doc(db, "ratings", `${date}_${meal}_${user.uid}`), { date, meal, stars });
     store.set(`rated_${date}_${meal}`, stars);
     renderFood();
   } catch (e) {
@@ -790,7 +810,7 @@ function initWall() {
     const body = text.value.trim();
     if (!ready) { msg.textContent = "The wall is not connected yet."; return; }
     if (!body) return;
-    if (!me) { msg.textContent = anonFailed ? "Posting is unavailable right now." : "Still connecting. Try again in a few seconds."; return; }
+    if (!(await ensureMe())) { msg.textContent = authProblem(); return; }
 
     const last = Number(store.get("lastPost", 0));
     if (Date.now() - last < 60000) { msg.textContent = "Please wait a minute between posts."; return; }
@@ -1074,7 +1094,7 @@ function renderWall() {
 
 // The rules allow one report per person: the report counter and a posts/{id}/reports/{uid} marker must be written together.
 async function reportPost(id) {
-  if (!me) { alert("Still connecting. Try again in a moment."); return; }
+  if (!(await ensureMe())) { alert(authProblem()); return; }
   try {
     const batch = writeBatch(db);
     batch.update(doc(db, "posts", id), { reports: increment(1) });
@@ -1250,7 +1270,7 @@ async function submitGig(e) {
   e.preventDefault();
   const msg = $("gig-msg");
   if (!ready) { msg.textContent = "The board is not connected yet."; return; }
-  if (!me) { msg.textContent = anonFailed ? "Posting is unavailable right now." : "Still connecting. Try again in a few seconds."; return; }
+  if (!(await ensureMe())) { msg.textContent = authProblem(); return; }
 
   const data = {
     kind: $("gig-kind").value,
@@ -1447,7 +1467,7 @@ function renderGigs() {
 
 async function reportGig(id) {
   try {
-    if (!me) { alert("Still connecting. Try again in a moment."); return; }
+    if (!(await ensureMe())) { alert(authProblem()); return; }
     // The rules allow one report per person: the counter and a gigs/{id}/reports/{uid} marker are written together.
     const batch = writeBatch(db);
     batch.update(doc(db, "gigs", id), { reports: increment(1) });
@@ -1601,7 +1621,7 @@ if (ready) {
   onAuthStateChanged(auth, (u) => {
     if (!u) {
       // Give every visitor a silent anonymous id so the gigs board knows who posted what.
-      signInAnonymously(auth).catch((err) => { anonFailed = true; console.warn("Anonymous sign-in failed:", err.code); });
+      ensureMe();
     }
     me = u;
     currentUser = u && !u.isAnonymous ? u : null; // only email logins count as staff

@@ -1667,7 +1667,7 @@ if (ready) {
 const ABOUT_STEPS = [
   { k: "Our story", t: "Og Sabha", p: "Made by the UG 2026 batch of DCSMAT, Vagamon. We got tired of asking \u201cwhat\u2019s for lunch?\u201d and \u201cwhich hour is this?\u201d, so we built one place for both." },
   { k: "What you can do", t: "Four tabs", p: "Food: today\u2019s mess menu and meal ratings. Classes: your live timetable and notices. Wall: post anonymously, every post is checked first. Gigs: offer a skill or hire a classmate." },
-  { k: "Say hello", t: "Contact", p: "Found a mistake or want to join the team? Message us on Instagram: [@your_handle]." }
+  { k: "Say hello", t: "Contact", p: "Found a mistake or want to join the team? Message us on Instagram: @og.sabhaaa" }
 ];
 function initAbout() {
   const root = $("ab2");

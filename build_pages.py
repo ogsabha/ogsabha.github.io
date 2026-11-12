@@ -128,8 +128,8 @@ def build_menu(menu):
     body = "\n".join(parts)
     return page(
         path="mess-menu.html",
-        title="DCSMAT Vagamon Mess Menu: Weekly Breakfast, Lunch, Snacks & Dinner",
-        desc="Full weekly mess menu for DCSMAT, Vagamon: breakfast, lunch, snacks and dinner for every day, with meal timings and veg options. Made by students.",
+        title="Og Sabha | DCSMAT Vagamon Weekly Mess Menu",
+        desc="Og Sabha's full weekly mess menu for DCSMAT, Vagamon: breakfast, lunch, snacks and dinner for every day, with meal timings and veg options. Made by students.",
         h1="DCSMAT Vagamon Mess Menu",
         lead=esc(MENU_VALIDITY),
         body=body, crumb="Mess menu",
@@ -164,8 +164,8 @@ def build_timetable(tt):
     label = " and ".join(names)
     return page(
         path="timetable.html",
-        title=f"{label} Timetable | DCSMAT Vagamon Class Schedule",
-        desc=f"Weekly class timetable for {label} at DCSMAT, Vagamon: subjects, teachers and period timings for every day. Made by students.",
+        title=f"Og Sabha | {label} Timetable, DCSMAT Vagamon",
+        desc=f"Og Sabha's weekly class timetable for {label} at DCSMAT, Vagamon: subjects, teachers and period timings for every day. Made by students.",
         h1="DCSMAT Vagamon Class Timetable",
         lead=f"Weekly timetable for {esc(label)}: subjects, teachers and period timings. Open the home page to see the live current class.",
         body=body, crumb="Class timetable",

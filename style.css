@@ -974,3 +974,18 @@ body[data-theme="food"] .brand{text-transform:lowercase}
 /* Classes: more room between the subtitle and the green water below it */
 /* the green horizon is fixed at 446px, so lift the text instead of making the hero taller */
 body[data-theme="classes"] .hero{min-height:380px;padding-bottom:116px}
+
+/* =========================================================
+   Multi-page: nav tabs and the logo are links now
+========================================================= */
+a.tab{display:block;text-align:center;text-decoration:none}
+a.brand{text-decoration:none;color:inherit}
+/* soft cross-fade between pages (Chromium; ignored elsewhere) */
+@view-transition{navigation:auto}
+
+/* FOOD performance: the watch is its own layer, and it stops animating when scrolled out of view */
+.plate-art.big{will-change:transform}
+.plate-art.big.paused{animation-play-state:paused}
+/* keep the card from jumping while the first text is filled in */
+#food-feature{min-height:clamp(300px,80vw,420px)}
+@media(max-width:759px){#food-feature{min-height:0}}

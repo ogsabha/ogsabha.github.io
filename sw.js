@@ -1,6 +1,6 @@
-const CACHE = "og-sabha-v11";
+const CACHE = "og-sabha-v10";
 // Missing files are skipped (the JSON may live in data/ or in the main folder), so one 404 cannot break the install.
-const FILES = ["./", "index.html", "mess-menu.html", "timetable.html", "classes.html", "about.html", "gigs.html", "wall.html", "style.css", "app.js", "manifest.webmanifest",
+const FILES = ["./", "index.html", "mess-menu.html", "timetable.html", "classes.html", "wall.html", "gigs.html", "about.html", "style.css", "app.js", "manifest.webmanifest",
   "icons/favicon.ico", "icons/favicon-32.png", "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png",
   "data/menu.json", "data/timetable.json", "menu.json", "timetable.json"];
 

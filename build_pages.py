@@ -181,8 +181,10 @@ def main():
     }
     index = ROOT / "index.html"
     index_mod = datetime.date.fromtimestamp(index.stat().st_mtime).isoformat() if index.exists() else TODAY
-    urls = [("/", index_mod), ("/mess-menu.html", TODAY), ("/timetable.html", TODAY),
-            ("/classes.html", TODAY), ("/about.html", TODAY), ("/gigs.html", TODAY), ("/wall.html", TODAY)]
+    urls = [("/", index_mod), ("/mess-menu.html", TODAY), ("/timetable.html", TODAY)]
+    for extra in ("classes.html", "wall.html", "gigs.html", "about.html"):  # hand-written pages
+        f = ROOT / extra
+        urls.append(("/" + extra, datetime.date.fromtimestamp(f.stat().st_mtime).isoformat() if f.exists() else TODAY))
     out["sitemap.xml"] = ('<?xml version="1.0" encoding="UTF-8"?>\n'
                           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                           + "".join(f"  <url><loc>{SITE}{u}</loc><lastmod>{m}</lastmod></url>\n" for u, m in urls)

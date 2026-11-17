@@ -76,9 +76,9 @@ def page(*, path, title, desc, h1, lead, body, crumb):
   <meta property="og:image" content="{SITE}/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="favicon.ico" sizes="48x48">
-  <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" href="icons/favicon.ico" sizes="48x48">
+  <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <script type="application/ld+json">{json.dumps(ld, indent=2, ensure_ascii=False)}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

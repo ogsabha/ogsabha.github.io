@@ -129,9 +129,9 @@ def head(*, url, title, desc, theme_color, fonts, ld, og_title=None, og_desc=Non
   <meta name="apple-mobile-web-app-title" content="Og Sabha">
   <meta name="application-name" content="Og Sabha">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="favicon.ico" sizes="48x48">
-  <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" href="icons/favicon.ico" sizes="48x48">
+  <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   {ld_script(ld)}
   {font_links(fonts)}
   <link rel="stylesheet" href="style.css?v=@@CSS@@">
@@ -169,14 +169,14 @@ HOME_LD = {
         },
         {
             "@type": "WebApplication", "@id": SITE + "/#app", "name": "Og Sabha", "alternateName": ["og sabha", "OgSabha"],
-            "url": SITE + "/", "image": SITE + "/icon-512.png", "applicationCategory": "EducationalApplication",
+            "url": SITE + "/", "image": SITE + "/icons/icon-512.png", "applicationCategory": "EducationalApplication",
             "operatingSystem": "Any (web browser, installable PWA)", "inLanguage": "en-IN", "isAccessibleForFree": True,
             "offers": {"@type": "Offer", "price": "0", "priceCurrency": "INR"},
             "audience": {"@type": "EducationalAudience", "educationalRole": "student"},
         },
         {
             "@type": "Organization", "@id": SITE + "/#team", "name": "Og Sabha (UG 2026 students, DCSMAT Vagamon)",
-            "alternateName": "Og Sabha", "url": SITE + "/", "logo": SITE + "/icon-512.png",
+            "alternateName": "Og Sabha", "url": SITE + "/", "logo": SITE + "/icons/icon-512.png",
         },
         {
             "@type": "CollegeOrUniversity", "name": "DCSMAT",

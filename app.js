@@ -1,18 +1,9 @@
-// Firebase is loaded with dynamic imports so that, if the CDN is blocked or slow, the rest of the
-// app (menu, timetable, tabs) still starts. Only ratings, wall and gigs need Firebase.
-let fb = {};
-try {
-  fb = {
-    ...(await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js")),
-    ...(await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js")),
-    ...(await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"))
-  };
-} catch (e) { console.error("Firebase failed to load:", e); }
-const {
-  initializeApp, getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, getDocs,
+// Firebase (about 300 KB) is loaded lazily by connectFirebase(), never at the top of this file,
+// so menu, timetable and clock render without waiting for it.
+let initializeApp, getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, getDocs,
   query, where, onSnapshot, serverTimestamp, increment, writeBatch,
-  getAuth, signInWithEmailAndPassword, signInAnonymously, signOut, onAuthStateChanged
-} = fb;
+  getAuth, signInWithEmailAndPassword, signInAnonymously, signOut, onAuthStateChanged;
+const PAGE = document.body.dataset.page || "food";
 
 /* ---------------------------------------------------------------
    Og Sabha: DCSMAT Vagamon student hub
@@ -80,17 +71,44 @@ function svgEl(tag, props = {}, ...kids) {
   return e;
 }
 
-/* ---------- firebase ---------- */
-const ready = !!initializeApp && !firebaseConfig.apiKey.startsWith("PASTE");
+/* ---------- firebase (lazy) ---------- */
+const FB_URL = "https://www.gstatic.com/firebasejs/10.14.1/";
+let ready = false;
 let db, auth;
-if (ready) {
-  const fbApp = initializeApp(firebaseConfig);
-  db = getFirestore(fbApp);
-  auth = getAuth(fbApp);
-} else {
-  const note = $("setup-note");
-  note.hidden = false;
-  if (!initializeApp) note.textContent = "Could not reach Firebase (check your internet or ad blocker). The menu and timetable still work, but ratings, the wall and gigs are off.";
+const fbHooks = [];
+// Runs fn now if Firebase is connected, otherwise as soon as it is.
+const whenFirebase = (fn) => {
+  if (!ready) { fbHooks.push(fn); return; }
+  try { fn(); } catch (e) { console.error(e); }
+};
+const idle = (fn, timeout = 1500) => ("requestIdleCallback" in window ? requestIdleCallback(fn, { timeout }) : setTimeout(fn, 300));
+
+let fbPromise = null;
+function connectFirebase() {
+  if (fbPromise) return fbPromise;
+  fbPromise = Promise.all([
+    import(FB_URL + "firebase-app.js"),
+    import(FB_URL + "firebase-firestore.js"),
+    import(FB_URL + "firebase-auth.js")
+  ]).then(([a, f, au]) => {
+    ({ initializeApp } = a);
+    ({ getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, getDocs,
+       query, where, onSnapshot, serverTimestamp, increment, writeBatch } = f);
+    ({ getAuth, signInWithEmailAndPassword, signInAnonymously, signOut, onAuthStateChanged } = au);
+    const fbApp = initializeApp(firebaseConfig);
+    db = getFirestore(fbApp);
+    auth = getAuth(fbApp);
+    ready = true;
+    fbHooks.splice(0).forEach((fn) => { try { fn(); } catch (e) { console.error(e); } });
+  }).catch((e) => {
+    console.error("Firebase failed to load:", e);
+    const note = $("setup-note");
+    if (note) {
+      note.hidden = false;
+      note.textContent = "Could not reach Firebase (check your internet or ad blocker). The menu and timetable still work, but ratings, live teacher status, the wall and gigs are off.";
+    }
+  });
+  return fbPromise;
 }
 
 let currentUser = null; // staff only (email login)
@@ -98,15 +116,16 @@ let me = null;          // anyone signed in, including anonymous visitors
 let anonFailed = false;
 let lastAuthError = "";
 
-// Resolves with the signed-in user (anonymous or staff). Waits for / retries the anonymous
-// sign-in instead of giving up, so a slow connection no longer shows "Still connecting".
+// Resolves with the signed-in user (anonymous or staff). Connects Firebase first if needed.
 let signInPromise = null;
 function ensureMe() {
   if (me) return Promise.resolve(me);
-  if (!ready) return Promise.resolve(null);
   if (!signInPromise) {
-    signInPromise = signInAnonymously(auth)
-      .then((cred) => { me = cred.user; anonFailed = false; return me; })
+    signInPromise = connectFirebase()
+      .then(() => {
+        if (!ready) return null;
+        return signInAnonymously(auth).then((cred) => { me = cred.user; anonFailed = false; return me; });
+      })
       .catch((err) => { anonFailed = true; lastAuthError = err.code || String(err); console.error("Anonymous sign-in failed:", lastAuthError); return null; })
       .finally(() => { signInPromise = null; });
   }
@@ -123,26 +142,12 @@ let ratingStats = {};   // meal -> { sum, count } for today
 let attendance = {};    // "Class_3" -> true/false for today
 
 const MEAL_EMOJI = { Breakfast: "🍳", Lunch: "🍛", Snacks: "🍟", Dinner: "🌙" };
-const TAB_EMOJI = { food: ["🍛", "🍟", "🧁"], classes: ["📚", "✏️", "💡"], wall: ["💬", "🤫", "🌙"], gigs: ["🛠️", "💸", "🎨"], about: ["👋", "✨", "💛"] };
-const TAB_LINES = {
-  food: "eat up.",
-  classes: "your day,\nat a glance.",
-  wall: "the walls\nare listening.",
-  gigs: "turn skills into\npocket money.",
-  about: "made by students,\nfor students."
-};
-const TAB_SUBS = {
-  food: "Today's menu, what's being served now, and how it actually tastes.",
-  classes: "Stay on top of your day: who is teaching, and when.",
-  wall: "Say what you can't say out loud. Anonymous, always kind.",
-  gigs: "Need a hand? Got a skill? Post it, get hired, earn a little.",
-  about: "The story behind Og Sabha, and how to reach us."
-};
-const THEME_COLORS = { food: "#FFFFFF", classes: "#C8D8BC", wall: "#0b0908", gigs: "#4A1604", about: "#000000" };
-const TABS = Object.keys(TAB_LINES);
 
-// Looks in data/ first, then the main folder, so it works wherever the JSON files were uploaded.
+// The menu and timetable are written into the page by build_pages.py (no network request).
+// Fallback: fetch from data/ first, then the main folder.
 async function loadJSON(name) {
+  const inline = document.getElementById("data-" + name.replace(".json", ""));
+  if (inline) { try { return JSON.parse(inline.textContent); } catch { /* fall through to fetch */ } }
   for (const path of [`data/${name}`, name]) {
     try { const r = await fetch(path); if (r.ok) return await r.json(); } catch { /* try next */ }
   }
@@ -209,48 +214,6 @@ function renderNow() {
   );
 }
 
-/* ---------- tabs ---------- */
-function activateTab(name, byUser = false) {
-  if (!TABS.includes(name)) return;
-  document.querySelectorAll(".tab").forEach((b) => {
-    const on = b.dataset.tab === name;
-    b.classList.toggle("active", on);
-    b.setAttribute("aria-selected", String(on));
-  });
-  document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.id === name));
-  document.body.dataset.theme = name; // switches the whole look
-  wallActive(name === "wall");
-  const h = $("h1-line");
-  if (h) {
-    h.textContent = TAB_LINES[name];
-    h.classList.remove("pop"); void h.offsetWidth; h.classList.add("pop");
-  }
-  const sub = document.querySelector(".sub");
-  if (sub) sub.textContent = TAB_SUBS[name];
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLORS[name]);
-  if (byUser) {
-    window.scrollTo({ top: 0, behavior: "auto" });
-    // Remember the tab so a refresh stays on it (and the address bar link opens it).
-    store.set("tab", name);
-    try { history.replaceState(null, "", "#" + name); } catch (e) { /* ignore */ }
-  }
-  if (name === "food") tickClock();
-}
-document.querySelectorAll(".tab").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    activateTab(btn.dataset.tab, true);
-    const r = btn.getBoundingClientRect();
-    burst(r.left + r.width / 2, r.top + r.height / 2, TAB_EMOJI[btn.dataset.tab], 8);
-  });
-});
-// Footer links like #gigs and #wall open that tab.
-function openFromHash() {
-  let name = location.hash.replace("#", "");
-  if (!TABS.includes(name)) name = store.get("tab", "");   // no link in the address: reopen the last tab
-  if (TABS.includes(name)) { activateTab(name); window.scrollTo(0, 0); }
-}
-window.addEventListener("hashchange", openFromHash);
-
 // Time-of-day greeting chip.
 function greet() {
   const h = new Date().getHours();
@@ -260,24 +223,25 @@ function greet() {
 
 /* =================================================================
    FOOD
+   build_pages.py already wrote the clock, the day chips, the meal buttons and the menu data into the HTML,
+   so this code only fills in text and keeps the clock running. Renders only change what changed.
 ================================================================= */
 let foodDay = todayName();
 let foodMeal = null;
 let mealPicked = false;
-const F = {};          // element refs for the feature card
-let clockLaps = 0, lastSec = -1;
+const F = {};          // element refs for the food page
+const setText = (n, t) => { if (n && n.textContent !== t) n.textContent = t; };
 
 async function initFood() {
   menu = await loadJSON("menu.json");
-  const sel = $("day-select");
-  DAYS.forEach((d) => sel.append(el("option", { value: d, text: d })));
-  sel.value = foodDay;
-  sel.addEventListener("change", () => setFoodDay(sel.value));
   buildFood();
   pickDefaultMeal();
   renderFood();
+  watchClock();
+  tickClock();
 
-  if (ready) {
+  // ratings come from Firebase, which loads after the page is already usable
+  whenFirebase(() => {
     onSnapshot(query(collection(db, "ratings"), where("date", "==", todayStr())), (snap) => {
       ratingStats = {};
       snap.forEach((d) => {
@@ -286,11 +250,24 @@ async function initFood() {
         s.sum += r.stars;
         s.count += 1;
       });
-      renderFood();
+      scheduleFoodRender();
     }, (err) => console.warn("Could not read ratings:", err.code));
-  }
-  setInterval(() => { if (!mealPicked) pickDefaultMeal(); renderFood(); }, 60000);
-  setInterval(tickClock, 1000);
+    renderFood();
+  });
+
+  setInterval(() => { if (document.hidden) return; if (!mealPicked) pickDefaultMeal(); renderFood(); }, 60000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) return;
+    if (!mealPicked) pickDefaultMeal();
+    renderFood();
+    tickClock();
+  });
+}
+
+// Several rating updates in one frame cause one render.
+function scheduleFoodRender() {
+  if (F.raf) return;
+  F.raf = requestAnimationFrame(() => { F.raf = 0; renderFood(); });
 }
 
 function setFoodDay(d) {
@@ -325,46 +302,93 @@ function mealStatus(m, isToday, nm) {
   return { kind: "done" };
 }
 
-// Analog clock face drawn on the big plate.
-function buildClock() {
-  const svg = svgEl("svg", { viewBox: "0 0 100 100", class: "bw", "aria-hidden": "true" });
-  for (let i = 0; i < 60; i++) {
-    const a = (i * 6 * Math.PI) / 180;
-    const big = i % 5 === 0;
-    const r1 = big ? 41.5 : 44.5, r2 = 47.5;
-    svg.append(svgEl("line", {
-      class: big ? "tb" : "ts",
-      x1: (50 + r1 * Math.sin(a)).toFixed(2), y1: (50 - r1 * Math.cos(a)).toFixed(2),
-      x2: (50 + r2 * Math.sin(a)).toFixed(2), y2: (50 - r2 * Math.cos(a)).toFixed(2)
-    }));
-  }
-  for (let h = 1; h <= 12; h++) {
-    const a = (h * 30 * Math.PI) / 180;
-    svg.append(svgEl("text", {
-      class: "n", x: (50 + 34 * Math.sin(a)).toFixed(2), y: (50 - 34 * Math.cos(a)).toFixed(2), text: String(h)
-    }));
-  }
-  F.hh = svgEl("line", { class: "bh", x1: 50, y1: 54, x2: 50, y2: 31 });
-  F.mm = svgEl("line", { class: "bm", x1: 50, y1: 56, x2: 50, y2: 19 });
-  F.ss = svgEl("line", { class: "bs", x1: 50, y1: 60, x2: 50, y2: 14 });
-  svg.append(F.hh, F.mm, F.ss, svgEl("circle", { class: "bd", cx: 50, cy: 50, r: 2.4 }));
-  F.svg = svg;
-  return svg;
+// Finds the elements that build_pages.py wrote, and wires one click handler for the whole panel.
+function buildFood() {
+  const root = $("food");
+  F.root = root;
+  F.feature = $("food-feature");
+  F.dchips = [...root.querySelectorAll(".dchip")];
+  F.plate = $("food-plate");
+  F.plateName = F.plate.querySelector(".plate-name");
+  F.svg = F.plate.querySelector(".bw");
+  F.hh = F.svg.querySelector(".bh");
+  F.mm = F.svg.querySelector(".bm");
+  F.ss = F.svg.querySelector(".bs");
+  F.badge = F.feature.querySelector(".badge");
+  F.h2 = F.feature.querySelector("h2");
+  F.whenMain = F.feature.querySelector(".when-main");
+  F.whenSub = F.feature.querySelector(".when small");
+  F.desc = F.feature.querySelector(".desc");
+  F.rateInfo = F.feature.querySelector(".rate .muted");
+  F.stars = F.feature.querySelector(".stars");
+  const byMeal = (sel, m) => root.querySelector(`${sel}[data-meal="${m.name}"]`);
+  F.railBtns = menu.meals.map((m) => byMeal(".rail-btn", m));
+  F.dots = menu.meals.map((m) => byMeal(".dots button", m));
+  F.tiles = menu.meals.map((m) => {
+    const btn = byMeal(".tile", m);
+    return btn && { m, btn, sub: btn.querySelector(".tile-sub"), more: btn.querySelector(".tile-more"), note: btn.querySelector(".tile-foot span") };
+  });
+
+  root.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-day],[data-meal]");
+    if (!b || !root.contains(b)) return;
+    if (b.dataset.day) setFoodDay(b.dataset.day);
+    else pickMeal(b.dataset.meal, b.classList.contains("tile"));
+  });
+
+  // tilt toward the pointer (mouse only, one style write per frame), tap to spin the seconds hand
+  let tiltRaf = 0, tx = 0, ty = 0;
+  F.plate.addEventListener("pointerenter", (e) => { if (e.pointerType !== "touch") F.rect = F.plate.getBoundingClientRect(); });
+  F.plate.addEventListener("pointermove", (e) => {
+    if (reduceMotion || e.pointerType === "touch") return;
+    const r = (F.rect ||= F.plate.getBoundingClientRect());
+    tx = (e.clientX - r.left) / r.width - 0.5;
+    ty = (e.clientY - r.top) / r.height - 0.5;
+    if (tiltRaf) return;
+    tiltRaf = requestAnimationFrame(() => {
+      tiltRaf = 0;
+      F.plate.style.setProperty("--ry", `${(tx * 18).toFixed(1)}deg`);
+      F.plate.style.setProperty("--rx", `${(-ty * 18).toFixed(1)}deg`);
+    });
+  });
+  F.plate.addEventListener("pointerleave", () => {
+    F.rect = null;
+    F.plate.style.setProperty("--rx", "0deg");
+    F.plate.style.setProperty("--ry", "0deg");
+  });
+  F.plate.addEventListener("click", spinSecondHand);
+  F.plate.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); spinSecondHand(); } });
+}
+
+// The clock only runs while the page is visible and the plate is on screen.
+function watchClock() {
+  if (!("IntersectionObserver" in window)) return;
+  new IntersectionObserver((entries) => {
+    F.onScreen = entries[entries.length - 1].isIntersecting;
+    F.plate.classList.toggle("paused", !F.onScreen);   // also pauses the floating animation
+    if (F.onScreen) tickClock();
+  }).observe(F.plate);
 }
 
 function tickClock() {
-  if (!F.ss || document.body.dataset.theme !== "food") return;
+  clearTimeout(F.clockTimer);
+  if (!F.ss || document.hidden || F.onScreen === false) return;
   const d = new Date();
   const h = d.getHours() % 12, m = d.getMinutes(), s = d.getSeconds();
-  if (s < lastSec) clockLaps++;
-  lastSec = s;
-  F.hh.style.transform = `rotate(${h * 30 + m * 0.5}deg)`;
-  F.mm.style.transform = `rotate(${m * 6 + s * 0.1}deg)`;
-  F.ss.style.transform = `rotate(${clockLaps * 360 + s * 6}deg)`;
+  // the seconds hand only ever turns forward, so it never spins backwards at 59 -> 0
+  F.angle = F.prevS === undefined ? s * 6 : F.angle + ((s - F.prevS + 60) % 60) * 6;
+  F.prevS = s;
+  if (F.lastMin !== m) {
+    F.lastMin = m;
+    F.hh.style.transform = `rotate(${h * 30 + m * 0.5}deg)`;
+    F.mm.style.transform = `rotate(${m * 6}deg)`;
+  }
+  F.ss.style.transform = `rotate(${F.angle}deg)`;
+  F.clockTimer = setTimeout(tickClock, 1000 - d.getMilliseconds() + 8);   // lands just after each second
 }
 
 function spinSecondHand() {
-  const base = clockLaps * 360 + (lastSec < 0 ? 0 : lastSec) * 6;
+  const base = F.angle || 0;
   if (!reduceMotion && F.ss.animate) {
     F.svg.classList.add("spin");
     F.ss.animate(
@@ -374,63 +398,6 @@ function spinSecondHand() {
   }
   const r = F.plate.getBoundingClientRect();
   burst(r.left + r.width / 2, r.top + r.height / 2, [MEAL_EMOJI[foodMeal] || "🍽️", "✨", "😋"], 10);
-}
-
-function buildFood() {
-  // day chips
-  const nav = $("day-nav");
-  nav.replaceChildren();
-  F.dchips = WEEK.map((d) => {
-    const b = el("button", {
-      type: "button", class: "dchip", text: d.slice(0, 3), "aria-label": d,
-      onclick: () => { $("day-select").value = d; setFoodDay(d); }
-    });
-    nav.append(b);
-    return b;
-  });
-
-  // the feature card: plate + clock on the left, details on the right
-  F.plateName = el("span", { class: "plate-name" });
-  F.plate = el("div", { class: "plate-art big", role: "button", tabindex: "0", "aria-label": "Tap the clock" },
-    el("div", { class: "bwrap" }, buildClock()), F.plateName);
-  F.rail = el("div", { class: "rail", role: "group", "aria-label": "Meal" });
-  F.railBtns = menu.meals.map((m) => {
-    const b = el("button", { type: "button", class: "rail-btn", text: m.name.toLowerCase(), onclick: () => pickMeal(m.name) });
-    F.rail.append(b);
-    return b;
-  });
-  F.badge = el("span", { class: "badge" });
-  F.h2 = el("h2");
-  F.whenMain = document.createTextNode("");
-  F.whenSub = el("small");
-  F.when = el("p", { class: "when" }, F.whenMain, F.whenSub);
-  F.desc = el("p", { class: "desc" });
-  F.rateInfo = el("p", { class: "muted" });
-  F.stars = el("div", { class: "stars" });
-  F.rate = el("div", { class: "rate" }, F.rateInfo, F.stars);
-
-  F.feature = $("food-feature");
-  F.feature.replaceChildren(
-    el("div", { class: "stage" }, el("div", { class: "slab" }), F.plate, F.rail),
-    el("div", { class: "copy" }, F.badge, F.h2, F.when, F.desc, F.rate,
-      el("a", { class: "darkbtn", href: "mess-menu.html", text: "Full weekly menu" }))
-  );
-
-  // tilt toward the pointer, tap to spin the seconds hand
-  F.plate.addEventListener("pointermove", (e) => {
-    if (reduceMotion) return;
-    const r = F.plate.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
-    F.plate.style.setProperty("--ry", `${(x * 18).toFixed(1)}deg`);
-    F.plate.style.setProperty("--rx", `${(-y * 18).toFixed(1)}deg`);
-  });
-  F.plate.addEventListener("pointerleave", () => {
-    F.plate.style.setProperty("--rx", "0deg");
-    F.plate.style.setProperty("--ry", "0deg");
-  });
-  F.plate.addEventListener("click", spinSecondHand);
-  F.plate.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); spinSecondHand(); } });
-  tickClock();
 }
 
 const dishOf = (day, meal) => (menu.days[day] || {})[meal] || "Not added yet";
@@ -445,75 +412,64 @@ function renderFood() {
   const isToday = day === todayName();
   const nm = nowMin();
 
-  $("day-select").value = day;
-  F.dchips.forEach((b, i) => {
-    b.classList.toggle("active", WEEK[i] === day);
-    b.setAttribute("aria-pressed", String(WEEK[i] === day));
+  F.dchips.forEach((b) => {
+    const on = b.dataset.day === day;
+    b.classList.toggle("active", on);
+    if (b.getAttribute("aria-pressed") !== String(on)) b.setAttribute("aria-pressed", String(on));
   });
 
   const m = menu.meals.find((x) => x.name === foodMeal) || menu.meals[0];
   const st = mealStatus(m, isToday, nm);
-  F.railBtns.forEach((b, i) => b.classList.toggle("on", menu.meals[i].name === m.name));
+  F.railBtns.forEach((b, i) => b && b.classList.toggle("on", menu.meals[i].name === m.name));
 
   const dish = dishOf(day, m.name);
-  F.plateName.textContent = firstDish(dish);
-  F.badge.textContent = st.kind === "live" ? "Serving now" : st.kind === "soon" ? "Up next" : st.kind === "done" ? "Served earlier" : `${day}'s menu`;
+  setText(F.plateName, firstDish(dish));
+  setText(F.badge, st.kind === "live" ? "Serving now" : st.kind === "soon" ? "Up next" : st.kind === "done" ? "Served earlier" : `${day}'s menu`);
   F.badge.classList.toggle("pulse", st.kind === "live");
-  F.h2.textContent = m.name.toLowerCase();
-  F.whenMain.textContent = `${fmt12(m.start)} – ${fmt12(m.end)}`;
-  F.whenSub.textContent = st.kind === "live" ? `ends in ${fmtDur(st.left)}`
+  setText(F.h2, m.name.toLowerCase());
+  setText(F.whenMain, `${fmt12(m.start)} – ${fmt12(m.end)}`);
+  setText(F.whenSub, st.kind === "live" ? `ends in ${fmtDur(st.left)}`
     : st.kind === "soon" ? `starts in ${fmtDur(st.inMin)}`
-    : st.kind === "done" ? "served earlier today" : `on ${day}`;
-  F.desc.textContent = dish;
+    : st.kind === "done" ? "served earlier today" : `on ${day}`);
+  setText(F.desc, dish);
 
-  // ratings
-  F.stars.replaceChildren();
+  // ratings (the stars are only rebuilt when something about them changed)
   const stats = ratingStats[m.name];
-  if (!ready || !isToday) {
-    F.rateInfo.textContent = isToday ? "" : "Ratings open on the day itself.";
-  } else {
-    F.rateInfo.textContent = stats ? `★ ${(stats.sum / stats.count).toFixed(1)} · ${stats.count} rating${stats.count > 1 ? "s" : ""} today` : "No ratings yet today";
-    if (nm >= toMin(m.start)) {
-      const mine = Number(store.get(`rated_${todayStr()}_${m.name}`, 0));
+  const canRate = ready && isToday && nm >= toMin(m.start);
+  const mine = canRate ? Number(store.get(`rated_${todayStr()}_${m.name}`, 0)) : 0;
+  const starsKey = `${canRate ? 1 : 0}|${m.name}|${mine}`;
+  if (starsKey !== F.starsKey) {
+    F.starsKey = starsKey;
+    const stars = [];
+    if (canRate) {
       for (let i = 1; i <= 5; i++) {
-        F.stars.append(el("button", {
+        stars.push(el("button", {
           type: "button", class: i <= mine ? "on" : "", "aria-label": `${i} star${i > 1 ? "s" : ""}`, text: "★",
           onclick: (e) => { burst(e.clientX, e.clientY, ["⭐", "✨", "🎉"], 12); rate(m.name, i); }
         }));
       }
-    } else {
-      F.rateInfo.textContent = "Rating opens when the meal starts.";
     }
+    F.stars.replaceChildren(...stars);
   }
+  let info = "";
+  if (!ready || !isToday) info = isToday ? "" : "Ratings open on the day itself.";
+  else if (!canRate) info = "Rating opens when the meal starts.";
+  else info = stats ? `★ ${(stats.sum / stats.count).toFixed(1)} · ${stats.count} rating${stats.count > 1 ? "s" : ""} today` : "No ratings yet today";
+  setText(F.rateInfo, info);
 
-  // meal tiles
-  const list = $("food-list");
-  list.replaceChildren();
-  menu.meals.forEach((x) => {
-    const xs = mealStatus(x, isToday, nm);
-    const xStats = ratingStats[x.name];
-    const d = dishOf(day, x.name);
+  // meal tiles and dots
+  F.tiles.forEach((t) => {
+    if (!t) return;
+    const xs = mealStatus(t.m, isToday, nm);
+    const xStats = ratingStats[t.m.name];
+    const d = dishOf(day, t.m.name);
     const note = ready && isToday && xStats ? `★ ${(xStats.sum / xStats.count).toFixed(1)} (${xStats.count})` : xs.kind === "live" ? "● serving now" : "";
-    list.append(el("button", {
-      type: "button", class: "tile" + (x.name === m.name ? " on" : ""), onclick: () => pickMeal(x.name, true)
-    },
-      el("span", { class: "plate-art" }, el("span", { class: "plate-name", text: MEAL_EMOJI[x.name] || "🍽️" })),
-      el("span", { class: "tile-time", text: fmt12(x.start) }),
-      el("span", { class: "tile-name", text: x.name }),
-      el("span", { class: "tile-sub", text: d }),
-      el("span", { class: "tile-more", text: d }),
-      el("span", { class: "tile-foot" }, el("span", { text: note }), el("span", { "aria-hidden": "true", text: "view →" }))
-    ));
+    t.btn.classList.toggle("on", t.m.name === m.name);
+    setText(t.sub, d);
+    setText(t.more, d);
+    setText(t.note, note);
   });
-
-  // dots (desktop)
-  const dots = $("food-dots");
-  dots.replaceChildren();
-  menu.meals.forEach((x) => dots.append(el("button", {
-    type: "button", class: x.name === m.name ? "on" : "", "aria-label": x.name, onclick: () => pickMeal(x.name)
-  })));
-
-  renderNow();
+  F.dots.forEach((b, i) => b && b.classList.toggle("on", menu.meals[i].name === m.name));
 }
 
 async function rate(meal, stars) {
@@ -561,7 +517,7 @@ function renderQuote() {
 }
 
 async function initClasses() {
-  tt = await loadJSON("timetable.json");
+  [tt, menu] = await Promise.all([loadJSON("timetable.json"), menu || loadJSON("menu.json")]);
   const sel = $("class-select");
   Object.keys(tt.classes).forEach((c) => sel.append(el("option", { value: c, text: c })));
   const saved = store.get("myClass");
@@ -585,14 +541,15 @@ async function initClasses() {
   subscribeNotices();
   renderClasses();
 
-  if (ready) {
+  whenFirebase(() => {
+    subscribeNotices();
     onSnapshot(query(collection(db, "attendance"), where("date", "==", todayStr())), (snap) => {
       attendance = {};
       snap.forEach((d) => { const a = d.data(); attendance[`${a.cls}_${a.period}`] = a.present; });
       renderClasses();
     }, (err) => console.warn("Could not read attendance:", err.code));
-  }
-  setInterval(renderClasses, 30000);
+  });
+  setInterval(() => { if (!document.hidden) renderClasses(); }, 30000);
 }
 
 function statusBadge(cls, period) {
@@ -823,7 +780,6 @@ function initWall() {
     e.preventDefault();
     const msg = $("post-msg");
     const body = text.value.trim();
-    if (!ready) { msg.textContent = "The wall is not connected yet."; return; }
     if (!body) return;
     if (!(await ensureMe())) { msg.textContent = authProblem(); return; }
 
@@ -845,16 +801,15 @@ function initWall() {
     }
   });
 
-  if (ready) {
+  whenFirebase(() => {
     onSnapshot(query(collection(db, "posts"), where("approved", "==", true)), (snap) => {
       approvedPosts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       renderWall();
     }, (err) => console.warn("Could not read posts:", err.code));
-  } else {
-    $("post-list").append(el("p", { class: "wl-empty", text: "Posts will show here once Firebase is connected." }));
-  }
+  });
 
   initWallScene();
+  wallActive(true);
 }
 
 // A scratch across the form, then something notices.
@@ -1216,14 +1171,12 @@ function initGigs() {
   $("apply-cancel").addEventListener("click", () => $("apply-dialog").close());
 
   renderGigChips();
-  if (ready) {
+  whenFirebase(() => {
     onSnapshot(query(collection(db, "gigs"), where("approved", "==", true)), (snap) => {
       gigsApproved = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       renderGigs();
     }, (err) => console.warn("Could not read gigs:", err.code));
-  } else {
-    $("gig-list").append(el("p", { class: "muted", text: "The board will show here once Firebase is connected." }));
-  }
+  });
 }
 
 function setGigCat(cat) {
@@ -1306,7 +1259,6 @@ function watchResponses() {
 async function submitGig(e) {
   e.preventDefault();
   const msg = $("gig-msg");
-  if (!ready) { msg.textContent = "The board is not connected yet."; return; }
   if (!(await ensureMe())) { msg.textContent = authProblem(); return; }
 
   const data = {
@@ -1630,7 +1582,7 @@ function initGlobe() {
 }
 
 /* =================================================================
-   STAFF LOGIN
+   STAFF LOGIN (every page has the footer form; Firebase is connected when it is opened or used)
 ================================================================= */
 function renderAuth() {
   const box = $("auth-status");
@@ -1644,33 +1596,32 @@ function renderAuth() {
   }
 }
 
-if (ready) {
-  $("login-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    try {
-      await signInWithEmailAndPassword(auth, $("login-email").value, $("login-pass").value);
-      $("login-pass").value = "";
-    } catch (err) {
-      console.error(err);
-      alert("Wrong email or password.");
-    }
-  });
+$("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  await connectFirebase();
+  if (!ready) { alert(authProblem()); return; }
+  try {
+    await signInWithEmailAndPassword(auth, $("login-email").value, $("login-pass").value);
+    $("login-pass").value = "";
+  } catch (err) {
+    console.error(err);
+    alert("Wrong email or password.");
+  }
+});
+$("staff-login")?.addEventListener("toggle", (e) => { if (e.target.open) connectFirebase(); });
+
+whenFirebase(() => {
   onAuthStateChanged(auth, (u) => {
-    if (!u) {
-      // Give every visitor a silent anonymous id so the gigs board knows who posted what.
-      ensureMe();
-    }
+    // The wall and gigs need a silent anonymous id so the rules know who posted what.
+    if (!u && (PAGE === "wall" || PAGE === "gigs")) ensureMe();
     me = u;
     currentUser = u && !u.isAnonymous ? u : null; // only email logins count as staff
     renderAuth();
-    renderClasses();
-    renderNotices();
-    subscribePending();
-    subscribeGigs();
+    if (PAGE === "classes") { renderClasses(); renderNotices(); }
+    if (PAGE === "wall") subscribePending();
+    if (PAGE === "gigs") subscribeGigs();
   });
-} else {
-  $("login-form").hidden = true;
-}
+});
 
 /* ---------- ABOUT: three-step story, 01 --- 03 ---------- */
 const ABOUT_STEPS = [
@@ -1706,17 +1657,23 @@ function initAbout() {
   root.querySelector(".ab2-links button").classList.add("on");
 }
 
-/* ---------- start ---------- */
+/* ---------- start (each page runs only its own section) ---------- */
 const safe = (fn) => { try { const r = fn(); if (r && r.catch) r.catch((e) => console.error(e)); } catch (e) { console.error(e); } };
 safe(greet);
-setInterval(greet, 60000);
-initFood().catch(showLoadError);
-initClasses().catch(showLoadError);
-safe(initWall);
-safe(initGigs);
-safe(initGlobe);
-safe(initAbout);
-safe(openFromHash);
+setInterval(() => { if (!document.hidden) greet(); }, 60000);
+if (PAGE === "food") initFood().catch(showLoadError);
+else if (PAGE === "classes") initClasses().catch(showLoadError);
+else if (PAGE === "wall") safe(initWall);
+else if (PAGE === "gigs") { safe(initGigs); safe(initGlobe); }
+else if (PAGE === "about") safe(initAbout);
+
+// Firebase: wall and gigs need it straight away. Food and Classes load it once the page has painted.
+// About never loads it (unless staff open the login).
+if (PAGE === "wall" || PAGE === "gigs") connectFirebase();
+else if (PAGE === "food" || PAGE === "classes") {
+  const go = () => idle(connectFirebase);
+  if (document.readyState === "complete") go(); else window.addEventListener("load", go, { once: true });
+}
 
 // Offline support (sw.js is network-first, so updates always arrive).
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {

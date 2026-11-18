@@ -1,6 +1,40 @@
 <!--MAIN-->
 <section id="bus" class="panel active">
-  <div id="bus-now" class="now bus-now" aria-live="polite"></div>
+  <div class="kb-road" id="kb-road">
+    <span class="kb-sun" aria-hidden="true"></span>
+    <span class="kb-cloud c1" aria-hidden="true"></span>
+    <span class="kb-cloud c2" aria-hidden="true"></span>
+    <div class="kb-hill far" aria-hidden="true"></div>
+    <div class="kb-hill near" aria-hidden="true"></div>
+    <button type="button" class="kb-bus" id="kb-bus" aria-label="Honk the KSRTC bus">
+      <svg viewBox="0 0 240 110" aria-hidden="true">
+        <g class="kb-body">
+          <rect x="6" y="14" width="224" height="68" rx="12" fill="#b3141f" stroke="#2a0d0a" stroke-width="2"/>
+          <path d="M6 26V26a12 12 0 0 1 12-12h200a12 12 0 0 1 12 12v0z" fill="#fff3d0"/>
+          <rect x="6" y="62" width="224" height="7" fill="#ffc414"/>
+          <g fill="#cfe9f5" stroke="#2a0d0a" stroke-width="1.6">
+            <rect x="20" y="32" width="26" height="22" rx="4"/><rect x="54" y="32" width="26" height="22" rx="4"/>
+            <rect x="88" y="32" width="26" height="22" rx="4"/><rect x="122" y="32" width="26" height="22" rx="4"/>
+            <rect x="156" y="32" width="26" height="22" rx="4"/>
+            <path d="M192 32h26a8 8 0 0 1 8 8v14h-34z"/>
+          </g>
+          <rect x="176" y="16" width="50" height="10" rx="2" fill="#120804"/>
+          <text id="kb-sign" x="201" y="24" fill="#ffb000" font-size="6.4" font-weight="700" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">KSRTC</text>
+          <text x="84" y="78" fill="#fff3d0" font-size="9" font-weight="800" letter-spacing="2.5" font-family="Poppins,system-ui,sans-serif">KSRTC</text>
+          <circle class="kb-lamp" cx="227" cy="74" r="4" fill="#ffe27a"/>
+          <rect x="6" y="82" width="224" height="8" rx="3" fill="#2a0d0a"/>
+        </g>
+        <g transform="translate(56 92)"><g class="kb-wheel"><circle r="15" fill="#1a1a1a"/><circle r="7" fill="#d8d8d8"/><path d="M0-7V7M-7 0H7" stroke="#555" stroke-width="2"/></g></g>
+        <g transform="translate(180 92)"><g class="kb-wheel"><circle r="15" fill="#1a1a1a"/><circle r="7" fill="#d8d8d8"/><path d="M0-7V7M-7 0H7" stroke="#555" stroke-width="2"/></g></g>
+      </svg>
+    </button>
+    <div class="kb-ground" aria-hidden="true"><div class="kb-dash"></div></div>
+    <p class="kb-hint" aria-hidden="true">tap the bus</p>
+  </div>
+
+  <div class="kb-tabs" id="bus-dirs" role="tablist" aria-label="Direction"></div>
+  <div id="bus-now" class="kb-led" aria-live="polite"></div>
+  <div id="my-bus"></div>
   <div id="bus-lists" class="bus-lists"><p class="muted">Loading bus timings&hellip;</p></div>
-  <p class="muted bus-note">KSRTC timings at DC College, copied from the notice on campus. They can change, and Sundays or holidays may differ, so confirm with the KSRTC depot when it matters. Prefer a plain page? See the <a href="bus-timings.html">bus timings list</a>.</p>
+  <p class="muted bus-note">KSRTC timings at DC College, copied from the notice on campus. They can change, and Sundays or holidays may differ, so confirm with the KSRTC depot when it matters. Tap a bus to see its stops and pin it as your bus. Prefer a plain page? See the <a href="bus-timings.html">bus timings list</a>.</p>
 </section>

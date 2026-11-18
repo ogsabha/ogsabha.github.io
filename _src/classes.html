@@ -1,0 +1,29 @@
+<!--MAIN-->
+<section id="classes" class="panel active">
+      <label>Your class
+        <select id="class-select"></select>
+      </label>
+      <div id="day-chips" class="day-chips" role="group" aria-label="Day of the week"></div>
+      <figure class="quote" id="quote">
+        <blockquote id="quote-text"></blockquote>
+        <figcaption id="quote-by"></figcaption>
+      </figure>
+      <div id="notice-box">
+        <div id="notice-list"></div>
+        <details id="notice-compose" hidden>
+          <summary>＋ Post a notice (admins only)</summary>
+          <form id="notice-form">
+            <p class="muted">Posting to <strong id="notice-to"></strong>. Everyone in that class will see it at the top of the timetable.</p>
+            <textarea id="notice-text" maxlength="400" rows="4" required placeholder="Test moved to Friday, bring your ID card..."></textarea>
+            <div class="row">
+              <span id="notice-count" class="muted">0 / 400</span>
+              <button type="submit">Publish notice</button>
+            </div>
+            <p id="notice-msg" class="muted"></p>
+          </form>
+        </details>
+      </div>
+      <div id="class-now"></div>
+      <h2>Timetable</h2>
+      <div id="class-table"></div>
+    </section>

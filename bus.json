@@ -1,0 +1,27 @@
+{
+  "_note": "KSRTC bus timings at D.C. College, copied from the notice-board poster (photo dated 14 Sep 2026). Times are 24-hour. Confirm the entries marked check:true against the poster, then re-verify with the depot.",
+  "stop": "DC College",
+  "directions": {
+    "To Vagamon": [
+      { "time": "05:00", "route": "Vyttila (ETPA-PALA)", "check": true },
+      { "time": "07:45", "route": "Pala" },
+      { "time": "08:30", "route": "Peerumedu", "via": "Elappara, Kuttikanam" },
+      { "time": "09:30", "route": "Elappara" },
+      { "time": "11:30", "route": "Upputhara", "via": "Parappu" },
+      { "time": "13:20", "route": "Elappara" },
+      { "time": "14:35", "route": "Elappara" },
+      { "time": "16:20", "route": "Kumily", "via": "Elappara, Kuttikanam" },
+      { "time": "18:30", "route": "Upputhara", "via": "Parappu" }
+    ],
+    "To Moolamattom": [
+      { "time": "06:30", "route": "Aluva (TDPA-MVPA)" },
+      { "time": "07:40", "route": "Thodupuzha" },
+      { "time": "08:45", "route": "Thodupuzha" },
+      { "time": "12:20", "route": "Thodupuzha" },
+      { "time": "13:50", "route": "Thodupuzha" },
+      { "time": "14:30", "route": "Thodupuzha" },
+      { "time": "16:20", "route": "Thodupuzha" },
+      { "time": "17:30", "route": "Thodupuzha", "check": true }
+    ]
+  }
+}

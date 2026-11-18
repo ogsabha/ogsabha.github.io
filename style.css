@@ -989,3 +989,25 @@ a.brand{text-decoration:none;color:inherit}
 /* keep the card from jumping while the first text is filled in */
 #food-feature{min-height:clamp(300px,80vw,420px)}
 @media(max-width:759px){#food-feature{min-height:0}}
+
+/* =================================================================
+   BUS: KSRTC timings (green, like the buses)
+================================================================= */
+body[data-theme="bus"]{
+  --bg:#eef2ea;--ink:#14221a;--muted:#5d6b62;--cbg:#fff;--cink:#14221a;--accent:#0b6b3a;--on-accent:#fff;
+  --line:rgba(20,34,26,.14);--shadow:0 18px 36px -22px rgba(11,107,58,.5);--radius:22px;--hcase:none;--hls:-.03em}
+body[data-theme="bus"] .hero h1{font-style:italic}
+main .bus-now{width:auto;margin:0 0 6px}
+.bus-lists{display:grid;grid-template-columns:1fr;gap:6px 24px}
+@media(min-width:720px){.bus-lists{grid-template-columns:1fr 1fr}}
+.bus-col h2{font-size:1.4rem;margin:26px 0 12px}
+.bus-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.bus-list li{display:grid;grid-template-columns:84px 1fr auto;align-items:center;gap:12px;padding:12px 16px;border-radius:16px;
+  background:var(--cbg);color:var(--cink);border:1px solid var(--line)}
+.bus-list time{font-weight:700;font-variant-numeric:tabular-nums}
+.bus-list .via{display:block;font-size:.8rem;color:var(--muted)}
+.bus-list li.gone{opacity:.45}
+.bus-list li.next{background:var(--accent);color:var(--on-accent);border-color:transparent;box-shadow:var(--shadow)}
+.bus-list li.next .via{color:inherit;opacity:.85}
+.bus-list li.next .badge{background:rgba(255,255,255,.25)}
+.bus-note{margin-top:26px}

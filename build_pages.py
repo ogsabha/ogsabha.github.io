@@ -84,7 +84,7 @@ def ld_script(obj):
 FONT_QS = {
     "food": "family=Poppins:wght@400;500;600;700",
     "classes": "family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Playfair+Display:ital,wght@1,600&family=Caveat:wght@500&family=Poppins:wght@400;500;600",
-    "bus": "family=Poppins:wght@400;500;600;700",
+    "bus": "family=Poppins:wght@400;500;600;700;800",
     "wall": "family=Cormorant+Garamond:ital,wght@0,600;1,600&family=Caveat:wght@500&family=Special+Elite",
     "gigs": "family=Inter:wght@400;500;600",
     "about": "family=Montserrat:wght@400;500;600;700&family=Instrument+Serif",
@@ -206,7 +206,7 @@ PAGES = [
         sub="Stay on top of your day: who is teaching, and when.",
     ),
     dict(
-        key="bus", file="bus.html", href="bus.html", url=SITE + "/bus.html", nav="Bus", crumb="Bus", theme="#0b6b3a",
+        key="bus", file="bus.html", href="bus.html", url=SITE + "/bus.html", nav="Bus", crumb="Bus", theme="#b3141f",
         title="Og Sabha | KSRTC Bus Timings at DCSMAT Vagamon",
         desc="KSRTC bus timings at DC College, Vagamon: the next bus to Vagamon and to Moolamattom, plus the full list for the day. Made by students.",
         h1="DCSMAT Vagamon KSRTC bus timings", vis="never miss\nthe bus.",

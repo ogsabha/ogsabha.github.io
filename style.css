@@ -1,1872 +1,1122 @@
-// Firebase (about 300 KB) is loaded lazily by connectFirebase(), never at the top of this file,
-// so menu, timetable and clock render without waiting for it.
-let initializeApp, getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, getDocs,
-  query, where, onSnapshot, serverTimestamp, increment, writeBatch,
-  getAuth, signInWithEmailAndPassword, signInAnonymously, signOut, onAuthStateChanged;
-const PAGE = document.body.dataset.page || "food";
+/* Og Sabha: one theme per section, switched by <body data-theme="...">
+   food    = foodbar look: light page, charcoal cards, red accent
+   classes = pastel dashboard: soft blue page, white cards, gradient pills
+   wall    = haunted plaster wall: soot, bone and dried blood (see the WALL block at the end)
+   gigs, about = editorial: off-white, serif headline, black pills, glass cards */
+:root{--px:0;--py:0}
+body{
+  --bg:#f1f1ef;--ink:#1b1b1b;--muted:#6f6b68;--cbg:#2a2726;--cink:#fff;--accent:#e11d2e;--on-accent:#fff;
+  --line:rgba(0,0,0,.14);--field:#fff;--fink:#1b1b1b;--good:#2fbf71;--bad:#e5484d;--radius:22px;
+  --shadow:0 22px 40px -22px rgba(0,0,0,.45);
+  --head:"Poppins",system-ui,sans-serif;--body:"Poppins",system-ui,sans-serif;
+  --hw:700;--hcase:lowercase;--hls:-.03em;--hsize:clamp(2.6rem,9vw,5.2rem);
+  margin:0;font-family:var(--body);color:var(--ink);line-height:1.55;background:var(--bg);
+  transition:background-color .4s ease,color .3s ease;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body[data-theme="classes"]{
+  --bg:#e8edf8;--ink:#1d2340;--muted:#6b7394;--cbg:#fff;--cink:#1d2340;--accent:#3b5bff;--line:rgba(29,35,64,.12);
+  --shadow:0 18px 36px -20px rgba(59,91,255,.45);--radius:24px;--hcase:none}
 
-/* ---------------------------------------------------------------
-   Og Sabha: DCSMAT Vagamon student hub
-   Sections: core + tabs, Food, Classes, Wall, Gigs (with globe), staff login.
----------------------------------------------------------------- */
-const firebaseConfig = {
-  apiKey: "AIzaSyDAom6PmaYuSN75PrsVRSGzCHHrvbF8Q8c",
-  authDomain: "og-sabha.firebaseapp.com",
-  projectId: "og-sabha",
-  storageBucket: "og-sabha.firebasestorage.app",
-  messagingSenderId: "692594007498",
-  appId: "1:692594007498:web:819205fd17a8add28c8333"
-};
+body[data-theme="gigs"],body[data-theme="about"]{
+  --bg:#f4f4f2;--ink:#111;--muted:#6a6a6a;--cbg:rgba(255,255,255,.72);--cink:#111;--accent:#111;--on-accent:#fff;
+  --line:rgba(0,0,0,.1);--shadow:0 24px 50px -28px rgba(0,0,0,.35);--radius:24px;
+  --head:"Instrument Serif",Georgia,serif;--hw:400;--hcase:none;--hls:-.025em;--hsize:clamp(2.8rem,9vw,5.6rem)}
 
-// Add more words you want blocked on the wall and gigs board (lowercase).
-const BAD_WORDS = ["idiot", "stupid", "slut", "bitch"];
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+h1,h2,h3{font-family:var(--head);font-weight:var(--hw);margin:0;letter-spacing:var(--hls);text-transform:var(--hcase)}
+main,footer,.note,.now,.hero-text{width:min(960px,calc(100% - 32px));margin-inline:auto}
+a{color:inherit}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
-/* ---------- small helpers ---------- */
-const $ = (id) => document.getElementById(id);
-const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const pad = (n) => String(n).padStart(2, "0");
-const toMin = (hhmm) => { const [h, m] = hhmm.split(":").map(Number); return h * 60 + m; };
-const nowMin = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
-const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
-const todayName = () => DAYS[new Date().getDay()];
-const fmt12 = (hhmm) => {
-  const [h, m] = hhmm.split(":").map(Number);
-  return `${h % 12 || 12}:${pad(m)} ${h >= 12 ? "PM" : "AM"}`;
-};
-const parts12 = (hhmm) => {
-  const [h, m] = hhmm.split(":").map(Number);
-  return { t: `${h % 12 || 12}:${pad(m)}`, ap: h >= 12 ? "PM" : "AM" };
-};
-const fmtDur = (min) => (min >= 60 ? `${Math.floor(min / 60)}h ${min % 60}m` : `${min} min`);
-const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const isPhone = () => matchMedia("(max-width: 759px)").matches;
+/* ---------- top bar + hero ---------- */
+.topbar{width:min(960px,calc(100% - 32px));margin:0 auto;padding:22px 0 0;display:flex;justify-content:space-between;align-items:center}
+.brand{font-family:var(--head);font-weight:var(--hw);font-size:1.7rem;letter-spacing:var(--hls);text-transform:var(--hcase)}
+.chip{font-size:.8rem;font-weight:500;padding:7px 16px;border:1px solid var(--line);border-radius:999px;background:var(--cbg);color:var(--cink)}
+.hero{width:min(960px,calc(100% - 32px));margin:0 auto;display:grid;grid-template-columns:1.25fr .75fr;gap:24px;align-items:center;padding:36px 0 28px}
+.hero-text{margin:0;width:auto;text-align:left}
+.hero h1{font-size:var(--hsize);line-height:.98;text-wrap:balance}
 
-const store = {
-  get(k, fallback = null) { try { return localStorage.getItem(k) ?? fallback; } catch { return fallback; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch { /* ignore */ } }
-};
+.sub{margin:18px 0 0;max-width:44ch;color:var(--muted);font-weight:400}
+body[data-theme="gigs"] .hero h1,body[data-theme="about"] .hero h1{font-style:italic}
+#h1-line.pop{animation:pop .45s cubic-bezier(.3,1.4,.5,1)}
+@keyframes pop{from{transform:translateY(10px);opacity:0}}
 
-// Builds DOM safely. Text is always set as text, never as HTML.
-function el(tag, props = {}, ...kids) {
-  const e = document.createElement(tag);
-  for (const [k, v] of Object.entries(props)) {
-    if (v == null || v === false) continue;
-    if (k === "class") e.className = v;
-    else if (k === "text") e.textContent = v;
-    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
-    else e.setAttribute(k, v);
-  }
-  for (const kid of kids.flat()) if (kid != null && kid !== false) e.append(kid);
-  return e;
+.art{justify-self:center;width:min(300px,60vw);aspect-ratio:1;display:grid;place-items:center;font-size:clamp(5rem,20vw,8.5rem);
+  border-radius:50%;background:var(--cbg);box-shadow:var(--shadow);border:1px solid var(--line)}
+body[data-theme="food"] .art{background:#2a2726;border:10px solid #3a3634;box-shadow:0 30px 50px -24px rgba(0,0,0,.6)}
+body[data-theme="classes"] .art{border-radius:36px;background:linear-gradient(135deg,#3b5bff,#a46bff 55%,#ff7ac1);border:0}
+
+body[data-theme="gigs"] .art,body[data-theme="about"] .art{backdrop-filter:blur(12px);background:linear-gradient(145deg,rgba(255,255,255,.9),rgba(225,225,225,.5))}
+.art span{display:block;animation:bob 4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-6px) rotate(4deg)}}
+@media(max-width:700px){.hero{grid-template-columns:1fr;padding-top:24px}.art{order:-1;width:130px;font-size:4rem;justify-self:start}}
+
+/* ---------- "right now" ---------- */
+.now{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:8px}
+.now>div{padding:16px 20px;border-radius:var(--radius);background:var(--cbg);color:var(--cink);border:1px solid var(--line);box-shadow:var(--shadow);backdrop-filter:blur(10px)}
+.now>div:first-child{background:var(--accent);color:var(--on-accent)}
+body[data-theme="gigs"] .now>div:first-child,body[data-theme="about"] .now>div:first-child{background:#111}
+.now strong{display:block;font-weight:600;font-size:1.05rem;line-height:1.25;margin:4px 0}
+.now .k{font-size:.75rem;font-weight:500;opacity:.8}
+.now .muted{color:inherit;opacity:.75;display:block;font-size:.85rem}
+@media(max-width:560px){.now{grid-template-columns:1fr}}
+
+/* ---------- tabs ---------- */
+nav{position:sticky;top:12px;z-index:10;display:flex;gap:4px;width:min(960px,calc(100% - 32px));margin:22px auto 28px;padding:5px;
+  background:var(--cbg);border:1px solid var(--line);border-radius:999px;box-shadow:var(--shadow);backdrop-filter:blur(14px)}
+.tab{flex:1;padding:10px 4px;border:0;border-radius:999px;background:transparent;color:var(--cink);box-shadow:none;font:inherit;font-weight:500;font-size:.92rem;cursor:pointer;transition:background .25s,color .25s}
+.tab:hover:not(.active){background:rgba(127,127,127,.18)}
+.tab.active{background:var(--accent);color:var(--on-accent)}
+body[data-theme="gigs"] .tab.active,body[data-theme="about"] .tab.active{background:#111;color:#fff}
+@media(max-width:560px){.tab{font-size:.72rem;padding:10px 0}}
+
+.panel{display:none}
+.panel.active{display:block;animation:rise .4s ease}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}}
+
+h2{font-size:1.9rem;margin:36px 0 14px;line-height:1.1}
+h3{font-size:1.2rem;line-height:1.2}
+body[data-theme="food"] h2,body[data-theme="classes"] h2{font-size:1.5rem}
+.muted{color:var(--muted);font-size:.9rem;margin:4px 0}
+label{display:block;font-size:.8rem;font-weight:600;margin-bottom:18px}
+
+/* ---------- form controls ---------- */
+select,input,textarea{width:100%;margin-top:8px;padding:13px 16px;border:1px solid var(--line);border-radius:16px;background:var(--field);color:var(--fink);font:inherit;font-weight:400;text-transform:none;letter-spacing:0}
+select:focus,input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+body[data-theme="gigs"] :is(select,input,textarea):focus,body[data-theme="about"] :is(select,input,textarea):focus{outline-color:#111}
+select{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:44px;font-weight:500;
+  background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+  background-position:calc(100% - 24px) 55%,calc(100% - 18px) 55%;background-size:6px 6px;background-repeat:no-repeat}
+select option{color:#111;background:#fff}
+textarea{resize:vertical;min-height:120px;font-size:1rem}
+textarea::placeholder,input::placeholder{color:var(--muted)}
+
+button{font:inherit;font-weight:600;padding:10px 22px;border:0;border-radius:999px;background:var(--accent);color:var(--on-accent);cursor:pointer;transition:transform .12s,opacity .2s,box-shadow .2s}
+button:hover{transform:translateY(-1px);box-shadow:0 8px 18px -8px rgba(0,0,0,.5)}
+button:active{transform:translateY(1px)}
+button.ghost{background:transparent;color:inherit;border:1px solid currentColor;opacity:.85}
+button.danger{background:var(--bad);color:#fff}
+button:disabled{opacity:.4;cursor:default;transform:none;box-shadow:none}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+body[data-theme="gigs"] :focus-visible,body[data-theme="about"] :focus-visible{outline-color:#111}
+
+/* ---------- cards ---------- */
+.card{background:var(--cbg);color:var(--cink);border:1px solid var(--line);border-radius:var(--radius);padding:18px 22px;margin-bottom:16px;box-shadow:var(--shadow);backdrop-filter:blur(10px)}
+.card p{margin:6px 0}
+.card .muted{color:inherit;opacity:.68}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.card.live{background:var(--accent);color:var(--on-accent)}
+body[data-theme="classes"] .card.live{background:linear-gradient(120deg,#3b5bff,#8b5cf6)}
+body[data-theme="gigs"] .card.live,body[data-theme="about"] .card.live{background:#111}
+.card.live .muted{opacity:.85}
+.card.live button{background:#fff;color:#111}
+.badge{display:inline-block;font-size:.72rem;font-weight:600;padding:4px 12px;border-radius:999px;background:rgba(127,127,127,.2);color:inherit;white-space:nowrap}
+.badge.pulse::before{content:"";display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:#fff;animation:blink 1.2s ease-in-out infinite}
+@keyframes blink{50%{opacity:.25;transform:scale(.7)}}
+.badge.good{background:var(--good);color:#06240f}
+.badge.bad{background:var(--bad);color:#fff}
+.badge.grey{background:transparent;border:1px dashed currentColor;opacity:.7}
+.actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
+.actions button{padding:6px 14px;font-size:.82rem}
+
+/* ---------- FOOD: charcoal cards with a plate ---------- */
+#food-list{display:grid;grid-template-columns:1fr;gap:34px 20px;padding-top:30px}
+@media(min-width:720px){#food-list{grid-template-columns:1fr 1fr}}
+#food-list .card{position:relative;margin:0;padding:44px 22px 20px;border-radius:18px}
+#food-list .ttl{display:flex;align-items:center;gap:12px}
+#food-list h3{font-size:1.3rem}
+.plate{position:absolute;top:-28px;left:18px;width:68px;height:68px;border-radius:50%;display:grid;place-items:center;font-size:2rem;
+  background:#fff;box-shadow:0 10px 20px -8px rgba(0,0,0,.5)}
+#food-list .row{margin-left:78px;margin-top:-34px;margin-bottom:6px}
+#food-list .card.live{background:var(--accent)}
+.stars{display:flex;gap:2px;margin-top:10px}
+.stars button{padding:0 3px;background:transparent;box-shadow:none;font-size:1.8rem;line-height:1;color:transparent;-webkit-text-stroke:1.5px currentColor;opacity:.9}
+.stars button:hover,.stars button.on,.stars button:has(~ button:hover){color:#ffc83d;-webkit-text-stroke-color:#ffc83d}
+.stars button:hover{transform:scale(1.2);box-shadow:none}
+label[for=day-select],#food>label{max-width:260px}
+
+/* ---------- CLASSES: dashboard ---------- */
+#classes>label{max-width:320px}
+#notice-list .card{border-left:6px solid #ff7ac1}
+#notice-list .card:nth-child(even){border-left-color:#ffb347}
+.notice-head{font-size:.75rem;font-weight:600;opacity:.7;margin:0}
+#notice-compose{background:var(--cbg);border:1px dashed var(--accent);border-radius:var(--radius);padding:4px 18px;margin-bottom:18px}
+#notice-compose summary{cursor:pointer;font-weight:600;padding:12px 0}
+#notice-compose form{padding-bottom:14px}
+table{width:100%;border-collapse:separate;border-spacing:0 10px;margin-top:-4px}
+td{padding:14px 16px;background:var(--cbg);color:var(--cink);vertical-align:top;border:1px solid var(--line);border-inline:0}
+td:first-child{border-left:6px solid #3b5bff;border-radius:18px 0 0 18px}
+td:last-child{border-right:1px solid var(--line);border-radius:0 18px 18px 0}
+tr:nth-child(4n+2) td:first-child{border-left-color:#8b5cf6}
+tr:nth-child(4n+3) td:first-child{border-left-color:#ff5fa2}
+tr:nth-child(4n) td:first-child{border-left-color:#ffb347}
+td.muted{white-space:nowrap;width:1%;font-weight:600;color:inherit;opacity:.8}
+tr.current td{background:linear-gradient(120deg,#3b5bff,#8b5cf6);color:#fff;border-color:transparent}
+tr.current td.muted,tr.current .muted{opacity:.9}
+tr.current button.ghost{color:inherit}
+#class-table strong{font-weight:600;font-size:1.02rem}
+#class-table .badge{margin-top:8px}
+.bar{height:12px;margin-top:14px;border-radius:999px;background:rgba(255,255,255,.3);overflow:hidden}
+.bar i{display:block;height:100%;width:var(--w,0%);background:#fff;border-radius:999px;transition:width 1s ease}
+
+/* ---------- WALL: horror ---------- */
+
+#post-count{font-weight:600}
+
+/* ---------- GIGS + ABOUT: editorial ---------- */
+.seg{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.seg-btn{padding:8px 18px;font-size:.9rem;background:rgba(0,0,0,.06);color:#111;box-shadow:none}
+.seg-btn.active{background:#111;color:#fff}
+#gigs>label{max-width:320px}
+.compose{background:var(--cbg);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:4px 20px;margin-bottom:20px;backdrop-filter:blur(10px)}
+.compose summary{cursor:pointer;font-family:var(--head);font-size:1.4rem;padding:12px 0;list-style:none}
+.compose summary::-webkit-details-marker{display:none}
+.compose[open] summary{border-bottom:1px solid var(--line);margin-bottom:16px}
+.compose form{padding-bottom:14px}
+#gig-list{display:grid;gap:16px}
+@media(min-width:720px){#gig-list{grid-template-columns:1fr 1fr;align-items:start}}
+.card.gig{margin:0}
+.card.gig h3{font-size:1.7rem;margin:12px 0 4px}
+.card.gig.closed{opacity:.55;filter:grayscale(.6)}
+.resp{border:1px dashed var(--line);border-radius:16px;padding:10px 14px;margin-top:12px}
+.resp p{margin:4px 0}
+.btnlink{display:inline-block;padding:6px 14px;font-size:.82rem;font-weight:600;text-decoration:none;border-radius:999px;background:var(--good);color:#06240f}
+.about-wrap{display:grid;gap:16px}
+.about-wrap .card h3{font-size:1.8rem;margin-bottom:6px}
+.about-wrap ul{margin:8px 0 0;padding-left:20px}
+.about-lead{font-family:var(--head);font-style:italic;font-size:clamp(1.5rem,4.5vw,2.2rem);line-height:1.2;letter-spacing:-.02em;margin:0 0 8px}
+
+/* ---------- misc ---------- */
+.note{background:var(--accent);color:var(--on-accent);padding:12px 18px;border-radius:16px;margin-bottom:16px}
+footer{padding-bottom:40px;margin-top:44px}
+footer summary{cursor:pointer;color:var(--muted);font-size:.85rem;font-weight:600}
+footer form{display:grid;gap:8px;margin-top:10px}
+.burst{position:fixed;z-index:99;pointer-events:none;font-size:1.3rem;will-change:transform,opacity}
+dialog{width:min(480px,calc(100% - 32px));padding:22px;border:0;border-radius:var(--radius);background:#fff;color:#111;box-shadow:0 30px 70px -20px rgba(0,0,0,.6)}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+dialog label{margin:14px 0 0}
+dialog :is(input,textarea){background:#f3f3f1;color:#111}
+dialog button{background:#111;color:#fff}
+dialog button.ghost{background:transparent;color:#111}
+dialog .row{margin-top:18px}
+.page-head .back{text-decoration:none}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* =========================================================
+   v3 overrides: foody Food, academic Classes, black & white About
+========================================================= */
+.foodstrip{display:none}
+body[data-theme="food"] .foodstrip{display:block;overflow:hidden;background:#3b1a0e;color:#ffc94d;margin:0 0 26px;padding:10px 0}
+.foodstrip .track{display:flex;width:max-content;animation:scroll 32s linear infinite}
+.foodstrip span{font-family:"Playfair Display",serif;font-style:italic;font-weight:600;white-space:nowrap;padding-right:1.4rem}
+@keyframes scroll{to{transform:translateX(-50%)}}
+
+/* FOOD: turmeric page, chilli red, menu-card cards */
+body[data-theme="food"]{
+  --bg:#fff3d6;--ink:#3b1a0e;--muted:#8a5a3c;--cbg:#fffaf0;--cink:#3b1a0e;--accent:#d62d20;--on-accent:#fff;--line:#3b1a0e;
+  --head:"Playfair Display",Georgia,serif;--hw:800;--hcase:none;--hls:-.02em;--shadow:6px 6px 0 #3b1a0e;
+  background:radial-gradient(rgba(214,45,32,.10) 2px,transparent 2.5px) 0 0/26px 26px,#fff3d6}
+body[data-theme="food"] .art{background:radial-gradient(circle,#fff 0 56%,#ecdcb8 57% 62%,#fff 63%);border:10px solid #3b1a0e;box-shadow:12px 12px 0 #ffc94d}
+body[data-theme="food"] .hero h1{font-style:italic}
+body[data-theme="food"] .now>div{box-shadow:5px 5px 0 #3b1a0e;border:2px solid #3b1a0e;backdrop-filter:none}
+body[data-theme="food"] nav{border:2px solid #3b1a0e;box-shadow:4px 4px 0 #3b1a0e;backdrop-filter:none}
+body[data-theme="food"] #food-list .card{border:2px solid #3b1a0e;box-shadow:6px 6px 0 #d62d20;backdrop-filter:none}
+body[data-theme="food"] #food-list .card.live{background:#d62d20;box-shadow:6px 6px 0 #3b1a0e}
+body[data-theme="food"] .plate{background:#ffc94d;border:2px solid #3b1a0e}
+body[data-theme="food"] button{border:2px solid #3b1a0e}
+body[data-theme="food"] tr td:first-child{border-left-color:#d62d20}
+body[data-theme="food"] td{border-color:#3b1a0e}
+
+/* CLASSES: ruled paper, navy ink, chalkboard */
+body[data-theme="classes"]{
+  --bg:#f7f5ef;--ink:#14213d;--muted:#5b6479;--cbg:#fff;--cink:#14213d;--accent:#14213d;--on-accent:#fff;--line:rgba(20,33,61,.18);
+  --head:"Playfair Display",Georgia,serif;--hw:800;--hcase:none;--hls:-.02em;--shadow:0 14px 28px -20px rgba(20,33,61,.5);--radius:14px;
+  background:#f7f5ef repeating-linear-gradient(transparent 0 31px,rgba(20,33,61,.08) 31px 32px)}
+body[data-theme="classes"] .art{border-radius:14px;background:#1f3b2f;border:12px solid #8b5a2b;box-shadow:0 16px 30px -16px rgba(0,0,0,.6)}
+body[data-theme="classes"] .now>div:first-child{background:#14213d}
+body[data-theme="classes"] .card.live,body[data-theme="classes"] tr.current td{background:#14213d;color:#fff}
+body[data-theme="classes"] tr td:first-child{border-left-color:#14213d}
+body[data-theme="classes"] tr.current td:first-child{border-left-color:#8c1c2b}
+body[data-theme="classes"] td{border-radius:0}
+body[data-theme="classes"] td:last-child{border-radius:0 12px 12px 0}
+body[data-theme="classes"] td:first-child{border-radius:12px 0 0 12px}
+body[data-theme="classes"] h2{font-size:1.6rem;border-bottom:2px solid #14213d;padding-bottom:6px}
+.quote{margin:0 0 20px;padding:20px 24px 18px 28px;background:#fffdf6;border:1px solid var(--line);border-left:6px solid #8c1c2b;border-radius:12px;box-shadow:var(--shadow)}
+.quote blockquote{margin:0;font-family:"Playfair Display",Georgia,serif;font-style:italic;font-weight:600;font-size:clamp(1.2rem,3.4vw,1.6rem);line-height:1.35}
+.quote blockquote::before{content:"\201C";color:#8c1c2b;font-size:2.4rem;line-height:0;vertical-align:-.35em;margin-right:6px}
+.quote figcaption{margin-top:10px;font-size:.85rem;font-weight:600;color:#8c1c2b}
+.quote figcaption::before{content:"\2014\00a0"}
+body:not([data-theme="classes"]) .quote{display:none}
+
+/* ABOUT: black and white */
+body[data-theme="about"]{
+  --bg:#000;--ink:#fff;--muted:#a8a8a8;--cbg:#0c0c0c;--cink:#fff;--accent:#fff;--on-accent:#000;--line:#fff;--field:#0c0c0c;--fink:#fff;
+  --shadow:none;--radius:6px;--head:"Instrument Serif",Georgia,serif;background:#000}
+body[data-theme="about"] .art{background:#fff;border:0;border-radius:50%}
+body[data-theme="about"] .art span{filter:grayscale(1) contrast(2)}
+body[data-theme="about"] .tab.active{background:#fff;color:#000}
+body[data-theme="about"] .now>div:first-child{background:#fff;color:#000}
+body[data-theme="about"] :focus-visible{outline-color:#fff}
+body[data-theme="about"] .card{border:1px solid #fff;backdrop-filter:none}
+body[data-theme="about"] .chip{border-color:#fff}
+.team{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:14px}
+@media(min-width:720px){.team{grid-template-columns:repeat(4,1fr)}}
+.member h4{margin:10px 0 0;font-family:var(--head);font-size:1.3rem;font-weight:400}
+.member .muted{margin:0;opacity:.7}
+.photo{position:relative;aspect-ratio:4/5;overflow:hidden;border:1px solid #fff;border-radius:6px;display:grid;place-items:center;
+  background:repeating-linear-gradient(45deg,#0c0c0c 0 10px,#1a1a1a 10px 20px)}
+.photo .ph{font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:#a8a8a8}
+.photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.08)}
+
+/* =========================================================
+   v4: no hero emoji holder, simple About photo, scary Wall
+========================================================= */
+.art,.plate{display:none!important}
+.hero{grid-template-columns:1fr}
+#food-list{padding-top:0;gap:20px}
+#food-list .card{padding:20px 22px}
+#food-list .row{margin:0 0 6px}
+
+.group-photo{position:relative;aspect-ratio:16/9;margin-top:16px;overflow:hidden;border:1px solid #fff;border-radius:6px;display:grid;place-items:center;
+  background:repeating-linear-gradient(45deg,#0c0c0c 0 10px,#1a1a1a 10px 20px)}
+.group-photo .ph{font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:#a8a8a8}
+.group-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.08)}
+
+/* WALL: creepy */
+.drips{display:none}
+
+/* =========================================================
+   v5: CLASSES redesign. Sage sky, green water horizon, serif, timeline
+========================================================= */
+body[data-theme="classes"]{
+  --bg:#c8d8bc;--ink:#eef4e8;--muted:#d3e3d3;--cbg:rgba(244,247,238,.94);--cink:#14241a;--accent:#17291e;--on-accent:#eef4e8;
+  --line:rgba(20,36,26,.15);--field:rgba(255,255,255,.92);--fink:#14241a;--radius:20px;--shadow:0 16px 28px -20px rgba(0,0,0,.55);
+  --head:"Cormorant Garamond",Georgia,serif;--hw:600;--hcase:none;--hls:-.01em;
+  background:linear-gradient(#dce6d0 0,#c8d8bc 446px,#86ad93 446px,#5f8b6d 540px,#4a7659 100%),#4a7659}
+body[data-theme="classes"] .topbar,body[data-theme="classes"] .hero{color:#14241a}
+body[data-theme="classes"] .brand{color:#14241a;font-size:1.9rem}
+body[data-theme="classes"] .chip{background:rgba(255,255,255,.55);color:#14241a;border-color:rgba(20,36,26,.15)}
+body[data-theme="classes"] .hero{min-height:380px;align-content:center;text-align:center;padding:10px 0 40px;
+  background:radial-gradient(520px 200px at 22% 25%,rgba(255,255,255,.4),transparent 70%),radial-gradient(420px 160px at 80% 45%,rgba(255,255,255,.25),transparent 70%)}
+body[data-theme="classes"] .hero-text{text-align:center;margin-inline:auto}
+body[data-theme="classes"] .hero h1{font-size:clamp(2.7rem,9vw,5rem);font-weight:500;font-style:italic;line-height:1.02;white-space:pre-line;color:#14241a}
+body[data-theme="classes"] .hero h1::first-line{font-style:normal}
+body[data-theme="classes"] .sub{color:#33493b;margin-inline:auto;max-width:46ch}
+
+body[data-theme="classes"] nav{background:rgba(20,36,26,.35);border:1px solid rgba(255,255,255,.3);box-shadow:none;backdrop-filter:blur(12px)}
+body[data-theme="classes"] .tab{color:#eef4e8}
+body[data-theme="classes"] .tab.active{background:#eef4e8;color:#14241a}
+body[data-theme="classes"] .now>div{background:rgba(244,247,238,.94);color:#14241a}
+body[data-theme="classes"] .now>div:first-child{background:#17291e;color:#eef4e8}
+body[data-theme="classes"] .card.live{background:#17291e;color:#eef4e8}
+body[data-theme="classes"] h2{font-size:2rem;font-weight:500;font-style:italic;color:#eef4e8;border-bottom:1px solid rgba(255,255,255,.35)}
+body[data-theme="classes"] footer summary,body[data-theme="classes"] footer .muted{color:#d3e3d3}
+
+/* class picker as a pill, day chips */
+body[data-theme="classes"] #classes>label{margin:0 auto 14px;max-width:340px;text-align:center;color:#eef4e8}
+body[data-theme="classes"] #classes select{border-radius:999px;border:1px solid rgba(255,255,255,.6);font-weight:600;text-align:left;padding-left:22px}
+.day-chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:18px}
+.day-chips button{padding:8px 16px;font-size:.88rem;background:rgba(255,255,255,.16);color:#eef4e8;border:1px solid rgba(255,255,255,.4);box-shadow:none;position:relative}
+.day-chips button.active{background:#eef4e8;color:#14241a;border-color:#eef4e8}
+.day-chips button.today::after{content:"";position:absolute;left:50%;bottom:3px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:#d9622b}
+
+/* quote: centred serif with a handwritten byline */
+body[data-theme="classes"] .quote{background:none;border:0;box-shadow:none;text-align:center;padding:6px 8px 22px;margin:0 auto 14px;max-width:640px}
+body[data-theme="classes"] .quote blockquote{color:#eef4e8;font-weight:500;font-size:clamp(1.4rem,4.4vw,2rem)}
+body[data-theme="classes"] .quote blockquote::before{content:none}
+body[data-theme="classes"] .quote figcaption{display:inline-block;margin-top:12px;padding:1px 18px 3px;background:rgba(255,255,255,.78);color:#14241a;
+  font-family:"Caveat",cursive;font-size:1.25rem;font-weight:500;border-radius:999px;transform:rotate(-1.5deg)}
+body[data-theme="classes"] .quote figcaption::before{content:none}
+body[data-theme="classes"] #notice-list .card{border-left:5px solid #d9622b}
+body[data-theme="classes"] #notice-compose{background:rgba(244,247,238,.94);color:#14241a;border:1px solid rgba(20,36,26,.15)}
+body[data-theme="classes"] #notice-compose .muted{color:#4d6455}
+body[data-theme="classes"] .card h3{font-weight:600;font-size:1.5rem}
+
+/* timetable as a vertical timeline */
+.timeline{list-style:none;margin:8px 0 0;padding:0}
+.slot{display:grid;grid-template-columns:84px 22px 1fr;gap:0 12px;position:relative;padding-bottom:16px}
+.slot::before{content:"";position:absolute;left:106px;top:26px;bottom:-4px;width:1px;background:rgba(255,255,255,.5)}
+.slot:last-child::before{display:none}
+.slot-time{text-align:right;color:#eef4e8;line-height:1.1;padding-top:6px}
+.slot-time b{font-family:"Cormorant Garamond",Georgia,serif;font-size:2rem;font-weight:600}
+.slot-time span{font-size:.75rem;margin-left:3px;opacity:.85}
+.slot-time em{display:block;font-style:normal;font-size:.72rem;opacity:.75;margin-top:2px}
+.dot{width:14px;height:14px;margin:14px auto 0;border-radius:50%;background:#eef4e8;border:3px solid #5f8b6d;box-shadow:0 0 0 1px rgba(255,255,255,.7)}
+.slot.current .dot{background:#d9622b;box-shadow:0 0 0 6px rgba(217,98,43,.35)}
+.slot-card{background:rgba(244,247,238,.94);color:#14241a;border-radius:18px;padding:14px 18px;box-shadow:0 14px 26px -18px rgba(0,0,0,.55)}
+.slot-card strong{font-family:"Cormorant Garamond",Georgia,serif;font-size:1.5rem;font-weight:600;line-height:1.15;display:block}
+.slot-card .muted{color:inherit;opacity:.7;font-style:italic;margin:2px 0 0}
+.slot-card .badge{margin-top:8px}
+.slot.current .slot-card{background:#17291e;color:#eef4e8;border-left:5px solid #d9622b}
+@media(max-width:480px){.slot{grid-template-columns:64px 20px 1fr;gap:0 8px}.slot::before{left:81px}.slot-time b{font-size:1.5rem}}
+
+/* =========================================================
+   v6: FOOD redesign (foodbar layout): plate on a dark panel, big headline, dark cards
+========================================================= */
+body[data-theme="food"]{
+  --bg:#fff;--ink:#1d1d1d;--muted:#6f6f6f;--cbg:#3b302d;--cink:#fff;--accent:#e1251b;--on-accent:#fff;--line:rgba(0,0,0,.12);
+  --head:"Poppins",system-ui,sans-serif;--hw:700;--hcase:none;--hls:-.03em;--shadow:0 20px 40px -22px rgba(0,0,0,.45);background:#fff}
+body[data-theme="food"] .hero{position:absolute;width:1px;height:1px;margin:-1px;padding:0;min-height:0;overflow:hidden;clip:rect(0,0,0,0)}
+body[data-theme="food"] .foodstrip,body[data-theme="food"] .now{display:none}
+body[data-theme="food"] .chip{background:#fff;color:#1d1d1d;border-color:rgba(0,0,0,.12)}
+body[data-theme="food"] nav{background:#fff;border:1px solid rgba(0,0,0,.08);box-shadow:0 12px 30px -16px rgba(0,0,0,.25);backdrop-filter:none}
+body[data-theme="food"] .tab{color:#1d1d1d;font-weight:600}
+body[data-theme="food"] .tab.active{background:transparent;color:#e1251b;position:relative}
+body[data-theme="food"] .tab.active::after{content:"";position:absolute;left:50%;bottom:3px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:#e1251b}
+body[data-theme="food"] button{border:0}
+
+.daynav{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;margin:0 0 18px}
+.dchip{background:none;color:#1d1d1d;padding:4px 2px;font-size:.9rem;position:relative;box-shadow:none}
+.dchip:hover{box-shadow:none;transform:none;color:#e1251b}
+.dchip.active{color:#e1251b}
+.dchip.active::after{content:"";position:absolute;left:50%;bottom:-3px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:#e1251b}
+
+.feature{display:grid;grid-template-columns:1fr;gap:26px;align-items:center;margin-top:6px}
+@media(min-width:760px){.feature{grid-template-columns:1.05fr .95fr;gap:24px}}
+.stage{position:relative;height:clamp(300px,80vw,420px);display:grid;place-items:center}
+.slab{position:absolute;top:0;bottom:0;left:50%;width:min(58%,230px);transform:translateX(-50%);background:#2a2a2a}
+.plate-art{position:relative;display:grid;place-items:center;overflow:hidden;border-radius:50%;background:radial-gradient(circle at 35% 30%,#4a4a4a,#1b1b1b);color:#fff}
+.plate-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.plate-art.big{width:min(88%,330px);aspect-ratio:1;border:14px solid #151515;box-shadow:0 30px 50px -20px rgba(0,0,0,.65),inset 0 0 0 6px #2f2f2f;z-index:1}
+.plate-art.big .plate-name{font-family:var(--head);font-weight:700;font-size:clamp(2rem,8vw,3rem);text-transform:capitalize;letter-spacing:-.03em}
+.rail{display:none;position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:2;flex-direction:column;gap:26px}
+@media(min-width:760px){.rail{display:flex}}
+.rail-btn{writing-mode:vertical-rl;transform:rotate(180deg);background:none;color:#1d1d1d;padding:0;font-size:.82rem;font-weight:600;text-transform:capitalize;box-shadow:none}
+.rail-btn:hover{box-shadow:none;transform:rotate(180deg);color:#e1251b}
+.rail-btn.on{color:#e1251b}
+
+.copy h2{font-size:clamp(2.2rem,7vw,3.3rem);line-height:1.05;margin:10px 0 12px}
+.copy .badge{background:#e1251b;color:#fff}
+.copy .desc{max-width:38ch;color:#555;font-size:.95rem;margin:0}
+.when{color:#e1251b;font-weight:700;font-size:1.6rem;margin:16px 0 0;line-height:1.1}
+.when small{display:block;color:#888;font-size:.65rem;font-weight:400}
+.rate .muted{margin:12px 0 0}
+.darkbtn{display:inline-block;margin-top:16px;background:#2b2a29;color:#fff;padding:10px 24px;border-radius:4px;text-decoration:none;font-weight:600;font-size:.9rem}
+.darkbtn:hover{background:#e1251b}
+
+#food-list{display:grid;grid-template-columns:repeat(2,1fr);gap:40px 16px;padding-top:0;margin-top:34px}
+@media(min-width:720px){#food-list{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}}
+button.tile{position:relative;display:block;text-align:left;width:100%;background:#3b302d;color:#fff;border-radius:16px;padding:46px 16px 14px;
+  box-shadow:0 22px 30px -18px rgba(0,0,0,.55);font-weight:400;transition:transform .2s,box-shadow .2s}
+button.tile:hover{transform:translateY(-4px)}
+button.tile.on{box-shadow:0 0 0 3px #e1251b,0 22px 30px -18px rgba(0,0,0,.55)}
+.tile .plate-art{position:absolute;top:-26px;left:14px;width:68px;height:68px;border:3px solid #fff;box-shadow:0 10px 18px -8px rgba(0,0,0,.6)}
+.tile .plate-name{font-weight:700;font-size:1.4rem}
+.tile-time{position:absolute;top:14px;right:16px;font-weight:700;font-size:.95rem}
+.tile-name{display:block;font-weight:600;font-size:1rem;margin-top:6px}
+.tile-sub{display:block;font-size:.72rem;opacity:.65;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile-foot{display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-size:.7rem;min-height:1em;color:#ff8c84}
+.dots{display:flex;gap:10px;justify-content:center;margin:28px 0 0}
+.dots button{width:9px;height:9px;padding:0;border-radius:50%;background:#f4b5b0;box-shadow:none}
+.dots button:hover{transform:none;box-shadow:none}
+.dots button.on{background:#e1251b}
+
+/* =========================================================
+   v7: GIGS redesign (Mindly layout): centred serif headline, pills, frosted cards
+========================================================= */
+body[data-theme="gigs"]{--bg:#f6f5f2;background:radial-gradient(900px 420px at 50% -60px,#fff,transparent 70%),#f4f3f0}
+body[data-theme="gigs"] .now{display:none}
+body[data-theme="gigs"] .chip{background:#111;color:#fff;border:0}
+body[data-theme="gigs"] .hero{text-align:center;padding:30px 0 6px}
+body[data-theme="gigs"] .hero-text{text-align:center;margin-inline:auto}
+body[data-theme="gigs"] .hero h1{font-size:clamp(2.8rem,10vw,5.8rem);line-height:1;font-weight:400;font-style:italic;white-space:pre-line}
+body[data-theme="gigs"] .hero h1::first-line{font-style:normal}
+body[data-theme="gigs"] .sub{margin-inline:auto;max-width:48ch}
+body[data-theme="gigs"] nav{max-width:520px;background:rgba(255,255,255,.7)}
+
+.glass{background:linear-gradient(145deg,rgba(255,255,255,.9),rgba(255,255,255,.5));backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid #fff;box-shadow:0 22px 40px -26px rgba(0,0,0,.4),inset 0 1px 0 #fff;border-radius:22px;color:#111}
+.gig-cta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:0 0 26px}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:12px 26px;font-size:.95rem}
+.pill.dark{background:#111;color:#fff}
+.pill.light{background:#fff;color:#111;border:1px solid rgba(0,0,0,.1)}
+
+.orbit{position:relative;display:grid;grid-template-columns:1fr;align-items:center;margin-bottom:10px}
+.float,.spin-badge{display:none}
+.arc{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;padding:24px 8px 28px;scrollbar-width:none;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.arc::-webkit-scrollbar{display:none}
+button.arc-card{flex:0 0 150px;text-align:left;padding:14px 16px;font-weight:400;scroll-snap-align:center}
+button.arc-card:nth-child(odd){transform:translateY(8px) rotate(-1.6deg)}
+button.arc-card:nth-child(even){transform:translateY(-6px) rotate(1.6deg)}
+button.arc-card:hover{transform:translateY(-6px) rotate(0)}
+.arc-card i{display:grid;place-items:center;width:30px;height:30px;border-radius:10px;background:var(--c);font-style:normal;font-weight:700;font-size:.9rem}
+.arc-card strong{display:block;font-size:.92rem;font-weight:600;margin-top:12px}
+.arc-card span{display:block;font-size:.72rem;opacity:.6}
+button.arc-card.on{background:#111;color:#fff;border-color:#111}
+button.arc-card.on i{color:#111}
+
+@media(min-width:760px){
+  .orbit{grid-template-columns:210px 1fr 210px;gap:18px;margin-top:20px}
+  .float{display:block;padding:18px 20px}
+  .fl-left{transform:rotate(-4deg)}
+  .fl-right{transform:rotate(3deg)}
+  .float strong{display:block;font-size:1rem;font-weight:600;line-height:1.25}
+  .float p{margin:6px 0 0;font-size:.8rem;color:#777}
+  .spin-badge{display:block;position:absolute;right:-6px;top:-78px;width:104px;height:104px;animation:spin 26s linear infinite}
 }
-const SVG_NS = "http://www.w3.org/2000/svg";
-function svgEl(tag, props = {}, ...kids) {
-  const e = document.createElementNS(SVG_NS, tag);
-  for (const [k, v] of Object.entries(props)) {
-    if (v == null || v === false) continue;
-    if (k === "text") e.textContent = v; else e.setAttribute(k, v);
-  }
-  for (const kid of kids.flat()) if (kid) e.append(kid);
-  return e;
+@keyframes spin{to{transform:rotate(360deg)}}
+.avatars{display:flex;margin-bottom:10px;min-height:30px}
+.avatars span{display:grid;place-items:center;width:30px;height:30px;margin-right:-8px;border-radius:50%;background:var(--c,#eee);border:2px solid #fff;font-size:.75rem;font-weight:700}
+.avatars .more{background:#111;color:#fff}
+
+.seg{justify-content:center;margin:6px 0 20px}
+.seg-btn{background:rgba(255,255,255,.75);border:1px solid rgba(0,0,0,.08)}
+.seg-btn.active{background:#111}
+body[data-theme="gigs"] h2{font-size:2.4rem;font-style:italic}
+body[data-theme="gigs"] .card.gig{border:1px solid #fff;background:linear-gradient(145deg,rgba(255,255,255,.92),rgba(255,255,255,.55))}
+
+/* =========================================================
+   v8: GIGS redesign (burnt-orange hiring landing): white sans headline, glowing globe, frosted cards
+========================================================= */
+body[data-theme="gigs"]{
+  --bg:#7a2a0c;--ink:#fff;--muted:rgba(255,255,255,.78);--cbg:rgba(255,255,255,.14);--cink:#fff;--accent:#fff;--on-accent:#3a1204;
+  --line:rgba(255,255,255,.32);--field:rgba(255,255,255,.16);--fink:#fff;--radius:12px;--shadow:none;
+  --head:"Inter",system-ui,sans-serif;--body:"Inter",system-ui,sans-serif;--hw:500;--hcase:none;--hls:-.03em;
+  display:flex;flex-direction:column;
+  background:radial-gradient(800px 420px at 100% 0,rgba(255,150,80,.5),transparent 70%),linear-gradient(180deg,#4a1604 0,#8a2e0d 35%,#b8481a 100%)}
+body[data-theme="gigs"] .topbar{order:-3}
+body[data-theme="gigs"] nav{order:-2;max-width:480px;margin-top:6px;background:rgba(40,10,0,.35);border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(10px)}
+body[data-theme="gigs"] .brand{color:#fff;font-size:1.25rem;font-weight:600}
+body[data-theme="gigs"] .chip{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.35)}
+body[data-theme="gigs"] .tab{color:#fff}
+body[data-theme="gigs"] .tab.active{background:rgba(255,255,255,.28);color:#fff}
+body[data-theme="gigs"] .hero{padding:26px 0 8px}
+body[data-theme="gigs"] .hero h1{font-size:clamp(2.2rem,6.6vw,4rem);line-height:1.08;font-weight:500;font-style:normal;color:#fff}
+body[data-theme="gigs"] .sub{color:rgba(255,255,255,.85);max-width:56ch}
+body[data-theme="gigs"] :is(select,input,textarea):focus{outline-color:#fff}
+body[data-theme="gigs"] :focus-visible{outline-color:#fff}
+body[data-theme="gigs"] h2{font-size:1.9rem;font-style:normal;font-weight:500}
+body[data-theme="gigs"] .card,body[data-theme="gigs"] .compose{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.32);backdrop-filter:blur(12px);box-shadow:none}
+body[data-theme="gigs"] .card.gig{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.32)}
+body[data-theme="gigs"] .card.gig h3{font-size:1.35rem;font-weight:500}
+body[data-theme="gigs"] .compose summary{font-size:1.1rem;font-weight:500}
+body[data-theme="gigs"] .seg-btn{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.3)}
+body[data-theme="gigs"] .seg-btn.active{background:#fff;color:#3a1204}
+body[data-theme="gigs"] button.ghost{color:#fff}
+.pill.dark{background:#fff;color:#2a1007;box-shadow:0 10px 30px -8px rgba(255,200,150,.7)}
+.pill.light{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.4)}
+
+.orbit{display:block;position:relative;margin:4px 0 6px}
+.stage{position:relative;height:clamp(250px,68vw,480px)}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 12px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+button.chip-g{flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;padding:7px 14px;background:#fff;color:#2a1007;font-size:.78rem;font-weight:500;box-shadow:0 8px 18px -8px rgba(0,0,0,.55);transform:none}
+.chip-g i{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.chip-g em{font-style:normal;opacity:.55}
+button.chip-g.on{background:#2a1007;color:#fff}
+.info{background:rgba(255,255,255,.16);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.35);border-radius:10px;padding:14px 16px;color:#fff;margin:10px 0}
+.info strong{display:block;font-size:.95rem;font-weight:500}
+.info p{margin:4px 0 0;font-size:.76rem;opacity:.85}
+.avatars{display:flex;margin-bottom:10px;min-height:30px}
+.avatars span{display:grid;place-items:center;width:30px;height:30px;margin-right:-8px;border-radius:50%;background:var(--c,#eee);color:#2a1007;border:2px solid #7a2a0c;font-size:.75rem;font-weight:600}
+.avatars .more{background:#fff}
+@media(min-width:760px){
+  .chips{position:absolute;inset:0;display:block;overflow:visible;padding:0;pointer-events:none}
+  button.chip-g{position:absolute;left:calc(var(--x) * 1%);top:calc(var(--y) * 1%);transform:translate(-50%,-50%);pointer-events:auto}
+  button.chip-g:hover,button.chip-g:active{transform:translate(-50%,-50%) scale(1.06)}
+  .info{position:absolute;width:236px;margin:0}
+  .fl-left{left:2%;bottom:12%}
+  .fl-right{right:2%;bottom:2%;background:rgba(40,10,0,.38)}
 }
 
-/* ---------- firebase (lazy) ---------- */
-const FB_URL = "https://www.gstatic.com/firebasejs/10.14.1/";
-let ready = false;
-let db, auth;
-const fbHooks = [];
-// Runs fn now if Firebase is connected, otherwise as soon as it is.
-const whenFirebase = (fn) => {
-  if (!ready) { fbHooks.push(fn); return; }
-  try { fn(); } catch (e) { console.error(e); }
-};
-const idle = (fn, timeout = 1500) => ("requestIdleCallback" in window ? requestIdleCallback(fn, { timeout }) : setTimeout(fn, 300));
+/* =========================================================
+   v9: requested tweaks
+========================================================= */
+/* 1. Wall and About tabs: hide the "In the mess / In class" strip (Food and Gigs already hide it) */
+body[data-theme="about"] .now{display:none}
 
-let fbPromise = null;
-function connectFirebase() {
-  if (fbPromise) return fbPromise;
-  fbPromise = Promise.all([
-    import(FB_URL + "firebase-app.js"),
-    import(FB_URL + "firebase-firestore.js"),
-    import(FB_URL + "firebase-auth.js")
-  ]).then(([a, f, au]) => {
-    ({ initializeApp } = a);
-    ({ getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, getDocs,
-       query, where, onSnapshot, serverTimestamp, increment, writeBatch } = f);
-    ({ getAuth, signInWithEmailAndPassword, signInAnonymously, signOut, onAuthStateChanged } = au);
-    const fbApp = initializeApp(firebaseConfig);
-    db = getFirestore(fbApp);
-    auth = getAuth(fbApp);
-    ready = true;
-    fbHooks.splice(0).forEach((fn) => { try { fn(); } catch (e) { console.error(e); } });
-  }).catch((e) => {
-    console.error("Firebase failed to load:", e);
-    const note = $("setup-note");
-    if (note) {
-      note.hidden = false;
-      note.textContent = "Could not reach Firebase (check your internet or ad blocker). The menu and timetable still work, but ratings, live teacher status, the wall and gigs are off.";
-    }
-  });
-  return fbPromise;
+/* 2. Gigs tab: globe first, then the headline (hero), then the rest.
+      main and the gigs panel stop being boxes so their children can be ordered inside the body's flex column. */
+body[data-theme="gigs"] main,
+body[data-theme="gigs"] #gigs.active{display:contents}
+body[data-theme="gigs"] #gigs > *{width:min(960px,calc(100% - 32px));margin-left:auto;margin-right:auto}
+body[data-theme="gigs"] #gigs > .orbit{order:-1;margin-top:10px}
+
+/* 3. FOOD: the big plate is a live, tappable watch */
+.plate-art.big{transform:perspective(700px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .18s ease-out;animation:plateFloat 6s ease-in-out infinite;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+@keyframes plateFloat{50%{translate:0 -7px}}
+.bwrap{position:absolute;inset:0}
+.bw{position:absolute;inset:0;width:100%;height:100%}
+.bw .tb{stroke:#fff;stroke-width:1.6;stroke-linecap:round}
+.bw .ts{stroke:rgba(255,255,255,.45);stroke-width:.8;stroke-linecap:round}
+.bw .n{fill:#fff;font-family:var(--head);font-weight:600;font-size:7px;text-anchor:middle;dominant-baseline:central}
+.bw line.bh,.bw line.bm,.bw line.bs{transform-origin:50px 50px;stroke-linecap:round}
+.bw .bh{stroke:#fff;stroke-width:3.4}
+.bw .bm{stroke:#fff;stroke-width:2.2}
+.bw .bs{stroke:#e1251b;stroke-width:1.2;transition:transform .35s cubic-bezier(.4,2.2,.6,1)}
+.bw.spin .bs{transition:none}
+.bw .bd{fill:#e1251b}
+.plate-art.big .plate-name{position:absolute;left:0;right:0;top:63%;text-align:center;font-size:clamp(.9rem,2.6vw,1.15rem);opacity:.9;pointer-events:none}
+button.tile .plate-art{transition:transform .25s}
+button.tile:hover .plate-art{transform:rotate(18deg) scale(1.1)}
+button.tile:active{transform:translateY(-1px) scale(.98)}
+@media(prefers-reduced-motion:reduce){
+  .plate-art.big{animation:none}
+  .bw .bs,button.tile .plate-art{transition:none}
 }
 
-let currentUser = null; // staff only (email login)
-let me = null;          // anyone signed in, including anonymous visitors
-let anonFailed = false;
-let lastAuthError = "";
-
-// Resolves with the signed-in user (anonymous or staff). Connects Firebase first if needed.
-let signInPromise = null;
-function ensureMe() {
-  if (me) return Promise.resolve(me);
-  if (!signInPromise) {
-    signInPromise = connectFirebase()
-      .then(() => {
-        if (!ready) return null;
-        return signInAnonymously(auth).then((cred) => { me = cred.user; anonFailed = false; return me; });
-      })
-      .catch((err) => { anonFailed = true; lastAuthError = err.code || String(err); console.error("Anonymous sign-in failed:", lastAuthError); return null; })
-      .finally(() => { signInPromise = null; });
-  }
-  return signInPromise;
+/* 4. ABOUT: alternating light / dark bands with line-art and orange dots */
+body[data-theme="about"] main{width:100%;max-width:none;margin:0}
+.ab-band{--dot:#ff5a1f}
+.ab-band.light{background:#fff;color:#111;--bandbg:#fff}
+.ab-band.dark{background:#1c1c1c;color:#fff;--bandbg:#1c1c1c}
+.ab-in{width:min(960px,calc(100% - 32px));margin:0 auto;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:36px;min-height:340px;padding:56px 0}
+.ab-in.rev .ab-art{order:2}
+.ab-art{width:100%;max-width:380px;justify-self:center;overflow:visible}
+.ab-art .ln,.ab-art .fl{stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.ab-art .ln{fill:none}
+.ab-art .fl{fill:var(--bandbg)}
+.ab-art .dot{fill:var(--dot);transform-box:fill-box;transform-origin:center;animation:abfloat 4.5s ease-in-out infinite}
+.ab-art .dot:nth-of-type(2n){animation-delay:-1.4s;animation-duration:5.5s}
+.ab-art .dot:nth-of-type(3n){animation-delay:-2.6s}
+@keyframes abfloat{50%{transform:translateY(-9px)}}
+.ab-text h3{font-family:"Poppins",system-ui,sans-serif;font-weight:700;font-size:clamp(1.15rem,3vw,1.6rem);letter-spacing:.16em;text-transform:uppercase;margin:0 0 18px;font-style:normal}
+.ab-text p,.ab-text li{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Courier New",monospace;font-size:.82rem;line-height:1.85}
+.ab-text p{margin:0 0 12px;max-width:46ch}
+.ab-text ul{margin:0 0 22px;padding-left:18px;max-width:46ch}
+.ab-text li{margin-bottom:6px}
+.ab-btn{display:inline-block;margin:4px 6px 0 0;padding:12px 26px;border:2px solid currentColor;background:none;color:inherit;font:700 .68rem "Poppins",system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;transition:background .2s,color .2s}
+.ab-band.light .ab-btn:hover{background:#111;color:#fff}
+.ab-band.dark .ab-btn:hover{background:#fff;color:#1c1c1c}
+.ab-band.light .group-photo{border-color:#111}
+.ab-band.light .group-photo .ph{color:#777}
+@media(max-width:700px){
+  .ab-in{grid-template-columns:1fr;gap:20px;padding:40px 0}
+  .ab-in.rev .ab-art{order:0}
+  .ab-art{max-width:260px}
 }
-const authProblem = () => lastAuthError === "auth/operation-not-allowed"
-  ? "Sign-in is switched off on the server. Please tell the Og Sabha team."
-  : "Could not connect. Check your internet and try again.";
+@media(prefers-reduced-motion:reduce){.ab-art .dot{animation:none}}
 
-/* ---------- shared data + state (declared up front so every function can see them) ---------- */
-let menu = null;
-let tt = null;
-let ratingStats = {};   // meal -> { sum, count } for today
-let attendance = {};    // "Class_3" -> true/false for today
+/* =========================================================
+   9. FOOD on phones: swipeable day strip, one compact "now serving" card, meal rows.
+   Desktop and tablets are untouched (everything here is under 760px).
+========================================================= */
+.tile-more{display:none}
+@media(max-width:759px){
+  body[data-theme="food"] .topbar{gap:10px}
+  body[data-theme="food"] .brand{font-size:1.5rem;white-space:nowrap}
+  body[data-theme="food"] .chip{font-size:.74rem;padding:6px 12px;white-space:nowrap}
 
-const MEAL_EMOJI = { Breakfast: "🍳", Lunch: "🍛", Snacks: "🍟", Dinner: "🌙" };
+  /* day strip: one row, swipe sideways, filled pill for the chosen day */
+  body[data-theme="food"] .daynav{flex-wrap:nowrap;justify-content:flex-start;gap:8px;overflow-x:auto;margin:0 -16px 14px;padding:4px 16px 8px;
+    scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+  body[data-theme="food"] .daynav::-webkit-scrollbar{display:none}
+  body[data-theme="food"] .dchip{flex:0 0 auto;scroll-snap-align:center;padding:9px 18px;border-radius:999px;background:#fff;color:#1d1d1d;
+    border:1px solid rgba(0,0,0,.12);font-weight:600;font-size:.88rem;min-height:40px}
+  body[data-theme="food"] .dchip.active{background:#e1251b;border-color:#e1251b;color:#fff}
+  body[data-theme="food"] .dchip.active::after{display:none}
 
-// The menu and timetable are written into the page by build_pages.py (no network request).
-// Fallback: fetch from data/ first, then the main folder.
-async function loadJSON(name) {
-  const inline = document.getElementById("data-" + name.replace(".json", ""));
-  if (inline) { try { return JSON.parse(inline.textContent); } catch { /* fall through to fetch */ } }
-  for (const path of [`data/${name}`, name]) {
-    try { const r = await fetch(path); if (r.ok) return await r.json(); } catch { /* try next */ }
-  }
-  throw new Error(`Could not load ${name}`);
-}
-function showLoadError(err) {
-  console.error(err);
-  const n = $("setup-note");
-  n.hidden = false;
-  n.textContent = "Could not load the menu, timetable or bus file. Check that the JSON files are uploaded and have no typos.";
-}
+  /* the "now serving" card: meal pills, small watch beside the headline, details, red button */
+  body[data-theme="food"] .feature{display:grid;grid-template-columns:112px minmax(0,1fr);column-gap:16px;row-gap:0;align-items:center;margin-top:0;
+    padding:14px 16px 18px;border-radius:26px;color:#fff;background:linear-gradient(160deg,#352d2b,#1e1918);box-shadow:0 24px 40px -24px rgba(0,0,0,.6)}
+  body[data-theme="food"] .stage,body[data-theme="food"] .copy{display:contents}
+  body[data-theme="food"] .slab{display:none}
+  body[data-theme="food"] .rail{display:flex;position:static;transform:none;flex-direction:row;gap:6px;grid-column:1/-1;grid-row:1;margin:0 0 12px}
+  body[data-theme="food"] .rail-btn{writing-mode:horizontal-tb;transform:none;flex:1 1 0;text-align:center;padding:9px 2px;border-radius:999px;
+    background:rgba(255,255,255,.09);color:#f1e6e4;font-size:.76rem;min-height:38px}
+  body[data-theme="food"] .rail-btn:hover{transform:none;color:#fff}
+  body[data-theme="food"] .rail-btn.on{background:#e1251b;color:#fff}
+  body[data-theme="food"] .plate-art.big{grid-column:1;grid-row:2 / span 3;width:112px;border-width:6px;margin:4px 0;justify-self:center;
+    box-shadow:0 14px 22px -10px rgba(0,0,0,.7),inset 0 0 0 3px #2f2f2f}
+  body[data-theme="food"] .copy .badge{grid-column:2;grid-row:2;justify-self:start;align-self:end;margin-bottom:6px}
+  body[data-theme="food"] .copy h2{grid-column:2;grid-row:3;font-size:1.55rem;line-height:1.08;margin:0;color:#fff}
+  body[data-theme="food"] .copy .when{grid-column:2;grid-row:4;font-size:1.02rem;margin:8px 0 0;color:#ff7468}
+  body[data-theme="food"] .copy .when small{color:#b9aeac}
+  body[data-theme="food"] .copy .desc{grid-column:1/-1;grid-row:5;max-width:none;margin:16px 0 0;padding-top:14px;border-top:1px solid rgba(255,255,255,.12);
+    color:rgba(255,255,255,.82);font-size:.95rem;line-height:1.55}
+  body[data-theme="food"] .copy .rate{grid-column:1/-1;grid-row:6}
+  body[data-theme="food"] .rate .muted{margin:10px 0 0;color:rgba(255,255,255,.62);font-size:.85rem;opacity:1}
+  body[data-theme="food"] .feature .stars{margin-top:8px}
+  body[data-theme="food"] .feature .stars button{padding:4px 6px}
+  body[data-theme="food"] .feature .stars button:not(.on):not(:hover):not(:has(~ button:hover)){-webkit-text-stroke-color:#fff}
+  body[data-theme="food"] .copy .darkbtn{grid-column:1/-1;grid-row:7;text-align:center;background:#e1251b;border-radius:14px;padding:14px;margin-top:16px;font-size:.95rem}
 
-function burst(x, y, emojis, n = 10) {
-  if (reduceMotion) return;
-  for (let i = 0; i < n; i++) {
-    const p = document.createElement("span");
-    p.className = "burst";
-    p.textContent = emojis[i % emojis.length];
-    p.style.left = `${x}px`; p.style.top = `${y}px`;
-    document.body.append(p);
-    const a = Math.random() * Math.PI * 2, d = 50 + Math.random() * 90;
-    p.animate([
-      { transform: "translate(-50%,-50%) scale(.4)", opacity: 1 },
-      { transform: `translate(calc(-50% + ${Math.cos(a) * d}px), calc(-50% + ${Math.sin(a) * d - 30}px)) scale(1.1) rotate(${Math.random() * 120 - 60}deg)`, opacity: 0 }
-    ], { duration: 650 + Math.random() * 400, easing: "cubic-bezier(.2,.8,.3,1)" }).onfinish = () => p.remove();
-  }
-}
+  /* meals: full-width rows with the whole menu visible */
+  body[data-theme="food"] #food-list{grid-template-columns:1fr;gap:10px;margin-top:16px}
+  body[data-theme="food"] button.tile{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;row-gap:2px;align-items:center;
+    padding:14px 14px 12px 88px;min-height:84px;border-radius:20px}
+  body[data-theme="food"] button.tile:hover{transform:none}
+  body[data-theme="food"] .tile .plate-art{top:calc(50% - 31px);left:14px;width:62px;height:62px}
+  body[data-theme="food"] button.tile:hover .plate-art{transform:none}
+  body[data-theme="food"] .tile-name{grid-column:1;margin:0;font-size:1.05rem}
+  body[data-theme="food"] .tile-time{position:static;grid-column:2;grid-row:1;font-size:.9rem;color:#ffd9d4}
+  body[data-theme="food"] .tile-sub{display:none}
+  body[data-theme="food"] .tile-more{display:-webkit-box;grid-column:1/-1;font-size:.78rem;line-height:1.4;opacity:.72;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  body[data-theme="food"] .tile-foot{grid-column:1/-1;margin-top:4px;min-height:0}
+  body[data-theme="food"] #food-dots{display:none}
 
-// Each wall post / gig gets a stable colour index from its id.
-function noteColor(id) {
-  let h = 0;
-  for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return h % 4;
-}
-function postTime(p) {
-  const s = p.createdAt?.seconds;
-  return s ? new Date(s * 1000).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "just now";
-}
-const newestFirst = (a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
-const goTo = (id, block = "start") => { const t = $(id); if (t && !t.hidden) t.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block }); };
-
-/* ---------- the "right now" strip (shown on the Classes tab) ---------- */
-function renderNow() {
-  const box = $("now-strip");
-  if (!box || !menu || !tt) return;
-  const nm = nowMin(), today = todayName();
-  const meal = menu.meals.find((m) => nm >= toMin(m.start) && nm < toMin(m.end));
-  const nextMeal = menu.meals.find((m) => toMin(m.start) > nm);
-  const mealText = meal ? (menu.days[today] || {})[meal.name]
-    : nextMeal ? `${nextMeal.name} at ${fmt12(nextMeal.start)}` : "See tomorrow's menu in the Food tab";
-  const slots = (tt.classes[$("class-select").value] || {})[today] || [];
-  const per = (no) => tt.periods.find((p) => p.no === no);
-  const cur = slots.find((s) => { const p = per(s.period); return p && nm >= toMin(p.start) && nm < toMin(p.end); });
-  const nxt = slots.find((s) => { const p = per(s.period); return p && toMin(p.start) > nm; });
-  const classTitle = cur ? cur.subject : nxt ? `Next: ${nxt.subject}` : "No more classes today";
-  const classSub = cur ? cur.teacher : nxt ? `${fmt12(per(nxt.period).start)} · ${nxt.teacher}` : "";
-  box.replaceChildren(
-    el("div", {}, el("span", { class: "k", text: "🍽️ In the mess" }),
-      el("strong", { text: meal ? `${meal.name} is being served` : "Nothing being served" }),
-      el("span", { class: "muted", text: mealText })),
-    el("div", {}, el("span", { class: "k", text: "📚 In class" }),
-      el("strong", { text: classTitle }),
-      el("span", { class: "muted", text: classSub }))
-  );
+  /* polish */
+  body[data-theme="food"] .plate-art.big .plate-name{display:none}
+  body[data-theme="food"] button.tile.on{box-shadow:0 0 0 2px #e1251b,0 14px 24px -16px rgba(0,0,0,.55)}
+  body[data-theme="food"] .tile .plate-art::after{content:attr(data-emoji);font-size:1.7rem;line-height:1}
+  body[data-theme="food"] .tile-foot span[aria-hidden]{display:none}
+  body[data-theme="food"] .tile-foot:has(span:first-child:empty){display:none}
 }
 
-// Time-of-day greeting chip.
-function greet() {
-  const h = new Date().getHours();
-  const hi = h < 5 ? "late night? 🦉" : h < 12 ? "good morning ☀️" : h < 17 ? "good afternoon 🌤️" : h < 21 ? "good evening 🌆" : "night owl 🌙";
-  $("greet").textContent = `${hi} · ${todayName()}`;
+/* =========================================================
+   WALL: a haunted plaster wall.
+   The page is dark. A torch beam (fixed overlay) follows the mouse or finger. Posts sit dim in the dark and
+   come alive when the beam finds them. Eyes creep in from the edges; shine the light on them to drive them off.
+   Lights switch (.wl-lamp) and reduced motion are both respected.
+========================================================= */
+.wl-fx,.wl-eyes{display:none}
+body[data-theme="wall"]{
+  --bg:#14100e;--ink:#e9e0cf;--muted:#a69b8a;--cbg:#15100f;--cink:#e9e0cf;--accent:#9b1b16;--on-accent:#fff;
+  --line:#3a2a26;--field:#0b0807;--fink:#e9e0cf;--shadow:none;--radius:4px;--bad:#9b1b16;
+  --head:"Cormorant Garamond",Georgia,serif;--hw:600;--hcase:none;--hls:0;--body:"Special Elite","Courier New",monospace;
+  --bone:#e9e0cf;--blood:#9b1b16;--lamp:#d9b45a;
+  font-family:var(--body);color:var(--ink);
+  background-color:#14100e;
+  background-image:
+    radial-gradient(60vmax 40vmax at 12% 6%,rgba(110,76,48,.26),transparent 70%),
+    radial-gradient(50vmax 50vmax at 92% 32%,rgba(14,40,36,.38),transparent 70%),
+    radial-gradient(70vmax 40vmax at 28% 92%,rgba(90,14,9,.24),transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E")}
+body[data-theme="wall"] ::selection{background:var(--blood);color:#fff}
+body[data-theme="wall"] .hero{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0)}
+body[data-theme="wall"] .now{display:none}
+body[data-theme="wall"] .brand{color:var(--bone)}
+body[data-theme="wall"] .chip{background:#0d0908;border-color:var(--line);color:var(--bone)}
+body[data-theme="wall"] nav{background:#0d0908;border:1px solid var(--line);box-shadow:0 10px 30px -12px #000;backdrop-filter:none}
+body[data-theme="wall"] .tab{color:#cfc4b2}
+body[data-theme="wall"] .tab:hover:not(.active){background:rgba(233,224,207,.08)}
+body[data-theme="wall"] .tab.active{background:var(--blood);color:#fff}
+body[data-theme="wall"] footer .muted,body[data-theme="wall"] footer summary{color:var(--muted)}
+body[data-theme="wall"] :is(button,a,textarea,input):focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+
+/* torch, glow, heartbeat vignette */
+body[data-theme="wall"] .wl-fx{display:block;position:fixed;inset:0;z-index:5;pointer-events:none;--tx:50%;--ty:40%;--r:190px}
+.wl-dark{position:absolute;inset:0;transition:opacity .7s;
+  background:
+    radial-gradient(circle var(--r) at var(--tx) var(--ty),rgba(4,2,2,0) 0,rgba(4,2,2,0) 36%,rgba(4,2,2,.4) 76%,rgba(3,1,1,.56) 100%),
+    radial-gradient(ellipse 90% 80% at 50% 45%,transparent 55%,rgba(0,0,0,.5) 100%)}
+.wl-glow{position:absolute;inset:0;mix-blend-mode:screen;transition:opacity .7s;
+  background:radial-gradient(circle calc(var(--r) * 1.15) at var(--tx) var(--ty),rgba(217,180,90,.17),rgba(217,180,90,.05) 55%,transparent 76%)}
+.wl-pulse{position:absolute;inset:0;opacity:0;box-shadow:inset 0 0 150px 34px rgba(155,27,22,.8)}
+.wl-pulse.b{animation:wlbeat .6s ease-out}
+@keyframes wlbeat{0%{opacity:0}16%{opacity:var(--pi,.5)}100%{opacity:0}}
+body.wl-lamp .wl-dark{opacity:.1}
+body.wl-lamp .wl-glow{opacity:0}
+
+/* eyes */
+body[data-theme="wall"] .wl-eyes{display:block;position:fixed;inset:0;z-index:6;pointer-events:none;overflow:hidden}
+body.wl-lamp .wl-eyes{display:none!important}
+.wl-eye{position:absolute;left:var(--x);top:var(--y);width:calc(var(--s,60px) * 1.6);height:calc(var(--s,60px) * .42);display:flex;gap:calc(var(--s,60px) * .24);
+  transform:translate(-50%,-50%) scale(var(--k,.5));opacity:0;pointer-events:auto;cursor:crosshair;touch-action:manipulation;
+  transition:transform 13s linear,opacity 1.2s}
+.wl-eye.in{opacity:.95;--k:1.9}
+.wl-eye.out{opacity:0;transition:opacity .25s}
+.wl-eye.lunge{--k:4.5;opacity:0;transition:transform .22s ease-in,opacity .3s .08s}
+.wl-eye .eb{position:relative;flex:1;border-radius:50%/62%;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 38%,#fff7cf 0,#e8c862 52%,#5f420e 100%);
+  box-shadow:0 0 16px 4px rgba(217,180,90,.5);animation:wlblink 6s infinite}
+.wl-eye .eb:nth-child(2){animation-delay:.05s}
+.wl-eye .eb b{position:absolute;left:50%;top:50%;width:30%;height:88%;border-radius:50%;background:#050202;
+  transform:translate(calc(-50% + var(--px,0) * 34%),calc(-50% + var(--py,0) * 18%))}
+@keyframes wlblink{0%,91%,100%{transform:scaleY(1)}94%{transform:scaleY(.06)}}
+
+/* the scene */
+.wl-scene{position:relative;width:100vw;margin-left:calc(50% - 50vw);min-height:clamp(440px,76svh,740px);display:flex;align-items:center;overflow:hidden;
+  border-bottom:1px solid #000;box-shadow:0 1px 0 rgba(233,224,207,.06)}
+.wl-scene::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,.55),transparent 28%,transparent 70%,rgba(0,0,0,.6))}
+.wl-cracks{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.85}
+.wl-cracks path{vector-effect:non-scaling-stroke}
+.wl-copy{position:relative;z-index:2;width:min(960px,calc(100% - 32px));margin:0 auto;padding:84px 0 100px}
+.wl-title{position:relative;isolation:isolate;max-width:11ch;margin:0 0 18px;font-size:clamp(2.9rem,10.5vw,6.4rem);line-height:.94;font-style:italic;font-weight:600;
+  letter-spacing:-.01em;color:var(--bone);text-wrap:balance;text-shadow:0 0 26px rgba(155,27,22,.55);animation:wlbreathe 7s ease-in-out infinite}
+.wl-title::before{content:attr(data-t);position:absolute;inset:0;z-index:-1;color:var(--blood);opacity:.8;filter:blur(1.5px);
+  transform:translate(calc(var(--gx,0) * 14px),calc(var(--gy,0) * 10px))}
+@keyframes wlbreathe{50%{text-shadow:0 0 44px rgba(155,27,22,.85)}}
+.wl-lede{max-width:44ch;margin:0 0 22px;font-size:1rem;line-height:1.65;color:#d3c8b6}
+.wl-tools{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+body[data-theme="wall"] .wl-btn{padding:11px 18px;min-height:44px;border:1px solid rgba(233,224,207,.55);border-radius:2px;background:rgba(0,0,0,.35);
+  color:var(--bone);font:500 .88rem var(--body);box-shadow:none;transition:background .2s,color .2s}
+body[data-theme="wall"] .wl-btn:hover{background:rgba(233,224,207,.14);transform:none;box-shadow:none}
+body[data-theme="wall"] .wl-btn[aria-pressed="true"]{background:var(--bone);color:#120c0a}
+.wl-hint{margin:0;max-width:46ch;font-family:"Caveat",cursive;font-size:1.4rem;line-height:1.2;color:#b9442f}
+body[data-theme="wall"] .wl-down{position:absolute;left:50%;bottom:16px;z-index:3;width:46px;height:46px;padding:0;transform:translateX(-50%);border-radius:50%;
+  border:1px solid rgba(233,224,207,.5);background:rgba(0,0,0,.4);color:var(--bone);font-size:1.2rem;box-shadow:none;animation:wlnudge 2.4s ease-in-out infinite}
+@keyframes wlnudge{50%{transform:translate(-50%,6px)}}
+
+/* the thing standing in the corridor */
+.wl-watcher{position:absolute;z-index:1;right:clamp(2%,9vw,14%);bottom:0;height:clamp(230px,56%,430px);aspect-ratio:1/3;pointer-events:none;--look:0}
+.wl-watcher svg{display:block;width:100%;height:100%;overflow:visible}
+.wl-watcher .w-fill{fill:#050303}
+.wl-watcher .w-arm{fill:none;stroke:#050303;stroke-width:5;stroke-linecap:round}
+.wl-watcher .w-head{transform-box:view-box;transform-origin:60px 118px;transform:rotate(calc(var(--look) * 13deg))}
+.wl-watcher .w-eye{fill:#f4e6b0;opacity:0;transition:opacity .4s;filter:drop-shadow(0 0 4px #e8c862)}
+.wl-watcher.lit .w-eye{opacity:.95}
+
+/* writing spot */
+.wl-carve{position:relative;width:min(720px,calc(100% - 32px));margin:52px auto 0;padding:22px 22px 12px;border-radius:3px;
+  background:linear-gradient(#110c0b,#0a0706);box-shadow:inset 0 4px 22px #000,inset 0 0 0 1px #000,0 1px 0 rgba(233,224,207,.08);border:1px solid #2a1d1a}
+.wl-label{margin:0;font:500 1.7rem "Caveat",cursive;color:var(--bone)}
+body[data-theme="wall"] #post-form textarea{min-height:130px;margin-top:10px;padding:14px;border:1px solid #3a2a26;border-radius:2px;background:#070504;color:var(--bone);
+  font:1rem/1.55 var(--body);caret-color:var(--blood)}
+body[data-theme="wall"] #post-form textarea::placeholder{color:#7d6f62}
+body[data-theme="wall"] #post-form textarea:focus{outline:none;border-color:#8f1511;box-shadow:0 0 0 1px #8f1511,0 0 26px rgba(155,27,22,.4)}
+body[data-theme="wall"] #post-form .row button{min-height:46px;padding:10px 24px;border-radius:2px;background:#8f1511;color:var(--bone);font:600 .95rem var(--body);box-shadow:none}
+body[data-theme="wall"] #post-form .row button:hover{background:#b01d17;transform:none;box-shadow:0 0 22px -4px rgba(176,29,23,.8)}
+.wl-carve::after{content:"";position:absolute;left:12px;right:12px;top:50%;height:3px;background:linear-gradient(90deg,transparent,#b01d17 12%,#b01d17 88%,transparent);
+  transform:scaleX(0) rotate(-2deg);transform-origin:left;opacity:0;pointer-events:none}
+.wl-carve.carved::after{animation:wlscratch 1s ease-out}
+@keyframes wlscratch{0%{transform:scaleX(0) rotate(-2deg);opacity:1}60%{transform:scaleX(1) rotate(-2deg);opacity:1}100%{transform:scaleX(1) rotate(-2deg);opacity:0}}
+
+/* staff queue */
+#pending-box{width:min(720px,calc(100% - 32px));margin:40px auto 0}
+.wl-h{margin:0;font-size:clamp(1.9rem,5vw,2.6rem);font-style:italic;font-weight:600;color:var(--bone);text-shadow:0 0 18px rgba(155,27,22,.5)}
+.wl-pend{margin:12px 0;padding:14px 16px;border:1px dashed #5a2a24;border-radius:2px;background:#0e0a09;color:var(--bone)}
+.wl-pend p{margin:0}
+
+/* posts */
+.wl-posts-head{width:min(1000px,calc(100% - 32px));margin:60px auto 22px;display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap}
+.wl-posts-head .muted{font-size:.85rem}
+.wl-posts{width:min(1000px,calc(100% - 32px));margin:0 auto 70px;columns:2 300px;column-gap:30px}
+.wl-empty{font:500 1.7rem "Caveat",cursive;color:#9a8e7e;column-span:all}
+.wl-post{position:relative;break-inside:avoid;margin:0 0 30px;padding:18px 18px 10px;transform:rotate(var(--rot,0deg));
+  filter:brightness(.64) saturate(.8);transition:filter .6s,transform .3s;cursor:default}
+.wl-post.lit,body.wl-lamp .wl-post{filter:none}
+.wl-text{margin:0 0 10px;font-size:1.02rem;line-height:1.55;overflow-wrap:anywhere;white-space:pre-wrap}
+.wl-meta{margin:0;font-size:.74rem;opacity:.7}
+.wl-act{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+body[data-theme="wall"] .wl-mini{padding:8px 8px;min-height:36px;border-radius:2px;background:transparent;color:inherit;border:0;font:.78rem var(--body);text-decoration:underline;
+  text-underline-offset:3px;box-shadow:none;opacity:.8}
+body[data-theme="wall"] .wl-mini:hover{opacity:1;transform:none;box-shadow:none}
+body[data-theme="wall"] .wl-mini:disabled{text-decoration:none}
+body[data-theme="wall"] .wl-mini.danger{background:transparent;color:#d9534a}
+/* four ways to leave a mark */
+.v0{background:#c9bb98;color:#2a211a;padding-bottom:20px;box-shadow:0 14px 24px -14px #000;
+  clip-path:polygon(0 0,100% 0,100% 94%,94% 97%,88% 94%,80% 98%,70% 94%,60% 97%,50% 94%,40% 98%,30% 94%,20% 97%,10% 94%,0 98%)}
+.v0::before{content:"";position:absolute;top:-6px;left:50%;width:70px;height:20px;margin-left:-35px;background:rgba(235,226,196,.5);transform:rotate(-3deg)}
+.v0 .wl-meta{color:#5a4a3a;opacity:1}
+.v1{padding-left:6px;border-bottom:1px solid rgba(233,224,207,.2)}
+.v1 .wl-text{font:500 1.7rem/1.2 "Caveat",cursive;color:var(--bone);text-shadow:0 1px 0 rgba(255,255,255,.22),0 -1px 0 #000,0 0 14px rgba(0,0,0,.9)}
+.v2{padding-left:6px}
+.v2 .wl-text{font:500 1.8rem/1.2 "Caveat",cursive;color:#d03a2d;text-shadow:0 0 12px rgba(155,27,22,.6)}
+.v2::after{content:"";position:absolute;left:26px;bottom:-22px;width:6px;height:10px;border-radius:0 0 6px 6px;background:linear-gradient(#9b1b16,#6a0f0b);transition:height 5s ease-in}
+.v2.lit::after,body.wl-lamp .v2::after{height:46px}
+.v3{background:#120e0d;border:1px solid #3a2a26;border-left:3px solid var(--blood);box-shadow:inset 0 0 30px #000}
+.wl-post.stir{animation:wlstir .6s steps(2)}
+.wl-post.stir .wl-text{animation:wlghost .6s steps(2)}
+@keyframes wlstir{0%,100%{transform:rotate(var(--rot,0deg))}25%{transform:translate(-3px,1px) rotate(calc(var(--rot,0deg) - 1.4deg)) skewX(3deg)}60%{transform:translate(3px,-1px) rotate(calc(var(--rot,0deg) + 1deg))}}
+@keyframes wlghost{0%,100%{text-shadow:none}30%{text-shadow:3px 0 #7a0f0b,-3px 0 #000}70%{text-shadow:-2px 0 #7a0f0b,2px 0 #000}}
+
+@media(max-width:700px){
+  .wl-scene{min-height:clamp(420px,72svh,620px)}
+  .wl-copy{padding:48px 0 88px}
+  .wl-title{max-width:9ch}
+  .wl-watcher{right:2%;height:clamp(170px,34%,250px);opacity:.9}
+  .wl-carve{margin-top:36px;padding:18px 16px 10px}
+  .wl-posts{columns:1}
+  .wl-label{font-size:1.5rem}
 }
+@media(prefers-reduced-motion:reduce){
+  .wl-title,.wl-eye .eb,.wl-carve.carved::after,.wl-post.stir,.wl-post.stir .wl-text,body[data-theme="wall"] .wl-down,.wl-pulse.b{animation:none}
+  .wl-post,.wl-dark,.wl-glow{transition:none}
+}
+
+
+/* =========================================================
+   FIX: food tiles. Time no longer sits on top of the emoji plate,
+   and the 4th tile (Dinner) no longer gets pushed off the screen.
+========================================================= */
+#food-list>*{min-width:0}
+button.tile{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;align-items:baseline;min-width:0;overflow:visible}
+button.tile .tile-name{grid-column:1;grid-row:1;margin:0}
+button.tile .tile-time{position:static;grid-column:2;grid-row:1;white-space:nowrap;font-size:.85rem}
+button.tile .tile-sub{grid-column:1/-1;grid-row:2;min-width:0}
+button.tile .tile-foot{grid-column:1/-1;grid-row:4}
+
+/* =========================================================
+   WALL: extra creepy layer (blood, flicker, grain, something creeping closer)
+========================================================= */
+body[data-theme="wall"] .wl-dark{
+  background:
+    radial-gradient(circle var(--r) at var(--tx) var(--ty),rgba(4,2,2,0) 0,rgba(4,2,2,0) 30%,rgba(4,2,2,.62) 70%,rgba(2,0,0,.82) 100%),
+    radial-gradient(ellipse 90% 80% at 50% 45%,transparent 45%,rgba(0,0,0,.72) 100%)}
+@keyframes wlflicker{0%,100%{opacity:1}7%{opacity:.35}9%{opacity:1}41%{opacity:.8}43%{opacity:.2}46%{opacity:1}78%{opacity:.6}80%{opacity:1}}
+.wl-post{filter:brightness(.45) saturate(.7)}
+
+/* film grain over everything on the wall tab */
+body[data-theme="wall"]::after{content:"";position:fixed;inset:0;z-index:7;pointer-events:none;opacity:.07;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)'/%3E%3C/svg%3E");}
+@keyframes wlgrain{0%{transform:translate(0,0)}20%{transform:translate(-4%,3%)}40%{transform:translate(3%,-5%)}60%{transform:translate(-6%,-2%)}80%{transform:translate(5%,4%)}100%{transform:translate(0,0)}}
+
+/* blood running down from the ceiling of the scene */
+.wl-scene::after{content:"";position:absolute;left:0;right:0;top:0;height:230px;pointer-events:none;z-index:2;
+  background:
+    linear-gradient(#6d0b08,#3a0504) 6% 0/5px 0 no-repeat,
+    linear-gradient(#6d0b08,#3a0504) 17% 0/3px 0 no-repeat,
+    linear-gradient(#6d0b08,#3a0504) 29% 0/6px 0 no-repeat,
+    linear-gradient(#6d0b08,#3a0504) 44% 0/3px 0 no-repeat,
+    linear-gradient(#6d0b08,#3a0504) 58% 0/5px 0 no-repeat,
+    linear-gradient(#6d0b08,#3a0504) 71% 0/4px 0 no-repeat,
+    linear-gradient(#6d0b08,#3a0504) 83% 0/6px 0 no-repeat,
+    linear-gradient(#6d0b08,#3a0504) 94% 0/3px 0 no-repeat,
+    linear-gradient(180deg,rgba(80,6,4,.75),transparent) 0 0/100% 26px no-repeat;
+  background-size:5px 200px,3px 120px,6px 230px,3px 80px,5px 160px,4px 210px,6px 130px,3px 190px,100% 26px;
+  opacity:0;animation:wldripin 5s ease-out 1s forwards}
+@keyframes wldripin{to{opacity:1}}
+
+/* title: shudders and glitches now and then */
+.wl-title{animation:wlbreathe 7s ease-in-out infinite,wlglitch 9s steps(1) infinite}
+@keyframes wlglitch{0%,93%,100%{transform:none}94%{transform:translate(-4px,1px) skewX(-6deg)}95%{transform:translate(5px,-1px) skewX(5deg)}96%{transform:none}97%{opacity:.25}98%{opacity:1}}
+
+/* the figure in the corridor slowly gets closer, and its eyes stay lit a little longer */
+.wl-watcher{transform-origin:50% 100%;will-change:transform;animation:wlcreep 38s ease-in-out infinite alternate}
+@keyframes wlcreep{0%{transform:scale(.9) translateX(0)}100%{transform:scale(1.18) translateX(-3%)}}
+.wl-watcher .w-eye{fill:#ff6b4a}
+.wl-cracks path{stroke:#3b0705}
+
+/* writing box and headings */
+.wl-carve{box-shadow:inset 0 4px 22px #000,inset 0 0 0 1px #000,0 0 40px -10px rgba(155,27,22,.55)}
+.wl-label::after{content:" ...";color:#9b1b16;animation:wlblink2 1.1s steps(2) infinite}
+@keyframes wlblink2{50%{opacity:0}}
+.wl-h{position:relative;padding-bottom:12px}
+.wl-h::after{content:"";position:absolute;left:0;bottom:0;width:58%;height:3px;background:linear-gradient(90deg,#9b1b16,transparent);border-radius:0 0 4px 4px}
+.wl-post .wl-meta{color:#c0554a;opacity:.8}
+.wl-post.lit:hover{animation:wlstir .6s steps(2)}
+.v1::before,.v3::before{content:"";position:absolute;top:8px;right:10px;width:26px;height:26px;border-radius:50% 45% 55% 50%;
+  background:radial-gradient(circle at 40% 40%,rgba(155,27,22,.55),rgba(155,27,22,0) 70%);pointer-events:none}
+
+/* whispers that flash in the dark (added by app.js) */
+.wl-whisper{position:fixed;z-index:8;pointer-events:none;font:500 clamp(1.4rem,4vw,2.4rem) "Caveat",cursive;color:#b8281d;opacity:0;
+  text-shadow:0 0 14px rgba(155,27,22,.9);transform:rotate(var(--r,-3deg));animation:wlwhisper 1.9s ease-in-out forwards}
+@keyframes wlwhisper{0%{opacity:0}15%{opacity:.85}30%{opacity:.2}38%{opacity:.9}100%{opacity:0}}
+body.wl-lamp .wl-whisper{display:none}
+
+@media(prefers-reduced-motion:reduce){
+  .wl-scene::after{opacity:1}
+  .wl-scene::after,.wl-watcher,.wl-label::after,.wl-whisper{animation:none}
+}
+
+
+/* =========================================================
+   ABOUT: dark charcoal card, red disc, three-step story (01 --- 03)
+========================================================= */
+body[data-theme="about"]{--bg:#1a1b1d;--ink:#fff;--muted:#b9b9bd;--accent:#e23a3a;--on-accent:#fff;--line:rgba(255,255,255,.25);
+  background:#1a1b1d radial-gradient(70vmax 50vmax at 50% 0,#26272a,transparent 70%);font-family:"Montserrat","Inter",system-ui,sans-serif}
+body[data-theme="about"] .hero{position:absolute;width:1px;height:1px;margin:-1px;padding:0;min-height:0;overflow:hidden;clip:rect(0,0,0,0)}
+body[data-theme="about"] nav:not(.ab2-links){background:#232426;border:1px solid rgba(255,255,255,.08)}
+body[data-theme="about"] .tab.active{background:#e23a3a;color:#fff}
+body[data-theme="about"] :focus-visible{outline:2px solid #e23a3a;outline-offset:3px}
+
+.ab2{width:min(1100px,calc(100% - 32px));margin:10px auto 60px}
+.ab2-card{position:relative;overflow:hidden;min-height:min(620px,86svh);border-radius:14px;color:#fff;
+  background:linear-gradient(100deg,#121314 0%,#1b1213 55%,#3a1316 100%);box-shadow:0 30px 60px -30px #000,inset 0 0 0 1px rgba(255,255,255,.05)}
+
+.ab2-top{position:absolute;z-index:3;left:clamp(22px,6%,60px);top:34px;display:flex;align-items:center;gap:clamp(22px,5vw,64px)}
+.ab2-logo{display:grid;gap:3px;transform:skewY(-14deg)}
+.ab2-logo i{display:block;width:22px;height:6px;background:#e23a3a;border-radius:1px}
+.ab2-logo i:nth-child(2){width:18px;background:#b82d31}.ab2-logo i:nth-child(3){width:14px;background:#8a2226}
+.ab2-links{display:flex;gap:clamp(14px,3vw,34px)}
+.ab2-links button{padding:6px 0;border:0;border-bottom:1px solid transparent;border-radius:0;background:none;color:#fff;box-shadow:none;
+  font:500 .62rem "Montserrat",sans-serif;letter-spacing:.14em;text-transform:uppercase;opacity:.8;cursor:pointer;min-height:0}
+.ab2-links button:hover,.ab2-links button.on{opacity:1;border-bottom-color:#e23a3a;transform:none;box-shadow:none}
+
+.ab2-copy{position:absolute;z-index:3;left:clamp(22px,6%,60px);top:50%;transform:translateY(-46%);width:min(430px,46%)}
+.ab2-kicker{margin:0 0 6px;font:500 .72rem "Montserrat",sans-serif;letter-spacing:.14em;text-transform:uppercase}
+.ab2-title{margin:0 0 18px;font:700 clamp(2.4rem,6.4vw,4.2rem)/1 "Montserrat",sans-serif;letter-spacing:.01em;text-transform:uppercase;color:#fff}
+.ab2-text{margin:0 0 30px;max-width:40ch;font:400 .82rem/1.75 "Montserrat",sans-serif;color:#eee}
+.ab2-kicker,.ab2-title,.ab2-text{transition:opacity .35s,transform .35s}
+.ab2.swap .ab2-kicker,.ab2.swap .ab2-title,.ab2.swap .ab2-text{opacity:0;transform:translateY(8px)}
+.ab2-more{display:inline-flex;align-items:center;gap:14px;padding:0;border:0;background:none;box-shadow:none;color:#fff;font:600 .78rem "Montserrat",sans-serif;cursor:pointer;min-height:0}
+.ab2-more:hover{transform:none;box-shadow:none}
+.ab2-ring{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;border:1px solid rgba(255,255,255,.3);
+  background:rgba(255,255,255,.03);font-size:1.15rem;transition:background .25s,border-color .25s,transform .25s}
+.ab2-more:hover .ab2-ring{background:#e23a3a;border-color:#e23a3a;transform:translateX(3px)}
+
+.ab2-art{position:absolute;z-index:1;inset:0;pointer-events:none}
+.ab2-disc{position:absolute;right:5%;top:8%;width:min(52%,500px);aspect-ratio:1;border-radius:50%;overflow:hidden;
+  background:radial-gradient(circle at 50% 18%,#a9262a,#e23a3a 55%,#d63337);transition:transform .8s cubic-bezier(.2,.7,.2,1)}
+.ab2-fig{position:absolute;inset:6% 4% -6%;width:92%;height:100%;fill:#5c0f13;opacity:.85}
+.ab2-disc img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.15) brightness(.9)}
+.ab2-tint{position:absolute;inset:0;background:#d7262d;mix-blend-mode:multiply;opacity:.85}
+.ab2-dot{position:absolute;left:calc(46% + var(--dx,0px));bottom:-46px;width:clamp(90px,14%,130px);aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle at 50% 20%,#c93036,#e23a3a);transition:left .8s cubic-bezier(.2,.7,.2,1),bottom .8s}
+.ab2[data-i="0"] .ab2-disc{transform:rotate(0)}
+.ab2[data-i="1"] .ab2-disc{transform:translate(-3%,2%) scale(1.04)}
+.ab2[data-i="2"] .ab2-disc{transform:translate(2%,-2%) scale(.97)}
+.ab2[data-i="1"] .ab2-dot{left:60%;bottom:-30px}
+.ab2[data-i="2"] .ab2-dot{left:34%;bottom:-54px}
+
+.ab2-prog{position:absolute;z-index:3;left:clamp(22px,6%,60px);bottom:26px;display:flex;align-items:center;gap:14px;font:500 .62rem "Montserrat",sans-serif;letter-spacing:.06em}
+.ab2-bar{position:relative;width:min(140px,28vw);height:20px;padding:0;border:0;border-radius:0;background:none;box-shadow:none;cursor:pointer;min-height:0}
+.ab2-bar::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(255,255,255,.28)}
+.ab2-bar i{position:absolute;left:0;top:50%;height:1px;width:calc((var(--p,1) / 3) * 100%);background:#fff;transition:width .6s}
+.ab2-bar:hover{transform:none;box-shadow:none}
+.ab2-note{margin:16px 4px 0;font-size:.72rem;line-height:1.6;color:#9a9a9f;text-align:center}
+.ab2-note a{color:#cfcfd4;text-decoration:underline;text-underline-offset:3px}
+
+@media(max-width:760px){
+  .ab2-card{min-height:0;display:flex;flex-direction:column;padding:92px 22px 70px}
+  .ab2-art{position:relative;order:-1;inset:auto;height:min(74vw,300px);margin:0 0 22px}
+  .ab2-disc{right:auto;left:50%;top:0;width:min(74vw,300px);transform:translateX(-50%)}
+  .ab2[data-i="0"] .ab2-disc{transform:translateX(-50%)}
+  .ab2[data-i="1"] .ab2-disc{transform:translateX(-50%) scale(1.04)}
+  .ab2[data-i="2"] .ab2-disc{transform:translateX(-50%) scale(.97)}
+  .ab2-dot{display:none}
+  .ab2-copy{position:relative;left:auto;top:auto;transform:none;width:100%}
+  .ab2-top{left:22px;top:26px}
+  .ab2-prog{left:22px;bottom:22px}
+}
+@media(prefers-reduced-motion:reduce){.ab2-disc,.ab2-dot,.ab2-bar i,.ab2-kicker,.ab2-title,.ab2-text,.ab2-ring{transition:none}}
+
+/* About: the small top links are plain text, no pill (override the global nav style) */
+body[data-theme="about"] nav.ab2-links{background:none;border:0;box-shadow:none;border-radius:0;padding:0;margin:0;width:auto;position:static;backdrop-filter:none}
+
+/* Food: keep the logo lowercase now that headings use their written case */
+body[data-theme="food"] .brand{text-transform:lowercase}
+
+/* Classes: more room between the subtitle and the green water below it */
+/* the green horizon is fixed at 446px, so lift the text instead of making the hero taller */
+body[data-theme="classes"] .hero{min-height:380px;padding-bottom:116px}
+
+/* =========================================================
+   Multi-page: nav tabs and the logo are links now
+========================================================= */
+a.tab{display:block;text-align:center;text-decoration:none}
+a.brand{text-decoration:none;color:inherit}
+/* soft cross-fade between pages (Chromium; ignored elsewhere) */
+@view-transition{navigation:auto}
+
+/* FOOD performance: the watch is its own layer, and it stops animating when scrolled out of view */
+.plate-art.big{will-change:transform}
+.plate-art.big.paused{animation-play-state:paused}
+/* keep the card from jumping while the first text is filled in */
+#food-feature{min-height:clamp(300px,80vw,420px)}
+@media(max-width:759px){#food-feature{min-height:0}}
 
 /* =================================================================
-   FOOD
-   build_pages.py already wrote the clock, the day chips, the meal buttons and the menu data into the HTML,
-   so this code only fills in text and keeps the clock running. Renders only change what changed.
+   BUS: KSRTC theme. Maroon-red bus, cream and yellow, amber LED destination board.
+   Animated road + bus, direction tabs, pinned "my bus" ticket, expandable trips.
 ================================================================= */
-let foodDay = todayName();
-let foodMeal = null;
-let mealPicked = false;
-const F = {};          // element refs for the food page
-const setText = (n, t) => { if (n && n.textContent !== t) n.textContent = t; };
-
-async function initFood() {
-  menu = await loadJSON("menu.json");
-  buildFood();
-  pickDefaultMeal();
-  renderFood();
-  watchClock();
-  tickClock();
-
-  // ratings come from Firebase, which loads after the page is already usable
-  whenFirebase(() => {
-    onSnapshot(query(collection(db, "ratings"), where("date", "==", todayStr())), (snap) => {
-      ratingStats = {};
-      snap.forEach((d) => {
-        const r = d.data();
-        const s = (ratingStats[r.meal] ||= { sum: 0, count: 0 });
-        s.sum += r.stars;
-        s.count += 1;
-      });
-      scheduleFoodRender();
-    }, (err) => console.warn("Could not read ratings:", err.code));
-    renderFood();
-  });
-
-  setInterval(() => { if (document.hidden) return; if (!mealPicked) pickDefaultMeal(); renderFood(); }, 60000);
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) return;
-    if (!mealPicked) pickDefaultMeal();
-    renderFood();
-    tickClock();
-  });
-}
-
-// Several rating updates in one frame cause one render.
-function scheduleFoodRender() {
-  if (F.raf) return;
-  F.raf = requestAnimationFrame(() => { F.raf = 0; renderFood(); });
-}
-
-function setFoodDay(d) {
-  foodDay = d;
-  mealPicked = false;
-  pickDefaultMeal();
-  renderFood();
-}
-
-// Picks the meal being served, else the next one, else the last one of the day.
-function pickDefaultMeal() {
-  if (!menu) return;
-  if (foodDay !== todayName()) { foodMeal = menu.meals[0].name; return; }
-  const nm = nowMin();
-  const live = menu.meals.find((m) => nm >= toMin(m.start) && nm < toMin(m.end));
-  const next = menu.meals.find((m) => toMin(m.start) > nm);
-  foodMeal = (live || next || menu.meals[menu.meals.length - 1]).name;
-}
-
-function pickMeal(name, scroll = false) {
-  foodMeal = name;
-  mealPicked = true;
-  renderFood();
-  if (scroll && isPhone()) F.feature.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
-}
-
-function mealStatus(m, isToday, nm) {
-  if (!isToday) return { kind: "other" };
-  const s = toMin(m.start), e = toMin(m.end);
-  if (nm >= s && nm < e) return { kind: "live", left: e - nm };
-  if (nm < s) return { kind: "soon", inMin: s - nm };
-  return { kind: "done" };
-}
-
-// Finds the elements that build_pages.py wrote, and wires one click handler for the whole panel.
-function buildFood() {
-  const root = $("food");
-  F.root = root;
-  F.feature = $("food-feature");
-  F.dchips = [...root.querySelectorAll(".dchip")];
-  F.plate = $("food-plate");
-  F.plateName = F.plate.querySelector(".plate-name");
-  F.svg = F.plate.querySelector(".bw");
-  F.hh = F.svg.querySelector(".bh");
-  F.mm = F.svg.querySelector(".bm");
-  F.ss = F.svg.querySelector(".bs");
-  F.badge = F.feature.querySelector(".badge");
-  F.h2 = F.feature.querySelector("h2");
-  F.whenMain = F.feature.querySelector(".when-main");
-  F.whenSub = F.feature.querySelector(".when small");
-  F.desc = F.feature.querySelector(".desc");
-  F.rateInfo = F.feature.querySelector(".rate .muted");
-  F.stars = F.feature.querySelector(".stars");
-  const byMeal = (sel, m) => root.querySelector(`${sel}[data-meal="${m.name}"]`);
-  F.railBtns = menu.meals.map((m) => byMeal(".rail-btn", m));
-  F.dots = menu.meals.map((m) => byMeal(".dots button", m));
-  F.tiles = menu.meals.map((m) => {
-    const btn = byMeal(".tile", m);
-    return btn && { m, btn, sub: btn.querySelector(".tile-sub"), more: btn.querySelector(".tile-more"), note: btn.querySelector(".tile-foot span") };
-  });
-
-  root.addEventListener("click", (e) => {
-    const b = e.target.closest("[data-day],[data-meal]");
-    if (!b || !root.contains(b)) return;
-    if (b.dataset.day) setFoodDay(b.dataset.day);
-    else pickMeal(b.dataset.meal, b.classList.contains("tile"));
-  });
-
-  // tilt toward the pointer (mouse only, one style write per frame), tap to spin the seconds hand
-  let tiltRaf = 0, tx = 0, ty = 0;
-  F.plate.addEventListener("pointerenter", (e) => { if (e.pointerType !== "touch") F.rect = F.plate.getBoundingClientRect(); });
-  F.plate.addEventListener("pointermove", (e) => {
-    if (reduceMotion || e.pointerType === "touch") return;
-    const r = (F.rect ||= F.plate.getBoundingClientRect());
-    tx = (e.clientX - r.left) / r.width - 0.5;
-    ty = (e.clientY - r.top) / r.height - 0.5;
-    if (tiltRaf) return;
-    tiltRaf = requestAnimationFrame(() => {
-      tiltRaf = 0;
-      F.plate.style.setProperty("--ry", `${(tx * 18).toFixed(1)}deg`);
-      F.plate.style.setProperty("--rx", `${(-ty * 18).toFixed(1)}deg`);
-    });
-  });
-  F.plate.addEventListener("pointerleave", () => {
-    F.rect = null;
-    F.plate.style.setProperty("--rx", "0deg");
-    F.plate.style.setProperty("--ry", "0deg");
-  });
-  F.plate.addEventListener("click", spinSecondHand);
-  F.plate.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); spinSecondHand(); } });
-}
-
-// The clock only runs while the page is visible and the plate is on screen.
-function watchClock() {
-  if (!("IntersectionObserver" in window)) return;
-  new IntersectionObserver((entries) => {
-    F.onScreen = entries[entries.length - 1].isIntersecting;
-    F.plate.classList.toggle("paused", !F.onScreen);   // also pauses the floating animation
-    if (F.onScreen) tickClock();
-  }).observe(F.plate);
-}
-
-function tickClock() {
-  clearTimeout(F.clockTimer);
-  if (!F.ss || document.hidden || F.onScreen === false) return;
-  const d = new Date();
-  const h = d.getHours() % 12, m = d.getMinutes(), s = d.getSeconds();
-  // the seconds hand only ever turns forward, so it never spins backwards at 59 -> 0
-  F.angle = F.prevS === undefined ? s * 6 : F.angle + ((s - F.prevS + 60) % 60) * 6;
-  F.prevS = s;
-  if (F.lastMin !== m) {
-    F.lastMin = m;
-    F.hh.style.transform = `rotate(${h * 30 + m * 0.5}deg)`;
-    F.mm.style.transform = `rotate(${m * 6}deg)`;
-  }
-  F.ss.style.transform = `rotate(${F.angle}deg)`;
-  F.clockTimer = setTimeout(tickClock, 1000 - d.getMilliseconds() + 8);   // lands just after each second
-}
-
-function spinSecondHand() {
-  const base = F.angle || 0;
-  if (!reduceMotion && F.ss.animate) {
-    F.svg.classList.add("spin");
-    F.ss.animate(
-      [{ transform: `rotate(${base}deg)` }, { transform: `rotate(${base + 720}deg)` }],
-      { duration: 1100, easing: "cubic-bezier(.2,.8,.2,1)" }
-    ).onfinish = () => F.svg.classList.remove("spin");
-  }
-  const r = F.plate.getBoundingClientRect();
-  burst(r.left + r.width / 2, r.top + r.height / 2, [MEAL_EMOJI[foodMeal] || "🍽️", "✨", "😋"], 10);
-}
-
-const dishOf = (day, meal) => (menu.days[day] || {})[meal] || "Not added yet";
-const firstDish = (txt) => {
-  const s = txt.split(/[,(\/]/)[0].trim();
-  return s.length > 24 ? `${s.slice(0, 23)}…` : s;
-};
-
-function renderFood() {
-  if (!menu || !F.feature) return;
-  const day = foodDay;
-  const isToday = day === todayName();
-  const nm = nowMin();
-
-  F.dchips.forEach((b) => {
-    const on = b.dataset.day === day;
-    b.classList.toggle("active", on);
-    if (b.getAttribute("aria-pressed") !== String(on)) b.setAttribute("aria-pressed", String(on));
-  });
-
-  const m = menu.meals.find((x) => x.name === foodMeal) || menu.meals[0];
-  const st = mealStatus(m, isToday, nm);
-  F.railBtns.forEach((b, i) => b && b.classList.toggle("on", menu.meals[i].name === m.name));
-
-  const dish = dishOf(day, m.name);
-  setText(F.plateName, firstDish(dish));
-  setText(F.badge, st.kind === "live" ? "Serving now" : st.kind === "soon" ? "Up next" : st.kind === "done" ? "Served earlier" : `${day}'s menu`);
-  F.badge.classList.toggle("pulse", st.kind === "live");
-  setText(F.h2, m.name.toLowerCase());
-  setText(F.whenMain, `${fmt12(m.start)} – ${fmt12(m.end)}`);
-  setText(F.whenSub, st.kind === "live" ? `ends in ${fmtDur(st.left)}`
-    : st.kind === "soon" ? `starts in ${fmtDur(st.inMin)}`
-    : st.kind === "done" ? "served earlier today" : `on ${day}`);
-  setText(F.desc, dish);
-
-  // ratings (the stars are only rebuilt when something about them changed)
-  const stats = ratingStats[m.name];
-  const canRate = ready && isToday && nm >= toMin(m.start);
-  const mine = canRate ? Number(store.get(`rated_${todayStr()}_${m.name}`, 0)) : 0;
-  const starsKey = `${canRate ? 1 : 0}|${m.name}|${mine}`;
-  if (starsKey !== F.starsKey) {
-    F.starsKey = starsKey;
-    const stars = [];
-    if (canRate) {
-      for (let i = 1; i <= 5; i++) {
-        stars.push(el("button", {
-          type: "button", class: i <= mine ? "on" : "", "aria-label": `${i} star${i > 1 ? "s" : ""}`, text: "★",
-          onclick: (e) => { burst(e.clientX, e.clientY, ["⭐", "✨", "🎉"], 12); rate(m.name, i); }
-        }));
-      }
-    }
-    F.stars.replaceChildren(...stars);
-  }
-  let info = "";
-  if (!ready || !isToday) info = isToday ? "" : "Ratings open on the day itself.";
-  else if (!canRate) info = "Rating opens when the meal starts.";
-  else info = stats ? `★ ${(stats.sum / stats.count).toFixed(1)} · ${stats.count} rating${stats.count > 1 ? "s" : ""} today` : "No ratings yet today";
-  setText(F.rateInfo, info);
-
-  // meal tiles and dots
-  F.tiles.forEach((t) => {
-    if (!t) return;
-    const xs = mealStatus(t.m, isToday, nm);
-    const xStats = ratingStats[t.m.name];
-    const d = dishOf(day, t.m.name);
-    const note = ready && isToday && xStats ? `★ ${(xStats.sum / xStats.count).toFixed(1)} (${xStats.count})` : xs.kind === "live" ? "● serving now" : "";
-    t.btn.classList.toggle("on", t.m.name === m.name);
-    setText(t.sub, d);
-    setText(t.more, d);
-    setText(t.note, note);
-  });
-  F.dots.forEach((b, i) => b && b.classList.toggle("on", menu.meals[i].name === m.name));
-}
-
-async function rate(meal, stars) {
-  const date = todayStr();
-  const user = await ensureMe();
-  if (!user) { alert(authProblem()); return; }
-  try {
-    // One document per person per meal per day. The id must end with your login id, because the rules check that.
-    await setDoc(doc(db, "ratings", `${date}_${meal}_${user.uid}`), { date, meal, stars });
-    store.set(`rated_${date}_${meal}`, stars);
-    renderFood();
-  } catch (e) {
-    console.error(e);
-    alert("Could not save your rating. Try again.");
-  }
-}
-
-/* =================================================================
-   CLASSES
-================================================================= */
-let classDay = todayName();
-let notices = [];
-let unsubNotices = null;
-
-const QUOTES = [
-  ["Showing up is half the marks. The other half is the notes.", "back bench philosopher"],
-  ["Nobody remembers the lecture you skipped. Everybody remembers the viva you panicked in.", "a tired senior"],
-  ["Learn one thing today and you are already ahead of yesterday's you.", "Og Sabha"],
-  ["A full attendance sheet is the cheapest marks you will ever earn.", "someone who learned late"],
-  ["Ask the doubt. Three other people are waiting for you to ask it.", "the quiet row"],
-  ["Deadlines are friendly until the night before.", "every hostel, always"],
-  ["Small notes, every day, beat one big panic every semester.", "a calm topper"],
-  ["The library is the one place where silence is free and useful.", "Og Sabha"],
-  ["Get the basics right and the hard parts get shorter.", "an old lab instructor"],
-  ["You do not need motivation. You need the first ten minutes.", "Og Sabha"],
-  ["Group study works when the group studies.", "a wise classmate"],
-  ["Be kind to the teacher who never gives up on the last bench.", "Og Sabha"]
-];
-const dayOfYear = () => Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 864e5);
-
-function renderQuote() {
-  const [text, by] = QUOTES[dayOfYear() % QUOTES.length];
-  $("quote-text").textContent = text;
-  $("quote-by").textContent = by;
-}
-
-async function initClasses() {
-  [tt, menu] = await Promise.all([loadJSON("timetable.json"), menu || loadJSON("menu.json")]);
-  const sel = $("class-select");
-  Object.keys(tt.classes).forEach((c) => sel.append(el("option", { value: c, text: c })));
-  const saved = store.get("myClass");
-  if (saved && tt.classes[saved]) sel.value = saved;
-  sel.addEventListener("change", () => { store.set("myClass", sel.value); subscribeNotices(); renderClasses(); });
-
-  const chips = $("day-chips");
-  chips.replaceChildren();
-  F.cchips = WEEK.map((d) => {
-    const b = el("button", {
-      type: "button", class: "chip-day" + (d === todayName() ? " today" : ""), text: d.slice(0, 3), "aria-label": d,
-      onclick: () => { classDay = d; renderClasses(); }
-    });
-    b.classList.add("day-chip");
-    chips.append(b);
-    return b;
-  });
-
-  renderQuote();
-  initNoticeForm();
-  subscribeNotices();
-  renderClasses();
-
-  whenFirebase(() => {
-    subscribeNotices();
-    onSnapshot(query(collection(db, "attendance"), where("date", "==", todayStr())), (snap) => {
-      attendance = {};
-      snap.forEach((d) => { const a = d.data(); attendance[`${a.cls}_${a.period}`] = a.present; });
-      renderClasses();
-    }, (err) => console.warn("Could not read attendance:", err.code));
-  });
-  setInterval(() => { if (!document.hidden) renderClasses(); }, 30000);
-}
-
-function statusBadge(cls, period) {
-  const v = attendance[`${cls}_${period}`];
-  if (v === true) return el("span", { class: "badge good", text: "Teacher present" });
-  if (v === false) return el("span", { class: "badge bad", text: "Teacher absent" });
-  return el("span", { class: "badge grey", text: "Not reported yet" });
-}
-
-function renderClasses() {
-  if (!tt) return;
-  const cls = $("class-select").value;
-  const isToday = classDay === todayName();
-  const slots = (tt.classes[cls] || {})[classDay] || [];
-  const periodOf = (no) => tt.periods.find((p) => p.no === no);
-  const nm = nowMin();
-
-  // The day chips live inside #day-chips; style them like the old pill buttons.
-  (F.cchips || []).forEach((b, i) => b.classList.toggle("active", WEEK[i] === classDay));
-
-  const current = isToday ? slots.find((s) => { const p = periodOf(s.period); return p && nm >= toMin(p.start) && nm < toMin(p.end); }) : null;
-  const next = isToday ? slots.find((s) => { const p = periodOf(s.period); return p && toMin(p.start) > nm; }) : null;
-
-  renderNow();
-  renderNotices();
-
-  const nowBox = $("class-now");
-  nowBox.replaceChildren();
-  if (!isToday) {
-    nowBox.append(el("div", { class: "card" },
-      el("h3", { text: `📅 ${classDay}` }),
-      el("p", { class: "muted", text: slots.length ? `${slots.length} period${slots.length > 1 ? "s" : ""} on ${classDay}.` : `No classes on ${classDay}.` })
-    ));
-  } else if (current) {
-    const p = periodOf(current.period);
-    const startM = toMin(p.start), endM = toMin(p.end);
-    const pct = Math.round(((nm - startM) / (endM - startM)) * 100);
-    nowBox.append(el("div", { class: "card live" },
-      el("div", { class: "row" }, el("h3", { text: "🔴 Now" }), ready ? statusBadge(cls, current.period) : null),
-      el("p", { text: `Period ${current.period} · ${current.subject}` }),
-      el("p", { class: "muted", text: `${current.teacher} · ${fmt12(p.start)} – ${fmt12(p.end)} · ${endM - nm} min left` }),
-      el("div", { class: "bar", "aria-hidden": "true" }, el("i", { style: `--w:${pct}%` }))
-    ));
-  } else {
-    nowBox.append(el("div", { class: "card" },
-      el("h3", { text: "😴 No class right now" }),
-      next
-        ? el("p", { class: "muted", text: `Next: ${next.subject} with ${next.teacher} at ${fmt12(periodOf(next.period).start)}` })
-        : el("p", { class: "muted", text: slots.length ? "No more classes today." : "No classes today." })
-    ));
-  }
-
-  const table = $("class-table");
-  table.replaceChildren();
-  if (!slots.length) {
-    table.append(el("p", { class: "muted", text: `No classes on ${classDay}.` }));
-    return;
-  }
-
-  const tl = el("ol", { class: "timeline" });
-  [...slots].sort((a, b) => a.period - b.period).forEach((s) => {
-    const p = periodOf(s.period);
-    const tp = p ? parts12(p.start) : { t: `P${s.period}`, ap: "" };
-    const card = el("div", { class: "slot-card" },
-      el("strong", { text: s.subject }),
-      el("p", { class: "muted", text: s.teacher })
-    );
-    if (ready && isToday) {
-      card.append(statusBadge(cls, s.period));
-      if (currentUser) {
-        card.append(el("div", { class: "actions" },
-          el("button", { text: "Mark present", onclick: () => setAttendance(cls, s.period, true) }),
-          el("button", { class: "danger", text: "Mark absent", onclick: () => setAttendance(cls, s.period, false) }),
-          el("button", { class: "ghost", text: "Clear", onclick: () => clearAttendance(cls, s.period) })
-        ));
-      }
-    }
-    tl.append(el("li", { class: "slot" + (s === current ? " current" : "") },
-      el("div", { class: "slot-time" }, el("b", { text: tp.t }), el("span", { text: tp.ap }), el("em", { text: `Period ${s.period}` })),
-      el("div", { class: "dot" }),
-      card
-    ));
-  });
-  table.append(tl);
-}
-
-async function setAttendance(cls, period, present) {
-  const date = todayStr();
-  try {
-    await setDoc(doc(db, "attendance", `${date}_${cls}_${period}`), { date, cls, period, present });
-  } catch (e) {
-    console.error(e);
-    alert("You are not allowed to change this. Log in with a staff account.");
-  }
-}
-async function clearAttendance(cls, period) {
-  try { await deleteDoc(doc(db, "attendance", `${todayStr()}_${cls}_${period}`)); }
-  catch (e) { console.error(e); alert("Could not clear."); }
-}
-
-/* ---------- class notices (staff post, everyone in the class reads) ---------- */
-function subscribeNotices() {
-  unsubNotices?.(); unsubNotices = null; notices = [];
-  if (!ready || !tt) { renderNotices(); return; }
-  const cls = $("class-select").value;
-  unsubNotices = onSnapshot(
-    query(collection(db, "notices"), where("cls", "==", cls)),
-    (snap) => { notices = snap.docs.map((d) => ({ id: d.id, ...d.data() })); renderNotices(); },
-    (err) => console.warn("Could not read notices:", err.code)
-  );
-  renderNotices();
-}
-
-function renderNotices() {
-  const list = $("notice-list");
-  if (!list) return;
-  const staff = !!currentUser;
-  $("notice-compose").hidden = !staff;
-  $("notice-to").textContent = $("class-select").value || "";
-  list.replaceChildren();
-  [...notices].sort(newestFirst).slice(0, 5).forEach((n) => {
-    list.append(el("div", { class: "card" },
-      el("p", { class: "notice-head", text: `Notice · ${postTime(n)}` }),
-      el("p", { text: n.text }),
-      staff ? el("div", { class: "actions" }, el("button", { class: "danger", text: "Delete", onclick: () => removeNotice(n.id) })) : null
-    ));
-  });
-}
-
-function initNoticeForm() {
-  const text = $("notice-text");
-  text.addEventListener("input", () => { $("notice-count").textContent = `${text.value.length} / 400`; });
-  $("notice-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const msg = $("notice-msg");
-    const body = text.value.trim();
-    if (!ready || !currentUser) { msg.textContent = "Log in as staff to post notices."; return; }
-    if (!body) return;
-    try {
-      await addDoc(collection(db, "notices"), {
-        cls: $("class-select").value, text: body, createdAt: serverTimestamp()
-      });
-      text.value = "";
-      $("notice-count").textContent = "0 / 400";
-      msg.textContent = "Notice published.";
-    } catch (err) {
-      console.error(err);
-      msg.textContent = "Not allowed. Only staff accounts listed in the Firestore rules can post notices.";
-    }
-  });
-}
-async function removeNotice(id) {
-  if (!confirm("Delete this notice?")) return;
-  try { await deleteDoc(doc(db, "notices", id)); }
-  catch (e) { console.error(e); alert("Not allowed."); }
-}
-
-/* =================================================================
-   WALL: a haunted wall.
-   - Posts sit dim in the dark. A torch beam follows the mouse (or your finger) and wakes whatever it touches.
-   - Eyes creep in from the edges and slowly get closer. Shine the light on them, or tap them, to drive them off.
-     Ignore them and they lunge.
-   - "Turn on the lights" makes everything readable. Sound is opt-in. Reduced motion turns off the creeping bits.
-================================================================= */
-let approvedPosts = [];
-let pendingPosts = [];
-let unsubPending = null;
-const reportedKey = "reportedPosts";
-const reportedSet = () => { try { return new Set(JSON.parse(store.get(reportedKey, "[]"))); } catch { return new Set(); } };
-
-const EYE_LIFE = 13000;
-const idHash = (id) => { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
-const WL = {
-  on: false, lamp: store.get("wlLamp") === "1",
-  x: innerWidth / 2, y: innerHeight * 0.4, tx: innerWidth / 2, ty: innerHeight * 0.4, r: 190,
-  lastInput: 0, focusEl: null, raf: 0, tick: 0, dipUntil: 0,
-  eyes: [], eyeTimer: 0, beatTimer: 0, dread: 0, posts: [],
-  fx: null, pulse: null, eyesBox: null, watcher: null, title: null, look: 0
-};
-
-/* ---------- sound (opt-in): a low drone, plus a heartbeat that quickens when something is close ---------- */
-const Snd = {
-  ctx: null, master: null, filt: null, on: false, active: true,
-  start() {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return false;
-    if (!this.ctx) {
-      const c = (this.ctx = new AC());
-      this.master = c.createGain(); this.master.gain.value = 0; this.master.connect(c.destination);
-      this.filt = c.createBiquadFilter(); this.filt.type = "lowpass"; this.filt.frequency.value = 150; this.filt.Q.value = 3; this.filt.connect(this.master);
-      [[46, "sawtooth", 0.16], [46.7, "sawtooth", 0.16], [92.3, "sine", 0.1], [138, "triangle", 0.03]].forEach(([f, type, g]) => {
-        const o = c.createOscillator(), og = c.createGain();
-        o.type = type; o.frequency.value = f; og.gain.value = g;
-        o.connect(og); og.connect(this.filt); o.start();
-      });
-      const lfo = c.createOscillator(), lg = c.createGain();
-      lfo.frequency.value = 0.07; lg.gain.value = 60; lfo.connect(lg); lg.connect(this.filt.frequency); lfo.start();
-    }
-    this.ctx.resume?.();
-    this.on = true; this.apply();
-    return true;
-  },
-  stop() { this.on = false; this.apply(); },
-  apply() { if (this.master) this.master.gain.setTargetAtTime(this.on && this.active ? 0.55 : 0, this.ctx.currentTime, 0.4); },
-  setActive(a) { this.active = a; this.apply(); },
-  tense(d) { if (this.filt && this.on) this.filt.frequency.setTargetAtTime(150 + d * 260, this.ctx.currentTime, 0.5); },
-  thump(s = 0.6) {
-    if (!this.on || !this.active || !this.ctx) return;
-    const c = this.ctx, t = c.currentTime;
-    [0, 0.19].forEach((dt, i) => {
-      const o = c.createOscillator(), g = c.createGain();
-      o.type = "sine";
-      o.frequency.setValueAtTime(95, t + dt); o.frequency.exponentialRampToValueAtTime(48, t + dt + 0.16);
-      g.gain.setValueAtTime(0.0001, t + dt);
-      g.gain.exponentialRampToValueAtTime(Math.max(0.001, s * (i ? 0.6 : 1) * 0.9), t + dt + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dt + 0.2);
-      o.connect(g); g.connect(this.master); o.start(t + dt); o.stop(t + dt + 0.25);
-    });
-  }
-};
-
-/* ---------- setup ---------- */
-function initWall() {
-  const text = $("post-text");
-  text.addEventListener("input", () => { $("post-count").textContent = `${text.value.length} / 300`; });
-
-  $("post-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const msg = $("post-msg");
-    const body = text.value.trim();
-    if (!body) return;
-    if (!(await ensureMe())) { msg.textContent = authProblem(); return; }
-
-    const last = Number(store.get("lastPost", 0));
-    if (Date.now() - last < 60000) { msg.textContent = "Please wait a minute between posts."; return; }
-    const lower = body.toLowerCase();
-    if (BAD_WORDS.some((w) => lower.includes(w))) { msg.textContent = "Please remove rude words and try again."; return; }
-
-    try {
-      await addDoc(collection(db, "posts"), { text: body, approved: false, reports: 0, createdAt: serverTimestamp() });
-      store.set("lastPost", Date.now());
-      text.value = "";
-      $("post-count").textContent = "0 / 300";
-      msg.textContent = "The wall heard you. It will appear once a person approves it.";
-      carve();
-    } catch (err) {
-      console.error(err);
-      msg.textContent = "Could not post. Try again later.";
-    }
-  });
-
-  whenFirebase(() => {
-    onSnapshot(query(collection(db, "posts"), where("approved", "==", true)), (snap) => {
-      approvedPosts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      renderWall();
-    }, (err) => console.warn("Could not read posts:", err.code));
-  });
-
-  initWallScene();
-  wallActive(true);
-}
-
-// A scratch across the form, then something notices.
-function carve() {
-  const f = $("post-form");
-  f.classList.remove("carved"); void f.offsetWidth; f.classList.add("carved");
-  setTimeout(() => f.classList.remove("carved"), 1100);
-  Snd.thump(0.8);
-  pulse(0.5);
-  setTimeout(() => spawnEye(), 1500);
-}
-
-function syncWallButtons() {
-  const lamp = $("wl-lamp"), snd = $("wl-sound");
-  if (lamp) { lamp.textContent = WL.lamp ? "Turn off the lights" : "Turn on the lights"; lamp.setAttribute("aria-pressed", String(WL.lamp)); }
-  if (snd) { snd.textContent = Snd.on ? "Sound: on" : "Sound: off"; snd.setAttribute("aria-pressed", String(Snd.on)); }
-}
-function setHint(t) { const h = $("wl-hint"); if (h) h.textContent = t; }
-const aim = (x, y) => { WL.tx = x; WL.ty = y; WL.lastInput = performance.now(); };
-const sizeTorch = () => { WL.r = Math.max(125, Math.min(230, Math.min(innerWidth, innerHeight) * 0.32)); };
-
-function initWallScene() {
-  WL.fx = $("wl-fx"); WL.pulse = $("wl-pulse"); WL.eyesBox = $("wl-eyes");
-  WL.watcher = $("wl-watcher"); WL.title = document.querySelector(".wl-title");
-  document.body.classList.toggle("wl-lamp", WL.lamp);
-  syncWallButtons();
-  setHint(matchMedia("(pointer: coarse)").matches
-    ? "Something is watching. Drag your finger to move the light. Tap its eyes."
-    : "Something is watching. Move the light over its eyes.");
-
-  $("wl-lamp").addEventListener("click", () => {
-    WL.lamp = !WL.lamp;
-    store.set("wlLamp", WL.lamp ? "1" : "0");
-    document.body.classList.toggle("wl-lamp", WL.lamp);
-    if (WL.lamp) { clearEyes(); setHint("The lights are on. It is still there."); }
-    syncWallButtons();
-  });
-  $("wl-sound").addEventListener("click", () => {
-    if (Snd.on) Snd.stop();
-    else if (!Snd.start()) setHint("This browser cannot play the sound.");
-    syncWallButtons();
-  });
-  $("wl-down").addEventListener("click", () => goTo("post-form", "center"));
-
-  window.addEventListener("pointermove", (e) => { if (WL.on && e.pointerType !== "touch") aim(e.clientX, e.clientY); });
-  const onTouch = (e) => { const t = WL.on && e.touches[0]; if (t) aim(t.clientX, t.clientY - 70); }; // beam sits just above the fingertip
-  window.addEventListener("touchstart", onTouch, { passive: true });
-  window.addEventListener("touchmove", onTouch, { passive: true });
-  // while you type, the light rests on the box you are writing in
-  document.addEventListener("focusin", (e) => { if (WL.on && e.target.matches?.("#post-text")) WL.focusEl = e.target; });
-  document.addEventListener("focusout", () => { WL.focusEl = null; });
-  window.addEventListener("resize", sizeTorch);
-  sizeTorch();
-}
-
-/* ---------- whispers: faint words flash in the dark, now and then ---------- */
-const WHISPERS = ["behind you", "we can see you", "it read this too", "don't turn around", "still here", "you are not alone in here", "it heard that", "keep the light on"];
-let whisperTimer = 0;
-function scheduleWhisper() {
-  clearTimeout(whisperTimer);
-  if (!WL.on || reduceMotion) return;
-  whisperTimer = setTimeout(() => {
-    if (WL.on && !WL.lamp && !document.hidden) {
-      const w = document.createElement("div");
-      w.className = "wl-whisper";
-      w.setAttribute("aria-hidden", "true");
-      w.textContent = WHISPERS[Math.floor(Math.random() * WHISPERS.length)];
-      w.style.left = (6 + Math.random() * 62) + "%";
-      w.style.top = (14 + Math.random() * 68) + "%";
-      w.style.setProperty("--r", (Math.random() * 14 - 7).toFixed(1) + "deg");
-      document.body.append(w);
-      setTimeout(() => w.remove(), 2000);
-    }
-    scheduleWhisper();
-  }, 12000 + Math.random() * 18000);
-}
-
-// Called from initWall (and off when the tab is hidden).
-function wallActive(on) {
-  if (WL.on === on) return;
-  WL.on = on;
-  Snd.setActive(on);
-  cancelAnimationFrame(WL.raf); clearTimeout(WL.eyeTimer); clearTimeout(WL.beatTimer); clearTimeout(whisperTimer);
-  if (on) {
-    WL.lastInput = performance.now();
-    WL.raf = requestAnimationFrame(wallFrame);
-    scheduleEye(); beat(); scheduleWhisper();
-  } else {
-    clearEyes();
-  }
-}
-
-/* ---------- the loop: torch, what it lights, eyes, dread ---------- */
-function wallFrame(now) {
-  if (!WL.on) return;
-  WL.raf = requestAnimationFrame(wallFrame);
-  if (document.hidden || !WL.fx) return;
-  WL.tick++;
-  const t = now || performance.now();
-
-  let tx = WL.tx, ty = WL.ty;
-  if (WL.focusEl && WL.focusEl.isConnected) {
-    const r = WL.focusEl.getBoundingClientRect();
-    tx = r.left + r.width / 2; ty = r.top + Math.min(r.height / 2, 150);
-  } else if (t - WL.lastInput > 3000 && !reduceMotion) {
-    tx = innerWidth * (0.5 + 0.28 * Math.sin(t / 2300)); ty = innerHeight * (0.45 + 0.22 * Math.sin(t / 1700 + 1)); // nobody holding it: it drifts
-  }
-  const k = reduceMotion ? 1 : 0.1;
-  WL.x += (tx - WL.x) * k; WL.y += (ty - WL.y) * k;
-
-  let r = WL.r;
-  if (!reduceMotion) {
-    r *= 1 + 0.025 * Math.sin(t / 90) + 0.02 * Math.sin(t / 37);
-    if (t < WL.dipUntil) r *= 0.62; else if (Math.random() < 0.004) WL.dipUntil = t + 140; // now and then the beam stutters
-  }
-  const fx = WL.fx.style;
-  fx.setProperty("--tx", `${WL.x.toFixed(1)}px`); fx.setProperty("--ty", `${WL.y.toFixed(1)}px`); fx.setProperty("--r", `${r.toFixed(0)}px`);
-  if (WL.title) {
-    WL.title.style.setProperty("--gx", ((WL.x / innerWidth - 0.5) * 2).toFixed(2));
-    WL.title.style.setProperty("--gy", ((WL.y / innerHeight - 0.5) * 2).toFixed(2));
-  }
-  if (WL.tick % 2) return;
-
-  const reach = WL.r * 0.9;
-  for (const p of WL.posts) {
-    const b = p.getBoundingClientRect();
-    if (b.bottom < 0 || b.top > innerHeight) { p.classList.remove("lit"); continue; }
-    const dx = Math.max(b.left - WL.x, 0, WL.x - b.right), dy = Math.max(b.top - WL.y, 0, WL.y - b.bottom);
-    p.classList.toggle("lit", Math.hypot(dx, dy) < reach);
-  }
-
-  if (WL.watcher) {
-    const b = WL.watcher.getBoundingClientRect();
-    if (b.bottom > 0 && b.top < innerHeight) {
-      const cx = b.left + b.width / 2, cy = b.top + b.height * 0.25;
-      WL.watcher.classList.toggle("lit", Math.hypot(cx - WL.x, cy - WL.y) < reach);
-      const look = Math.max(-1, Math.min(1, (WL.x - cx) / (innerWidth * 0.45)));
-      if (Math.abs(look - WL.look) > 0.03) { WL.look = look; WL.watcher.style.setProperty("--look", look.toFixed(2)); }
-    }
-  }
-
-  const nowMs = performance.now();
-  let dread = 0;
-  for (const it of [...WL.eyes]) {
-    const b = it.e.getBoundingClientRect();
-    const cx = b.left + b.width / 2, cy = b.top + b.height / 2;
-    const dx = WL.x - cx, dy = WL.y - cy, d = Math.hypot(dx, dy) || 1;
-    it.e.style.setProperty("--px", (dx / d).toFixed(2)); it.e.style.setProperty("--py", (dy / d).toFixed(2));
-    const age = nowMs - it.born;
-    if (age > 700 && d < reach * 0.8) { fleeEye(it); setHint("It will be back."); continue; }
-    dread = Math.max(dread, Math.min(1, age / EYE_LIFE));
-  }
-  WL.dread += (dread - WL.dread) * 0.1;
-  Snd.tense(WL.dread);
-}
-
-/* ---------- eyes ---------- */
-function scheduleEye() {
-  clearTimeout(WL.eyeTimer);
-  if (!WL.on || reduceMotion) return;
-  WL.eyeTimer = setTimeout(() => { spawnEye(); scheduleEye(); }, 6000 + Math.random() * 7000);
-}
-function spawnEye() {
-  if (!WL.on || WL.lamp || reduceMotion || document.hidden || !WL.eyesBox) return;
-  if (WL.eyes.length >= (isPhone() ? 1 : 2)) return;
-  const s = isPhone() ? 46 : 60, w = innerWidth, h = innerHeight, side = Math.random();
-  let x, y;
-  if (side < 0.4) { x = 0.07 + Math.random() * 0.1; y = 0.2 + Math.random() * 0.6; }
-  else if (side < 0.8) { x = 0.83 + Math.random() * 0.1; y = 0.2 + Math.random() * 0.6; }
-  else { x = 0.15 + Math.random() * 0.7; y = Math.random() < 0.5 ? 0.1 : 0.9; }
-  const px = Math.min(Math.max(x * w, s), w - s), py = Math.min(Math.max(y * h, s), h - s);
-  const e = el("div", { class: "wl-eye", style: `--x:${px}px;--y:${py}px;--s:${s}px` },
-    el("span", { class: "eb" }, el("b")), el("span", { class: "eb" }, el("b")));
-  const it = { e, born: performance.now(), gone: false };
-  e.addEventListener("click", () => { fleeEye(it); setHint("It will be back."); });
-  WL.eyesBox.append(e); WL.eyes.push(it);
-  requestAnimationFrame(() => requestAnimationFrame(() => e.classList.add("in")));
-  it.timer = setTimeout(() => lungeEye(it), EYE_LIFE);
-  Snd.thump(0.35);
-}
-function dropEye(it) { it.gone = true; clearTimeout(it.timer); WL.eyes = WL.eyes.filter((x) => x !== it); setTimeout(() => it.e.remove(), 400); }
-function fleeEye(it) {
-  if (it.gone) return;
-  it.e.style.transform = getComputedStyle(it.e).transform; // freeze at the current size, then fade
-  it.e.classList.add("out");
-  dropEye(it);
-}
-function lungeEye(it) { // it got too close
-  if (it.gone) return;
-  it.e.classList.add("lunge");
-  dropEye(it);
-  pulse(0.75); Snd.thump(1);
-  setHint("It was right there.");
-}
-function clearEyes() { [...WL.eyes].forEach((it) => { it.gone = true; clearTimeout(it.timer); it.e.remove(); }); WL.eyes = []; WL.dread = 0; }
-
-/* ---------- heartbeat (the red vignette, and the thump when sound is on) ---------- */
-function pulse(strength) {
-  const p = WL.pulse;
-  if (!p || reduceMotion) return;
-  p.style.setProperty("--pi", strength.toFixed(2));
-  p.classList.remove("b"); void p.offsetWidth; p.classList.add("b");
-}
-function beat() {
-  clearTimeout(WL.beatTimer);
-  if (!WL.on) return;
-  const d = WL.dread;
-  if (d > 0.12) { pulse(Math.min(0.2 + d * 0.45, 0.65)); Snd.thump(0.4 + d * 0.6); }
-  WL.beatTimer = setTimeout(beat, 1500 - 900 * d);
-}
-
-/* ---------- posts ---------- */
-function subscribePending() {
-  if (unsubPending) { unsubPending(); unsubPending = null; }
-  pendingPosts = [];
-  if (ready && currentUser) {
-    unsubPending = onSnapshot(
-      query(collection(db, "posts"), where("approved", "==", false)),
-      (snap) => { pendingPosts = snap.docs.map((d) => ({ id: d.id, ...d.data() })); renderWall(); },
-      (err) => console.warn("Not allowed to read pending posts:", err.code)
-    );
-  }
-  renderWall();
-}
-
-function renderWall() {
-  if (!ready) return;
-  const staff = !!currentUser;
-  const reported = reportedSet();
-
-  // Students never see posts with 3+ reports. Staff still do, with the count.
-  const visible = approvedPosts.filter((p) => staff || (p.reports || 0) < 3).sort(newestFirst);
-
-  const list = $("post-list");
-  list.replaceChildren();
-  if (!visible.length) list.append(el("p", { class: "wl-empty", text: "Nothing on the wall yet. It is waiting for you." }));
-  visible.forEach((p) => {
-    const h = idHash(p.id);
-    const done = reported.has(p.id);
-    const actions = el("div", { class: "wl-act" },
-      el("button", { type: "button", class: "wl-mini", text: done ? "Hushed" : "Hush", disabled: done ? "" : null, onclick: () => reportPost(p.id) }),
-      staff ? el("button", { type: "button", class: "wl-mini danger", text: `Delete (${p.reports || 0} reports)`, onclick: () => removePost(p.id) }) : null
-    );
-    const card = el("article", { class: `wl-post v${h % 4}`, style: `--rot:${((((h >> 3) % 9) - 4) * 0.45).toFixed(2)}deg` },
-      el("p", { class: "wl-text", text: p.text }),
-      el("p", { class: "wl-meta", text: `heard ${postTime(p)}` }),
-      actions);
-    // touch it and it stirs
-    card.addEventListener("click", (e) => {
-      if (e.target.closest("button")) return;
-      card.classList.remove("stir"); void card.offsetWidth; card.classList.add("stir");
-    });
-    list.append(card);
-  });
-  WL.posts = [...list.querySelectorAll(".wl-post")];
-  $("wl-count").textContent = visible.length ? `${visible.length} ${visible.length === 1 ? "voice" : "voices"} on the wall` : "";
-
-  $("pending-box").hidden = !staff;
-  const pl = $("pending-list");
-  pl.replaceChildren();
-  if (staff) {
-    if (!pendingPosts.length) pl.append(el("p", { class: "muted", text: "Nothing waiting." }));
-    [...pendingPosts].sort((a, b) => -newestFirst(a, b)).forEach((p) => {
-      pl.append(el("div", { class: "wl-pend" },
-        el("p", { text: p.text }),
-        el("div", { class: "wl-act" },
-          el("button", { type: "button", class: "wl-mini", text: "Approve", onclick: () => approvePost(p.id) }),
-          el("button", { type: "button", class: "wl-mini danger", text: "Delete", onclick: () => removePost(p.id) })
-        )
-      ));
-    });
-  }
-}
-
-// The rules allow one report per person: the report counter and a posts/{id}/reports/{uid} marker must be written together.
-async function reportPost(id) {
-  if (!(await ensureMe())) { alert(authProblem()); return; }
-  try {
-    const batch = writeBatch(db);
-    batch.update(doc(db, "posts", id), { reports: increment(1) });
-    batch.set(doc(db, "posts", id, "reports", me.uid), { createdAt: serverTimestamp() });
-    await batch.commit();
-    markReported(id);
-  } catch (e) {
-    console.error(e);
-    if (e.code === "permission-denied") { markReported(id); alert("You have already reported this one."); }
-    else alert("Could not report.");
-  }
-}
-function markReported(id) {
-  const set = reportedSet(); set.add(id);
-  store.set(reportedKey, JSON.stringify([...set]));
-  renderWall();
-}
-async function approvePost(id) {
-  try { await updateDoc(doc(db, "posts", id), { approved: true }); }
-  catch (e) { console.error(e); alert("Not allowed."); }
-}
-async function removePost(id) {
-  if (!confirm("Delete this post?")) return;
-  try { await deleteDoc(doc(db, "posts", id)); }
-  catch (e) { console.error(e); alert("Not allowed."); }
-}
-
-/* =================================================================
-   GIGS (skill board: "wanted" jobs and "offering" skills)
-   - Posts wait for staff approval, like the wall.
-   - Replies are private: only the person who posted (and staff) can read them.
-   - Visitors get an invisible anonymous Firebase login so the rules can tell
-     "who posted what". Turn on Authentication > Sign-in method > Anonymous.
-================================================================= */
-const GIG_CATS = ["Design", "Coding & tech", "Photo & video", "Tutoring", "Writing & editing", "Music & events", "Errands & help", "Other"];
-const GIG_COLORS = ["#ffb27a", "#ffd37a", "#ff9a8a", "#9fe0c4", "#ffc2e0", "#b7c4ff", "#ffe6a8", "#d9c4ff"];
-const GIG_POS = [[15, 14], [50, 5], [85, 14], [6, 42], [94, 42], [31, 84], [69, 84], [50, 96]]; // chip positions around the globe (% of the stage)
-const GIG_KIND = { wanted: "🔍 Wanted", offer: "✋ Offering" };
-let gigsApproved = [];
-let gigsPending = [];
-let myGigs = [];
-let gigResponses = {}; // gigId -> [reply, ...] (only loaded for your own gigs)
-let gigFilter = { kind: "all", cat: "all" };
-let applyTarget = null;
-let unsubGigsPending = null;
-let unsubMine = null;
-const unsubResponses = new Map();
-const reportedGigsKey = "reportedGigs";
-const reportedGigs = () => { try { return new Set(JSON.parse(store.get(reportedGigsKey, "[]"))); } catch { return new Set(); } };
-const appliedKey = (id) => `applied_${id}`;
-
-function initGigs() {
-  const filterSel = $("gig-cat-filter");
-  filterSel.append(el("option", { value: "all", text: "All categories" }));
-  GIG_CATS.forEach((c) => {
-    filterSel.append(el("option", { value: c, text: c }));
-    $("gig-cat").append(el("option", { value: c, text: c }));
-  });
-  filterSel.addEventListener("change", () => setGigCat(filterSel.value));
-
-  document.querySelectorAll(".seg-btn").forEach((b) =>
-    b.addEventListener("click", () => {
-      gigFilter.kind = b.dataset.kind;
-      document.querySelectorAll(".seg-btn").forEach((x) => x.classList.toggle("active", x === b));
-      renderGigs();
-    }));
-
-  $("gig-cta-post").addEventListener("click", () => {
-    const d = $("gig-compose");
-    d.open = true;
-    d.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
-    setTimeout(() => $("gig-title").focus({ preventScroll: true }), 350);
-  });
-  $("gig-cta-browse").addEventListener("click", () => goTo("gig-board"));
-
-  const details = $("gig-details");
-  details.addEventListener("input", () => { $("gig-count").textContent = `${details.value.length} / 300`; });
-  $("gig-name").value = store.get("gigName", "");
-
-  $("gig-form").addEventListener("submit", submitGig);
-  $("apply-form").addEventListener("submit", submitApplication);
-  $("apply-cancel").addEventListener("click", () => $("apply-dialog").close());
-
-  renderGigChips();
-  whenFirebase(() => {
-    onSnapshot(query(collection(db, "gigs"), where("approved", "==", true)), (snap) => {
-      gigsApproved = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      renderGigs();
-    }, (err) => console.warn("Could not read gigs:", err.code));
-  });
-}
-
-function setGigCat(cat) {
-  gigFilter.cat = cat;
-  $("gig-cat-filter").value = cat;
-  renderGigs();
-}
-
-// Category chips around the globe, with live counts.
-function renderGigChips() {
-  const box = $("gig-arc");
-  if (!box) return;
-  box.replaceChildren();
-  GIG_CATS.forEach((c, i) => {
-    const n = gigsApproved.filter((g) => g.category === c && g.status !== "closed").length;
-    box.append(el("button", {
-      type: "button",
-      class: "chip-g" + (gigFilter.cat === c ? " on" : ""),
-      style: `--c:${GIG_COLORS[i]};--x:${GIG_POS[i][0]};--y:${GIG_POS[i][1]}`,
-      "aria-pressed": String(gigFilter.cat === c),
-      onclick: () => setGigCat(gigFilter.cat === c ? "all" : c)
-    }, el("i"), c, " ", el("em", { text: String(n) })));
-  });
-}
-
-function renderGigStats() {
-  const live = gigsApproved.filter((g) => g.status !== "closed");
-  const names = [];
-  live.forEach((g) => { const nm = (g.name || "").trim(); if (nm && !names.includes(nm)) names.push(nm); });
-  const av = $("gig-avatars");
-  av.replaceChildren();
-  names.slice(0, 4).forEach((nm, i) => av.append(el("span", { style: `--c:${GIG_COLORS[i]}`, text: nm[0].toUpperCase() })));
-  if (names.length > 4) av.append(el("span", { class: "more", text: `+${names.length - 4}` }));
-  $("gig-stat").textContent = `${live.length} live`;
-  $("gig-stat-sub").textContent = live.length ? "Posted by your classmates. Tap a category to filter." : "Be the first to post.";
-}
-
-// Called whenever the login state changes: (re)loads your own gigs, and pending gigs for staff.
-function subscribeGigs() {
-  unsubGigsPending?.(); unsubGigsPending = null; gigsPending = [];
-  unsubMine?.(); unsubMine = null; myGigs = [];
-  unsubResponses.forEach((u) => u()); unsubResponses.clear(); gigResponses = {};
-  if (!ready) return;
-
-  if (currentUser) {
-    unsubGigsPending = onSnapshot(
-      query(collection(db, "gigs"), where("approved", "==", false)),
-      (snap) => { gigsPending = snap.docs.map((d) => ({ id: d.id, ...d.data() })); renderGigs(); },
-      (err) => console.warn("Not allowed to read pending gigs:", err.code)
-    );
-  }
-  if (me) {
-    unsubMine = onSnapshot(
-      query(collection(db, "gigs"), where("ownerUid", "==", me.uid)),
-      (snap) => { myGigs = snap.docs.map((d) => ({ id: d.id, ...d.data() })); watchResponses(); renderGigs(); },
-      (err) => console.warn("Could not read your gigs:", err.code)
-    );
-  }
-  renderGigs();
-}
-
-function watchResponses() {
-  const ids = new Set(myGigs.filter((g) => g.approved).map((g) => g.id));
-  for (const [id, un] of unsubResponses) {
-    if (!ids.has(id)) { un(); unsubResponses.delete(id); delete gigResponses[id]; }
-  }
-  ids.forEach((id) => {
-    if (unsubResponses.has(id)) return;
-    unsubResponses.set(id, onSnapshot(
-      collection(db, "gigs", id, "responses"),
-      (snap) => {
-        gigResponses[id] = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort(newestFirst);
-        renderGigs();
-      },
-      (err) => console.warn("Could not read replies:", err.code)
-    ));
-  });
-}
-
-async function submitGig(e) {
-  e.preventDefault();
-  const msg = $("gig-msg");
-  if (!(await ensureMe())) { msg.textContent = authProblem(); return; }
-
-  const data = {
-    kind: $("gig-kind").value,
-    title: $("gig-title").value.trim(),
-    category: $("gig-cat").value,
-    details: $("gig-details").value.trim(),
-    pay: $("gig-pay").value.trim(),
-    name: $("gig-name").value.trim()
-  };
-  if (!data.title || !data.details) return;
-  if (Date.now() - Number(store.get("lastGig", 0)) < 120000) { msg.textContent = "Please wait a couple of minutes between posts."; return; }
-  const lower = Object.values(data).join(" ").toLowerCase();
-  if (BAD_WORDS.some((w) => lower.includes(w))) { msg.textContent = "Please remove rude words and try again."; return; }
-
-  try {
-    await addDoc(collection(db, "gigs"), {
-      ...data, ownerUid: me.uid, approved: false, reports: 0, status: "open", createdAt: serverTimestamp()
-    });
-    store.set("lastGig", Date.now());
-    store.set("gigName", data.name);
-    ["gig-title", "gig-details", "gig-pay"].forEach((id) => { $(id).value = ""; });
-    $("gig-count").textContent = "0 / 300";
-    msg.textContent = "Posted! It will show on the board after it is approved. You can track it under Your posts.";
-    burst(innerWidth / 2, innerHeight / 2, ["🛠️", "💸", "✨"], 14);
-  } catch (err) {
-    console.error(err);
-    msg.textContent = "Could not post. Try again later.";
-  }
-}
-
-function openApply(g) {
-  applyTarget = g;
-  const wanted = g.kind === "wanted";
-  $("apply-title").textContent = wanted ? "Apply for this gig" : "Message this person";
-  $("apply-sub").textContent = g.title;
-  $("apply-msg-label").textContent = wanted ? "Why are you a good fit?" : "What do you need?";
-  $("apply-name").value = store.get("gigApplyName", "");
-  $("apply-contact").value = store.get("gigApplyContact", "");
-  $("apply-message").value = "";
-  $("apply-status").textContent = "";
-  $("apply-dialog").showModal();
-}
-
-async function submitApplication(e) {
-  e.preventDefault();
-  const st = $("apply-status");
-  if (!ready || !me || !applyTarget) { st.textContent = "Not connected. Try again in a moment."; return; }
-  const data = {
-    name: $("apply-name").value.trim(),
-    message: $("apply-message").value.trim(),
-    contact: $("apply-contact").value.trim()
-  };
-  if (!data.name || !data.message || data.contact.length < 3) return;
-  const lower = `${data.name} ${data.message}`.toLowerCase();
-  if (BAD_WORDS.some((w) => lower.includes(w))) { st.textContent = "Please remove rude words and try again."; return; }
-
-  try {
-    // One reply per person per gig (the doc id is your anonymous id), so sending again just updates it.
-    await setDoc(doc(db, "gigs", applyTarget.id, "responses", me.uid), {
-      ...data, applicantUid: me.uid, createdAt: serverTimestamp()
-    });
-    store.set(appliedKey(applyTarget.id), "1");
-    store.set("gigApplyName", data.name);
-    store.set("gigApplyContact", data.contact);
-    $("apply-dialog").close();
-    burst(innerWidth / 2, innerHeight / 2, ["🎉", "✨", "🤝"], 14);
-    renderGigs();
-  } catch (err) {
-    console.error(err);
-    st.textContent = "Could not send. This gig may have just been closed.";
-  }
-}
-
-// 10-digit Indian numbers (or full international ones) get a WhatsApp shortcut.
-function phoneLink(contact) {
-  if (!/^[+\d\s-]{10,16}$/.test(contact.trim())) return null;
-  const d = contact.replace(/\D/g, "");
-  if (d.length < 10 || d.length > 13) return null;
-  return `https://wa.me/${d.length === 10 ? "91" + d : d}`;
-}
-
-function gigCard(g, staff, reported) {
-  const mine = !!me && g.ownerUid === me.uid;
-  const closed = g.status === "closed";
-  const applied = store.get(appliedKey(g.id)) === "1";
-  const wanted = g.kind === "wanted";
-
-  const actions = el("div", { class: "actions" });
-  if (mine) actions.append(el("span", { class: "badge grey", text: "Your post" }));
-  else if (closed) actions.append(el("span", { class: "badge grey", text: wanted ? "Filled" : "Not available" }));
-  else actions.append(el("button", {
-    text: applied ? "Sent ✓ (update)" : wanted ? "Apply" : "Hire / message",
-    onclick: () => openApply(g)
-  }));
-  if (!mine) {
-    actions.append(el("button", {
-      class: "ghost",
-      text: reported.has(g.id) ? "Reported" : "Report",
-      disabled: reported.has(g.id) ? "" : null,
-      onclick: () => reportGig(g.id)
-    }));
-  }
-  if (staff) actions.append(el("button", { class: "danger", text: `Delete (${g.reports || 0} reports)`, onclick: () => removeGig(g.id) }));
-
-  return el("div", { class: `card gig post c${noteColor(g.id)}${closed ? " closed" : ""}` },
-    el("div", { class: "row" },
-      el("span", { class: "badge", text: GIG_KIND[g.kind] || g.kind }),
-      el("span", { class: "badge", text: g.category })
-    ),
-    el("h3", { text: g.title }),
-    el("p", { text: g.details }),
-    el("p", { class: "muted", text: `${g.name || "A student"}${g.pay ? ` · ${g.pay}` : ""} · ${postTime(g)}` }),
-    actions
-  );
-}
-
-function replyRow(g, r) {
-  const wa = phoneLink(r.contact);
-  return el("div", { class: "resp" },
-    el("strong", { text: r.name }),
-    el("p", { text: r.message }),
-    el("p", { class: "muted", text: `${r.contact} · ${postTime(r)}` }),
-    el("div", { class: "actions" },
-      wa ? el("a", { class: "btnlink", href: wa, target: "_blank", rel: "noopener noreferrer", text: "WhatsApp" }) : null,
-      el("button", { class: "ghost", text: "Dismiss", onclick: () => removeResponse(g.id, r.id) })
-    )
-  );
-}
-
-function renderGigs() {
-  renderGigChips();
-  renderGigStats();
-  if (!ready) return;
-  const staff = !!currentUser;
-  const reported = reportedGigs();
-
-  // Public board
-  const list = $("gig-list");
-  list.replaceChildren();
-  const shown = gigsApproved
-    .filter((g) => staff || (g.reports || 0) < 3)
-    .filter((g) => gigFilter.kind === "all" || g.kind === gigFilter.kind)
-    .filter((g) => gigFilter.cat === "all" || g.category === gigFilter.cat)
-    .sort((a, b) => ((a.status === "closed") - (b.status === "closed")) || newestFirst(a, b));
-  if (!shown.length) list.append(el("p", { class: "muted", text: "Nothing here yet. Post the first one." }));
-  shown.forEach((g) => list.append(gigCard(g, staff, reported)));
-
-  // Your own posts, with the private replies
-  $("gig-mine-box").hidden = !myGigs.length;
-  const mine = $("gig-mine");
-  mine.replaceChildren();
-  [...myGigs].sort(newestFirst).forEach((g) => {
-    const replies = gigResponses[g.id] || [];
-    const closed = g.status === "closed";
-    const [label, tone] = !g.approved ? ["Waiting for approval", "grey"] : closed ? ["Closed", "grey"] : ["Live", "good"];
-    mine.append(el("div", { class: "card" },
-      el("div", { class: "row" },
-        el("h3", { text: g.title }),
-        el("span", { class: `badge ${tone}`, text: label })
-      ),
-      el("p", { class: "muted", text: `${GIG_KIND[g.kind]} · ${g.category} · ${replies.length} ${replies.length === 1 ? "reply" : "replies"}` }),
-      replies.map((r) => replyRow(g, r)),
-      el("div", { class: "actions" },
-        g.approved ? el("button", {
-          class: "ghost",
-          text: closed ? "Reopen" : g.kind === "wanted" ? "Mark filled" : "Close",
-          onclick: () => setGigStatus(g.id, closed ? "open" : "closed")
-        }) : null,
-        el("button", { class: "danger", text: "Delete", onclick: () => removeGig(g.id) })
-      )
-    ));
-  });
-
-  // Staff approval queue
-  $("gig-pending-box").hidden = !staff;
-  const pl = $("gig-pending");
-  pl.replaceChildren();
-  if (staff) {
-    if (!gigsPending.length) pl.append(el("p", { class: "muted", text: "Nothing waiting." }));
-    [...gigsPending].sort((a, b) => -newestFirst(a, b)).forEach((g) => {
-      pl.append(el("div", { class: "card" },
-        el("span", { class: "badge", text: `${GIG_KIND[g.kind] || g.kind} · ${g.category}` }),
-        el("h3", { text: g.title }),
-        el("p", { text: g.details }),
-        el("p", { class: "muted", text: `${g.name || "A student"}${g.pay ? ` · ${g.pay}` : ""}` }),
-        el("div", { class: "actions" },
-          el("button", { text: "Approve", onclick: () => approveGig(g.id) }),
-          el("button", { class: "danger", text: "Delete", onclick: () => removeGig(g.id) })
-        )
-      ));
-    });
-  }
-}
-
-async function reportGig(id) {
-  try {
-    if (!(await ensureMe())) { alert(authProblem()); return; }
-    // The rules allow one report per person: the counter and a gigs/{id}/reports/{uid} marker are written together.
-    const batch = writeBatch(db);
-    batch.update(doc(db, "gigs", id), { reports: increment(1) });
-    batch.set(doc(db, "gigs", id, "reports", me.uid), { createdAt: serverTimestamp() });
-    await batch.commit();
-    const set = reportedGigs(); set.add(id);
-    store.set(reportedGigsKey, JSON.stringify([...set]));
-    renderGigs();
-  } catch (e) {
-    console.error(e);
-    if (e.code === "permission-denied") {
-      const set = reportedGigs(); set.add(id);
-      store.set(reportedGigsKey, JSON.stringify([...set]));
-      renderGigs(); alert("You have already reported this one.");
-    } else alert("Could not report.");
-  }
-}
-async function approveGig(id) {
-  try { await updateDoc(doc(db, "gigs", id), { approved: true }); }
-  catch (e) { console.error(e); alert("Not allowed."); }
-}
-async function setGigStatus(id, status) {
-  try { await updateDoc(doc(db, "gigs", id), { status }); }
-  catch (e) { console.error(e); alert("Could not update."); }
-}
-async function removeResponse(gigId, respId) {
-  try { await deleteDoc(doc(db, "gigs", gigId, "responses", respId)); }
-  catch (e) { console.error(e); alert("Could not remove."); }
-}
-async function removeGig(id) {
-  if (!confirm("Delete this post and all its replies?")) return;
-  try {
-    // Firestore does not delete sub-collections automatically, so clear the replies first.
-    const replies = await getDocs(collection(db, "gigs", id, "responses"));
-    await Promise.all(replies.docs.map((d) => deleteDoc(d.ref)));
-    await deleteDoc(doc(db, "gigs", id));
-  } catch (e) { console.error(e); alert("Not allowed."); }
-}
-
-/* ---------- the glowing globe behind the category chips ---------- */
-function initGlobe() {
-  const cv = $("gig-globe");
-  if (!cv || !cv.getContext) return;
-  const ctx = cv.getContext("2d");
-  const N = 900, pts = [];
-  const ga = Math.PI * (3 - Math.sqrt(5));
-  for (let i = 0; i < N; i++) {
-    const y = 1 - (i / (N - 1)) * 2, r = Math.sqrt(1 - y * y), t = ga * i;
-    pts.push([Math.cos(t) * r, y, Math.sin(t) * r]);
-  }
-  let rot = 0, tilt = 0.38, w = 0, h = 0, dpr = 1, drag = null;
-  cv.style.touchAction = "pan-y";
-
-  function size() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
-    w = cv.clientWidth; h = cv.clientHeight;
-    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
-  }
-
-  function draw() {
-    if (!w || !h) return;
-    ctx.clearRect(0, 0, cv.width, cv.height);
-    const cx = cv.width / 2, cy = cv.height / 2, R = Math.min(cv.width, cv.height) * 0.4;
-
-    // glow + body
-    let g = ctx.createRadialGradient(cx, cy, R * 0.2, cx, cy, R * 1.7);
-    g.addColorStop(0, "rgba(255,170,100,.55)"); g.addColorStop(0.55, "rgba(255,120,50,.16)"); g.addColorStop(1, "rgba(255,120,50,0)");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, cv.width, cv.height);
-    g = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.35, R * 0.1, cx, cy, R);
-    g.addColorStop(0, "rgba(255,190,130,.28)"); g.addColorStop(1, "rgba(90,25,5,.35)");
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
-
-    // dotted surface
-    const cr = Math.cos(rot), sr = Math.sin(rot), ct = Math.cos(tilt), st = Math.sin(tilt);
-    for (const [x, y, z] of pts) {
-      const x1 = x * cr + z * sr, z1 = -x * sr + z * cr;
-      const y2 = y * ct - z1 * st, z2 = y * st + z1 * ct;
-      if (z2 < -0.15) continue;
-      ctx.fillStyle = `rgba(255,236,214,${(0.18 + 0.82 * ((z2 + 1) / 2)).toFixed(2)})`;
-      ctx.beginPath();
-      ctx.arc(cx + x1 * R, cy + y2 * R, (1 + z2 * 0.9) * dpr, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // rim + a tilted orbit ring with a small moon
-    ctx.strokeStyle = "rgba(255,255,255,.28)"; ctx.lineWidth = dpr;
-    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
-    ctx.save(); ctx.translate(cx, cy); ctx.rotate(-0.38);
-    ctx.strokeStyle = "rgba(255,255,255,.22)";
-    ctx.beginPath(); ctx.ellipse(0, 0, R * 1.32, R * 0.36, 0, 0, Math.PI * 2); ctx.stroke();
-    const ma = rot * 2.4;
-    ctx.fillStyle = "#fff";
-    ctx.beginPath(); ctx.arc(Math.cos(ma) * R * 1.32, Math.sin(ma) * R * 0.36, 4 * dpr, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-  }
-
-  function loop() {
-    if (!document.hidden && cv.clientWidth > 0) {
-      if (cv.clientWidth !== w || cv.clientHeight !== h) size();
-      if (!drag) rot += 0.003;
-      draw();
-    }
-    requestAnimationFrame(loop);
-  }
-
-  cv.addEventListener("pointerdown", (e) => { drag = { x: e.clientX }; cv.setPointerCapture?.(e.pointerId); });
-  cv.addEventListener("pointermove", (e) => {
-    if (!drag) return;
-    rot += (e.clientX - drag.x) * 0.01; drag.x = e.clientX;
-    if (reduceMotion) draw();
-  });
-  const stop = () => { drag = null; };
-  cv.addEventListener("pointerup", stop);
-  cv.addEventListener("pointercancel", stop);
-
-  size();
-  if (reduceMotion) {
-    draw();
-    new ResizeObserver(() => { size(); draw(); }).observe(cv);
-  } else {
-    requestAnimationFrame(loop);
-  }
-}
-
-/* =================================================================
-   STAFF LOGIN (every page has the footer form; Firebase is connected when it is opened or used)
-================================================================= */
-function renderAuth() {
-  const box = $("auth-status");
-  box.replaceChildren();
-  $("login-form").hidden = !!currentUser;
-  if (currentUser) {
-    box.append(
-      el("span", { text: `Logged in as ${currentUser.email} ` }),
-      el("button", { class: "ghost", text: "Log out", onclick: () => signOut(auth) })
-    );
-  }
-}
-
-$("login-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  await connectFirebase();
-  if (!ready) { alert(authProblem()); return; }
-  try {
-    await signInWithEmailAndPassword(auth, $("login-email").value, $("login-pass").value);
-    $("login-pass").value = "";
-  } catch (err) {
-    console.error(err);
-    alert("Wrong email or password.");
-  }
-});
-$("staff-login")?.addEventListener("toggle", (e) => { if (e.target.open) connectFirebase(); });
-
-whenFirebase(() => {
-  onAuthStateChanged(auth, (u) => {
-    // The wall and gigs need a silent anonymous id so the rules know who posted what.
-    if (!u && (PAGE === "wall" || PAGE === "gigs")) ensureMe();
-    me = u;
-    currentUser = u && !u.isAnonymous ? u : null; // only email logins count as staff
-    renderAuth();
-    if (PAGE === "classes") { renderClasses(); renderNotices(); }
-    if (PAGE === "wall") subscribePending();
-    if (PAGE === "gigs") subscribeGigs();
-  });
-});
-
-/* ---------- ABOUT: three-step story, 01 --- 03 ---------- */
-const ABOUT_STEPS = [
-  { k: "Our story", t: "Og Sabha", p: "Made by the UG 2026 batch of DCSMAT, Vagamon. We got tired of asking \u201cwhat\u2019s for lunch?\u201d and \u201cwhich hour is this?\u201d, so we built one place for both." },
-  { k: "What you can do", t: "Four tabs", p: "Food: today\u2019s mess menu and meal ratings. Classes: your live timetable and notices. Wall: post anonymously, every post is checked first. Gigs: offer a skill or hire a classmate." },
-  { k: "Say hello", t: "Contact", p: "Found a mistake or want to join the team? Message us on Instagram: @og.sabhaaa" }
-];
-function initAbout() {
-  const root = $("ab2");
-  if (!root) return;
-  let i = 0, busy = 0;
-  const show = (n) => {
-    n = (n + ABOUT_STEPS.length) % ABOUT_STEPS.length;
-    if (n === i && root.dataset.ready) return;
-    root.dataset.ready = "1";
-    clearTimeout(busy);
-    root.classList.add("swap");
-    busy = setTimeout(() => {
-      i = n;
-      const s = ABOUT_STEPS[i];
-      $("ab2-kicker").textContent = s.k; $("ab2-title").textContent = s.t; $("ab2-text").textContent = s.p;
-      $("ab2-n").textContent = pad(i + 1);
-      root.dataset.i = String(i);
-      root.style.setProperty("--p", String(i + 1));
-      root.querySelectorAll(".ab2-links button").forEach((b) => b.classList.toggle("on", Number(b.dataset.go) === i));
-      root.classList.remove("swap");
-    }, reduceMotion ? 0 : 280);
-  };
-  $("ab2-next").addEventListener("click", () => show(i + 1));
-  $("ab2-bar").addEventListener("click", () => show(i + 1));
-  root.querySelectorAll(".ab2-links button").forEach((b) => b.addEventListener("click", () => show(Number(b.dataset.go))));
-  root.style.setProperty("--p", "1");
-  root.querySelector(".ab2-links button").classList.add("on");
-}
-
-/* =================================================================
-   BUS
-   bus.json is written into the page by build_pages.py. KSRTC-style page: animated road and bus (tap to honk),
-   an LED destination board with a live countdown, direction tabs, tap a trip to see its stops, pin one as "my bus".
-================================================================= */
-let bus = null;
-const BS = { dir: null, open: null, pin: store.get("busPin", ""), target: null, pinTarget: null, ac: null };
-const secNow = () => { const d = new Date(); return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds(); };
-const fmtCount = (s) => {
-  s = Math.max(0, s);
-  const m = Math.floor(s / 60), r = s % 60;
-  return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : m > 0 ? `${m} min ${pad(r)} s` : `${r} s`;
-};
-const busSecs = (t) => toMin(t.time) * 60;
-const busSorted = (dir) => [...bus.directions[dir]].sort((a, b) => toMin(a.time) - toMin(b.time));
-const nextBusIn = (dir, s) => busSorted(dir).find((t) => busSecs(t) >= s);
-const pinKey = (dir, t) => `${dir}|${t.time}`;
-
-async function initBus() {
-  bus = await loadJSON("bus.json");
-  const dirs = Object.keys(bus.directions);
-  const saved = store.get("busDir");
-  const s = secNow();
-  // open on the saved direction, otherwise the one whose next bus leaves first
-  BS.dir = dirs.includes(saved) ? saved : dirs.map((d) => [d, nextBusIn(d, s)]).filter(([, t]) => t)
-    .sort((a, b) => busSecs(a[1]) - busSecs(b[1]))[0]?.[0] || dirs[0];
-
-  $("bus").addEventListener("click", (e) => {
-    const tab = e.target.closest(".kb-tab");
-    const trip = e.target.closest(".kb-trip-btn");
-    const pin = e.target.closest(".kb-pin");
-    const unpin = e.target.closest(".kb-unpin");
-    if (tab) { BS.dir = tab.dataset.dir; BS.open = null; store.set("busDir", BS.dir); renderBus(); }
-    else if (pin) { BS.pin = pin.dataset.key; store.set("busPin", BS.pin); burst(e.clientX, e.clientY, ["🚌", "⭐", "✨"], 8); renderBus(); }
-    else if (unpin) { BS.pin = ""; store.set("busPin", ""); renderBus(); }
-    else if (trip) { const k = trip.dataset.key; BS.open = BS.open === k ? null : k; renderBus(); }
-  });
-  $("kb-bus").addEventListener("click", driveBus);
-
-  renderBus();
-  setInterval(() => { if (!document.hidden) renderBus(); }, 20000);
-  setInterval(() => { if (!document.hidden) tickBus(); }, 1000);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) { renderBus(); } });
-}
-
-// Two-tone horn, then the bus drives off the right edge and comes back from the left.
-function driveBus() {
-  const b = $("kb-bus");
-  if (!b.classList.contains("go") && !reduceMotion) {
-    b.classList.add("go");
-    setTimeout(() => b.classList.remove("go"), 2500);
-  }
-  try {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    const c = BS.ac || (BS.ac = new AC());
-    c.resume?.();
-    const t = c.currentTime;
-    [[392, 0], [311, 0], [392, 0.32], [311, 0.32]].forEach(([f, dt]) => {
-      const o = c.createOscillator(), g = c.createGain();
-      o.type = "square"; o.frequency.value = f;
-      g.gain.setValueAtTime(0.0001, t + dt);
-      g.gain.exponentialRampToValueAtTime(0.07, t + dt + 0.03);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dt + 0.26);
-      o.connect(g); g.connect(c.destination); o.start(t + dt); o.stop(t + dt + 0.3);
-    });
-  } catch { /* sound is optional */ }
-}
-
-function stopsOf(t) {
-  const via = t.via ? t.via.split(",").map((x) => x.trim()).filter(Boolean) : [];
-  return [...via, t.route];
-}
-
-function renderBus() {
-  if (!bus) return;
-  const s = secNow();
-  const af = document.activeElement;
-  const refocus = af && af.classList && (af.classList.contains("kb-trip-btn") ? `.kb-trip-btn[data-key="${af.dataset.key}"]`
-    : af.classList.contains("kb-tab") ? `.kb-tab[data-dir="${af.dataset.dir}"]` : null);
-  const dirs = Object.keys(bus.directions);
-  const trips = busSorted(BS.dir);
-  const next = trips.find((t) => busSecs(t) >= s);
-
-  // direction tabs
-  $("bus-dirs").replaceChildren(...dirs.map((d) => {
-    const left = bus.directions[d].filter((t) => busSecs(t) >= s).length;
-    return el("button", {
-      type: "button", class: "kb-tab", role: "tab", "data-dir": d, "aria-selected": String(d === BS.dir)
-    }, el("span", { text: d }), el("small", { text: left ? `${left} left today` : "done today" }));
-  }));
-
-  // LED board
-  const led = $("bus-now");
-  led.classList.toggle("none", !next);
-  BS.target = next ? busSecs(next) : null;
-  let destText, sub;
-  if (next) {
-    destText = `${next.route}  ✦  ${BS.dir}  ✦  `;
-    sub = next.via ? `VIA ${next.via.toUpperCase()}` : "FROM DC COLLEGE STOP";
-  } else {
-    destText = `NO MORE BUSES TODAY  ✦  `;
-    sub = trips.length ? `FIRST BUS TOMORROW: ${fmt12(trips[0].time)} · ${trips[0].route}`.toUpperCase() : "";
-  }
-  led.replaceChildren(
-    el("span", { class: "kb-tag", text: `Next bus · ${BS.dir}${next && next.check ? " · unconfirmed" : ""}` }),
-    el("div", { class: "kb-dest", "aria-hidden": "true" }, el("span", { class: "kb-marq" }, el("span", { text: destText }), el("span", { text: destText }))),
-    el("span", { class: "sr-only", text: next ? `${next.route}, ${fmt12(next.time)}` : "No more buses today" }),
-    next ? el("div", { class: "kb-row" },
-      el("strong", { class: "kb-time", text: fmt12(next.time) }),
-      el("span", { class: "kb-count", id: "kb-count" })) : null,
-    next ? el("div", { class: "kb-track", id: "kb-track", "aria-hidden": "true" }, el("i", { class: "kb-trackbus", text: "🚌" })) : null,
-    el("span", { class: "kb-via", text: sub })
-  );
-  // the sign on the bus shows the same destination
-  const sign = $("kb-sign");
-  if (sign) sign.textContent = (next ? next.route : "KSRTC").toUpperCase().slice(0, 14);
-
-  // pinned bus ticket
-  const mine = $("my-bus");
-  mine.replaceChildren();
-  BS.pinTarget = null;
-  if (BS.pin) {
-    const [pd, pt] = BS.pin.split("|");
-    const pt_ = (bus.directions[pd] || []).find((t) => t.time === pt);
-    if (pt_) {
-      const gone = busSecs(pt_) < s;
-      BS.pinTarget = gone ? null : busSecs(pt_);
-      mine.append(el("div", { class: "kb-ticket" },
-        el("span", { class: "k", text: "★ MY BUS" }),
-        el("div", { class: "row" },
-          el("div", {}, el("strong", { text: `${fmt12(pt_.time)} · ${pt_.route}` }), el("span", { class: "muted", text: `${pd}${pt_.via ? ` · via ${pt_.via}` : ""}` })),
-          el("span", { class: "kb-ticket-count", id: "kb-pin-count", text: gone ? "left" : "" })),
-        el("div", { class: "actions" }, el("button", { type: "button", class: "kb-unpin", text: "Unpin" }))
-      ));
-    }
-  }
-
-  // trip list
-  const ol = el("ol", { class: "kb-list" });
-  trips.forEach((t) => {
-    const key = pinKey(BS.dir, t);
-    const isNext = t === next, gone = busSecs(t) < s, open = BS.open === key, pinned = BS.pin === key;
-    const stops = stopsOf(t);
-    const chain = [el("span", { class: "kb-stop me", text: "DC College" })];
-    stops.forEach((st, i) => {
-      chain.push(el("span", { class: "kb-arrow", "aria-hidden": "true", text: "➜" }));
-      chain.push(el("span", { class: "kb-stop" + (i === stops.length - 1 ? " end" : ""), text: st }));
-    });
-    ol.append(el("li", { class: ["kb-trip", isNext && "next", gone && "gone", open && "open", pinned && "pinned"].filter(Boolean).join(" ") },
-      el("button", { type: "button", class: "kb-trip-btn", "data-key": key, "aria-expanded": String(open) },
-        el("time", { datetime: t.time, text: fmt12(t.time) }),
-        el("span", {}, t.route, t.via ? el("span", { class: "via", text: `via ${t.via}` }) : null),
-        el("span", {},
-          pinned ? el("span", { class: "badge star", text: "★ pinned" })
-            : t.check ? el("span", { class: "badge", text: "unconfirmed" })
-            : isNext ? el("span", { class: "badge", text: "next" }) : null,
-          " ", el("span", { class: "chev", "aria-hidden": "true", text: "▼" }))),
-      el("div", { class: "kb-more" },
-        el("span", { class: "k", text: "Stops on this service" }),
-        el("div", { class: "kb-stops" }, chain),
-        gone ? null : pinned ? el("button", { type: "button", class: "kb-unpin", text: "Unpin this bus" })
-          : el("button", { type: "button", class: "kb-pin", "data-key": key, text: "★ Pin as my bus" }))
-    ));
-  });
-  $("bus-lists").replaceChildren(el("section", { class: "bus-col" }, ol));
-  if (refocus) document.querySelector(refocus)?.focus({ preventScroll: true });
-  tickBus();
-}
-
-// Runs every second: only the countdown text and the little bus on the board change.
-function tickBus() {
-  if (!bus) return;
-  const s = secNow();
-  const c = $("kb-count");
-  if (c && BS.target != null) {
-    const left = BS.target - s;
-    if (left < -1) { renderBus(); return; }               // it has gone: show the next one
-    c.textContent = left <= 0 ? "leaving now" : `in ${fmtCount(left)}`;
-    const tr = $("kb-track");
-    if (tr) tr.style.setProperty("--p", String(Math.min(1, Math.max(0, 1 - left / 3600)).toFixed(3)));   // bus rolls in over the last hour
-  }
-  const pc = $("kb-pin-count");
-  if (pc && BS.pinTarget != null) {
-    const left = BS.pinTarget - s;
-    if (left < -1) { renderBus(); return; }
-    pc.textContent = left <= 0 ? "leaving now" : fmtCount(left);
-  }
-}
-
-/* ---------- start (each page runs only its own section) ---------- */
-const safe = (fn) => { try { const r = fn(); if (r && r.catch) r.catch((e) => console.error(e)); } catch (e) { console.error(e); } };
-safe(greet);
-setInterval(() => { if (!document.hidden) greet(); }, 60000);
-if (PAGE === "food") initFood().catch(showLoadError);
-else if (PAGE === "classes") initClasses().catch(showLoadError);
-else if (PAGE === "bus") initBus().catch(showLoadError);
-else if (PAGE === "wall") safe(initWall);
-else if (PAGE === "gigs") { safe(initGigs); safe(initGlobe); }
-else if (PAGE === "about") safe(initAbout);
-
-// Firebase: wall and gigs need it straight away. Food and Classes load it once the page has painted.
-// About never loads it (unless staff open the login).
-if (PAGE === "wall" || PAGE === "gigs") connectFirebase();
-else if (PAGE === "food" || PAGE === "classes") {
-  const go = () => idle(connectFirebase);
-  if (document.readyState === "complete") go(); else window.addEventListener("load", go, { once: true });
-}
-
-// Offline support (sw.js is network-first, so updates always arrive).
-if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-  window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
+body[data-theme="bus"]{
+  --bg:#fdf3df;--ink:#2a0d0a;--muted:#7a5a52;--cbg:#fff;--cink:#2a0d0a;--accent:#b3141f;--on-accent:#fff;
+  --line:#2a0d0a;--shadow:4px 4px 0 #2a0d0a;--radius:18px;--hcase:uppercase;--hls:-.02em;--hw:800;
+  --ksy:#ffc414;--ksr:#b3141f;--ksd:#2a0d0a;
+  background:repeating-linear-gradient(135deg,#fdf3df 0 22px,#fbecd0 22px 44px)}
+body[data-theme="bus"] .brand{color:var(--ksr);text-transform:none;white-space:nowrap}
+body[data-theme="bus"] .chip{background:#fff;color:var(--ksd);border:2px solid var(--ksd)}
+body[data-theme="bus"] nav{background:#fff;border:2px solid var(--ksd);box-shadow:4px 4px 0 var(--ksd);backdrop-filter:none}
+body[data-theme="bus"] .tab{color:var(--ksd);font-weight:600}
+body[data-theme="bus"] .tab.active{background:var(--ksr);color:#fff}
+body[data-theme="bus"] .hero h1{font-style:normal;color:var(--ksr);font-weight:800;white-space:pre-line;text-transform:uppercase;letter-spacing:-.02em;line-height:.95}
+body[data-theme="bus"] .sub{color:#5a2d26}
+body[data-theme="bus"] button{border:2px solid var(--ksd)}
+body[data-theme="bus"] footer summary,body[data-theme="bus"] footer .muted{color:#7a5a52}
+
+/* ---------- the road scene ---------- */
+.kb-road{position:relative;height:210px;margin:0 0 20px;overflow:hidden;border:2px solid var(--ksd);border-radius:24px;box-shadow:6px 6px 0 var(--ksd);
+  background:linear-gradient(#ffd98a 0,#ffefc7 70%)}
+.kb-sun{position:absolute;top:18px;right:34px;width:54px;height:54px;border-radius:50%;background:#ffb000;box-shadow:0 0 0 10px rgba(255,176,0,.25),0 0 0 22px rgba(255,176,0,.12);animation:kbsun 5s ease-in-out infinite}
+@keyframes kbsun{50%{box-shadow:0 0 0 14px rgba(255,176,0,.3),0 0 0 30px rgba(255,176,0,.1)}}
+.kb-cloud{position:absolute;height:20px;border-radius:999px;background:#fff;opacity:.9;animation:kbcloud linear infinite}
+.kb-cloud::before{content:"";position:absolute;left:14px;top:-12px;width:28px;height:24px;border-radius:50%;background:inherit}
+.kb-cloud.c1{top:26px;width:72px;animation-duration:38s}
+.kb-cloud.c2{top:62px;width:54px;animation-duration:54s;animation-delay:-20s}
+@keyframes kbcloud{from{left:105%}to{left:-30%}}
+.kb-hill{position:absolute;left:0;right:0;background-repeat:repeat-x}
+.kb-hill.far{bottom:48px;height:78px;opacity:.55;background-image:radial-gradient(90px 78px at 90px 100%,#7aa366 98%,transparent 100%);background-size:180px 78px;animation:kbhill 60s linear infinite}
+.kb-hill.near{bottom:44px;height:54px;background-image:radial-gradient(60px 54px at 60px 100%,#4f8a46 98%,transparent 100%);background-size:120px 54px;animation:kbhill2 26s linear infinite}
+@keyframes kbhill{to{background-position-x:-180px}}
+@keyframes kbhill2{to{background-position-x:-120px}}
+.kb-ground{position:absolute;left:0;right:0;bottom:0;height:48px;background:#2f2a2a;border-top:6px solid #fff3d0}
+.kb-dash{position:absolute;left:0;right:0;top:22px;height:4px;background:repeating-linear-gradient(90deg,var(--ksy) 0 28px,transparent 28px 56px);animation:kbdash .55s linear infinite}
+@keyframes kbdash{to{background-position-x:-56px}}
+.kb-hint{position:absolute;left:14px;bottom:12px;margin:0;font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#fff3d0;opacity:.8}
+
+.kb-bus{position:absolute;left:50%;bottom:22px;width:232px;margin-left:-116px;padding:0;border:0;border-radius:0;background:none;box-shadow:none;cursor:pointer;z-index:2;
+  -webkit-tap-highlight-color:transparent;animation:kbidle 1.1s ease-in-out infinite}
+body[data-theme="bus"] .kb-bus{border:0}
+.kb-bus:hover{transform:none;box-shadow:none}
+.kb-bus svg{display:block;width:100%;height:auto;overflow:visible}
+@keyframes kbidle{50%{translate:0 -2px}}
+.kb-wheel{transform-box:fill-box;transform-origin:center;animation:kbspin .45s linear infinite}
+@keyframes kbspin{to{transform:rotate(360deg)}}
+.kb-lamp{animation:kblamp 1.6s ease-in-out infinite}
+@keyframes kblamp{50%{opacity:.45}}
+.kb-bus.go{animation:kbgo 2.4s cubic-bezier(.5,0,.5,1) 1}
+@keyframes kbgo{0%{transform:translateX(0)}44%{transform:translateX(230%)}45%{transform:translateX(-230%)}100%{transform:translateX(0)}}
+.kb-bus.go .kb-wheel{animation-duration:.18s}
+.kb-bus:focus-visible{outline:3px solid var(--ksy);outline-offset:4px;border-radius:12px}
+
+/* ---------- direction tabs ---------- */
+.kb-tabs{display:flex;gap:10px;margin:0 0 16px}
+.kb-tab{flex:1;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;border-radius:14px;background:#fff;color:var(--ksd);
+  box-shadow:3px 3px 0 var(--ksd);font-weight:700;font-size:.92rem;text-align:left}
+.kb-tab small{font-weight:600;font-size:.72rem;padding:3px 9px;border-radius:999px;background:#ffe9a8;color:var(--ksd);white-space:nowrap}
+.kb-tab[aria-selected="true"]{background:var(--ksr);color:#fff}
+.kb-tab[aria-selected="true"] small{background:var(--ksy)}
+@media(max-width:480px){.kb-tab{flex-direction:column;align-items:flex-start;padding:10px 12px;font-size:.84rem}}
+
+/* ---------- the LED destination board ---------- */
+.kb-led{position:relative;margin:0 0 16px;padding:16px 18px 18px;overflow:hidden;border-radius:18px;background:#120804;color:#ffb000;border:3px solid var(--ksd);
+  box-shadow:6px 6px 0 var(--ksr),inset 0 0 44px rgba(255,176,0,.14)}
+.kb-led::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(rgba(0,0,0,.6) 1px,transparent 1.5px) 0 0/4px 4px;opacity:.5}
+.kb-tag{display:block;font-size:.68rem;font-weight:600;letter-spacing:.2em;opacity:.8;text-transform:uppercase}
+.kb-dest{overflow:hidden;white-space:nowrap;margin:8px 0 6px;font:700 clamp(1.3rem,5.4vw,2rem)/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  letter-spacing:.06em;text-transform:uppercase;text-shadow:0 0 12px rgba(255,176,0,.75)}
+.kb-marq{display:inline-flex;animation:kbmarq 16s linear infinite}
+.kb-marq span{padding-right:3rem}
+@keyframes kbmarq{to{transform:translateX(-50%)}}
+.kb-row{display:flex;align-items:baseline;justify-content:space-between;gap:6px 16px;flex-wrap:wrap}
+.kb-time{font:700 clamp(1.5rem,6vw,2.2rem)/1 ui-monospace,Menlo,Consolas,monospace;text-shadow:0 0 12px rgba(255,176,0,.75)}
+.kb-count{font:600 1rem ui-monospace,Menlo,Consolas,monospace;color:#ffd36a}
+.kb-via{display:block;margin-top:6px;font-size:.78rem;opacity:.8;letter-spacing:.04em}
+.kb-track{position:relative;height:28px;margin-top:14px;--p:0}
+.kb-track::before{content:"";position:absolute;left:0;right:22px;top:13px;height:0;border-top:2px dashed rgba(255,176,0,.55)}
+.kb-track::after{content:"";position:absolute;right:2px;top:7px;width:14px;height:14px;border-radius:50%;background:#ffb000;box-shadow:0 0 10px #ffb000}
+.kb-trackbus{position:absolute;top:0;left:calc(var(--p) * (100% - 44px));font-size:1.35rem;line-height:1;transform:scaleX(-1);transition:left 1s linear}
+.kb-led.none .kb-track{display:none}
+
+/* ---------- pinned "my bus" ticket ---------- */
+.kb-ticket{position:relative;margin:0 0 18px;padding:14px 18px;border-radius:16px;background:#fff6d6;color:var(--ksd);border:2px dashed var(--ksr);animation:rise .3s ease}
+.kb-ticket::before,.kb-ticket::after{content:"";position:absolute;top:50%;width:18px;height:18px;margin-top:-9px;border-radius:50%;background:#fdf3df;border:2px dashed var(--ksr)}
+.kb-ticket::before{left:-11px}.kb-ticket::after{right:-11px}
+.kb-ticket .k{display:block;font-size:.68rem;font-weight:700;letter-spacing:.18em;color:var(--ksr)}
+.kb-ticket strong{display:block;font-size:1.05rem;margin:4px 0 2px}
+.kb-ticket .row{align-items:center}
+.kb-ticket-count{font:700 1.3rem ui-monospace,Menlo,Consolas,monospace;color:var(--ksr)}
+.kb-ticket button{padding:6px 14px;font-size:.78rem;background:#fff;color:var(--ksd);box-shadow:none}
+
+/* ---------- trip list ---------- */
+.bus-lists{display:block}
+.bus-col h2{display:none}
+.kb-list{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.kb-trip{border:2px solid var(--ksd);border-radius:16px;background:#fff;overflow:hidden;box-shadow:3px 3px 0 var(--ksd);color:var(--ksd);transition:transform .15s}
+body[data-theme="bus"] .kb-trip-btn{display:grid;grid-template-columns:86px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;padding:13px 16px;border:0;border-radius:0;
+  background:none;color:inherit;text-align:left;font-weight:500;box-shadow:none}
+.kb-trip-btn:hover{transform:none;box-shadow:none;background:rgba(255,196,20,.18)}
+.kb-trip-btn time{font-weight:800;font-variant-numeric:tabular-nums}
+.kb-trip-btn .via{display:block;font-size:.78rem;color:var(--muted)}
+.kb-trip-btn .chev{font-size:.8rem;transition:transform .2s}
+.kb-trip.open .chev{transform:rotate(180deg)}
+.kb-trip.gone{opacity:.45}
+.kb-trip.next{background:var(--ksr);color:#fff;animation:kbnext 2s ease-in-out infinite}
+.kb-trip.next .via{color:inherit;opacity:.85}
+.kb-trip.next .kb-trip-btn:hover{background:rgba(255,255,255,.12)}
+@keyframes kbnext{50%{box-shadow:3px 3px 0 var(--ksd),0 0 0 4px rgba(255,196,20,.55)}}
+.kb-trip.pinned{outline:3px solid var(--ksy);outline-offset:1px}
+.kb-trip .badge{background:rgba(42,13,10,.12);color:inherit}
+.kb-trip.next .badge{background:rgba(255,255,255,.25)}
+.kb-trip .badge.star{background:var(--ksy);color:var(--ksd)}
+.kb-more{display:none;padding:2px 16px 16px}
+.kb-trip.open .kb-more{display:block;animation:rise .25s ease}
+.kb-more .k{display:block;font-size:.68rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;opacity:.7;margin-bottom:8px}
+.kb-stops{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 14px}
+.kb-stop{padding:5px 12px;border-radius:999px;background:#ffe9a8;color:var(--ksd);font-size:.8rem;font-weight:600}
+.kb-stop.end{background:var(--ksd);color:#fff}
+.kb-stop.me{background:var(--ksr);color:#fff}
+.kb-arrow{opacity:.5;font-size:.8rem}
+.kb-pin{padding:8px 18px;font-size:.85rem;background:var(--ksy);color:var(--ksd);box-shadow:3px 3px 0 var(--ksd)}
+.kb-trip.next .kb-pin{box-shadow:3px 3px 0 #000}
+.bus-note{margin-top:26px}
+
+@media(prefers-reduced-motion:reduce){
+  .kb-marq{animation:none}
+  .kb-trackbus{transition:none}
 }

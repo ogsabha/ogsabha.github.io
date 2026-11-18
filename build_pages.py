@@ -6,11 +6,11 @@ Builds every page of Og Sabha.
 
 Writes (next to this script):
   index.html (Food, the home page), classes.html, wall.html, gigs.html, about.html,
-  mess-menu.html, timetable.html, robots.txt, sitemap.xml, .build-state.json
+  mess-menu.html, timetable.html, bus.html, bus-timings.html, robots.txt, sitemap.xml, .build-state.json
 
 Reads:
-  menu.json and timetable.json from data/ first, then from the main folder
-  _src/classes.html, wall.html, gigs.html, about.html (the page bodies; edit these, not the output)
+  menu.json, timetable.json and bus.json from data/ first, then from the main folder
+  _src/classes.html, bus.html, wall.html, gigs.html, about.html (the page bodies; edit these, not the output)
 
 Run it again after every menu or timetable change, and after editing style.css, app.js or anything in _src/.
 Then commit the files it writes. The Food page is generated from menu.json (clock, meal tiles and the menu data
@@ -84,6 +84,7 @@ def ld_script(obj):
 FONT_QS = {
     "food": "family=Poppins:wght@400;500;600;700",
     "classes": "family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Playfair+Display:ital,wght@1,600&family=Caveat:wght@500&family=Poppins:wght@400;500;600",
+    "bus": "family=Poppins:wght@400;500;600;700",
     "wall": "family=Cormorant+Garamond:ital,wght@0,600;1,600&family=Caveat:wght@500&family=Special+Elite",
     "gigs": "family=Inter:wght@400;500;600",
     "about": "family=Montserrat:wght@400;500;600;700&family=Instrument+Serif",
@@ -205,6 +206,13 @@ PAGES = [
         sub="Stay on top of your day: who is teaching, and when.",
     ),
     dict(
+        key="bus", file="bus.html", href="bus.html", url=SITE + "/bus.html", nav="Bus", crumb="Bus", theme="#0b6b3a",
+        title="Og Sabha | KSRTC Bus Timings at DCSMAT Vagamon",
+        desc="KSRTC bus timings at DC College, Vagamon: the next bus to Vagamon and to Moolamattom, plus the full list for the day. Made by students.",
+        h1="DCSMAT Vagamon KSRTC bus timings", vis="never miss\nthe bus.",
+        sub="The next KSRTC bus from DC College, towards Vagamon and Moolamattom.",
+    ),
+    dict(
         key="wall", file="wall.html", href="wall.html", url=SITE + "/wall.html", nav="Wall", crumb="Wall", theme="#0b0908",
         title="Og Sabha | Anonymous Wall for DCSMAT Vagamon Students",
         desc="The Og Sabha wall: an anonymous, moderated space for DCSMAT, Vagamon students to say what they can't say out loud. A person reads every post before it goes up.",
@@ -306,7 +314,7 @@ def inline_data(**data):
 
 
 SITE_LINKS = " &middot; ".join(f'<a href="{p["href"]}">{p["nav"]}</a>' for p in PAGES) + \
-    ' &middot; <a href="mess-menu.html">Mess menu</a> &middot; <a href="timetable.html">Class timetable</a>'
+    ' &middot; <a href="mess-menu.html">Mess menu</a> &middot; <a href="timetable.html">Class timetable</a> &middot; <a href="bus-timings.html">Bus timings</a>'
 
 ABOUT_BLOCK = """    <section class="about" aria-labelledby="about-h">
       <h2 id="about-h">About Og Sabha, the DCSMAT Vagamon student hub</h2>
@@ -315,12 +323,13 @@ ABOUT_BLOCK = """    <section class="about" aria-labelledby="about-h">
         <a href="mess-menu.html">weekly DCSMAT mess menu</a>, find the
         <a href="classes.html">live BBA 2026 or BCA 2026 class timetable</a> with teachers and period timings
         (or the <a href="timetable.html">printable weekly timetable</a>),
+        check the next <a href="bus.html">KSRTC bus from the college</a>,
         share thoughts on the <a href="wall.html">anonymous wall</a>, or hire a classmate on the <a href="gigs.html">gigs board</a>.</p>
     </section>
 """
 
 
-def app_page(spec, menu, tt):
+def app_page(spec, menu, tt, bus):
     key = spec["key"]
     if key == "food":
         top, main, after = "", food_panel(menu), ""
@@ -328,7 +337,7 @@ def app_page(spec, menu, tt):
     else:
         p = parts(key)
         top, main, after = p["TOP"], p["MAIN"], p["AFTER"]
-        data = inline_data(menu=menu, timetable=tt) if key == "classes" else ""
+        data = inline_data(menu=menu, timetable=tt) if key == "classes" else inline_data(bus=bus) if key == "bus" else ""
 
     def tab(p):
         here = p["key"] == key
@@ -385,7 +394,7 @@ def app_page(spec, menu, tt):
 
   <noscript>
     <p class="note">Og Sabha needs JavaScript for live features. You can still read the
-      <a href="mess-menu.html">weekly DCSMAT mess menu</a> and the <a href="timetable.html">BBA and BCA class timetable</a>.</p>
+      <a href="mess-menu.html">weekly DCSMAT mess menu</a> and the <a href="timetable.html">BBA and BCA class timetable</a> and <a href="bus-timings.html">KSRTC bus timings</a>.</p>
   </noscript>
 
   <main>
@@ -506,17 +515,37 @@ def build_timetable(tt):
     )
 
 
+def build_bus(bus):
+    parts_ = []
+    for direction, trips in bus["directions"].items():
+        did = direction.lower().replace(" ", "-")
+        parts_.append(f'    <section id="{esc(did)}">\n    <h2>KSRTC buses {esc(direction[:1].lower() + direction[1:])}</h2>\n    <table>\n      <tr><th>Time</th><th>Bus</th><th>Via</th></tr>')
+        for t in sorted(trips, key=lambda x: x["time"]):
+            note = " (to be confirmed)" if t.get("check") else ""
+            parts_.append(f'      <tr><td class="muted">{esc(t12(t["time"]))}</td><td><strong>{esc(t["route"])}</strong>{note}</td><td>{esc(t.get("via", "-"))}</td></tr>')
+        parts_.append("    </table>\n    </section>")
+    return static_page(
+        path="bus-timings.html",
+        title="Og Sabha | DCSMAT Vagamon KSRTC Bus Timings (Vagamon & Moolamattom)",
+        desc="KSRTC bus timings at DC College, Vagamon: every bus to Vagamon and to Moolamattom with routes and stops. Copied from the college notice, made by students.",
+        h1="DCSMAT Vagamon KSRTC Bus Timings",
+        lead='Buses at the DC College stop, copied from the notice on campus. Timings can change, so confirm with KSRTC. Open the <a href="bus.html">live Bus page</a> to see the next bus.',
+        body="\n".join(parts_), crumb="Bus timings",
+    )
+
+
 def main():
-    menu, tt = load("menu.json"), load("timetable.json")
-    out = {spec["file"]: app_page(spec, menu, tt) for spec in PAGES}
+    menu, tt, bus = load("menu.json"), load("timetable.json"), load("bus.json")
+    out = {spec["file"]: app_page(spec, menu, tt, bus) for spec in PAGES}
     out["mess-menu.html"] = build_menu(menu)
     out["timetable.html"] = build_timetable(tt)
+    out["bus-timings.html"] = build_bus(bus)
 
     final = {name: finish(name, text) for name, text in out.items()}
     final["robots.txt"] = f"User-agent: *\nAllow: /\n\nSitemap: {SITE}/sitemap.xml\n"
 
     order = [(("/" if s["file"] == "index.html" else "/" + s["file"]), s["file"]) for s in PAGES]
-    order += [("/mess-menu.html", "mess-menu.html"), ("/timetable.html", "timetable.html")]
+    order += [("/mess-menu.html", "mess-menu.html"), ("/timetable.html", "timetable.html"), ("/bus-timings.html", "bus-timings.html")]
     final["sitemap.xml"] = ('<?xml version="1.0" encoding="UTF-8"?>\n'
                             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                             + "".join(f"  <url><loc>{SITE}{u}</loc><lastmod>{NEW_STATE[f]['date']}</lastmod></url>\n" for u, f in order)

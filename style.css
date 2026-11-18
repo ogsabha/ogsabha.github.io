@@ -991,23 +991,132 @@ a.brand{text-decoration:none;color:inherit}
 @media(max-width:759px){#food-feature{min-height:0}}
 
 /* =================================================================
-   BUS: KSRTC timings (green, like the buses)
+   BUS: KSRTC theme. Maroon-red bus, cream and yellow, amber LED destination board.
+   Animated road + bus, direction tabs, pinned "my bus" ticket, expandable trips.
 ================================================================= */
 body[data-theme="bus"]{
-  --bg:#eef2ea;--ink:#14221a;--muted:#5d6b62;--cbg:#fff;--cink:#14221a;--accent:#0b6b3a;--on-accent:#fff;
-  --line:rgba(20,34,26,.14);--shadow:0 18px 36px -22px rgba(11,107,58,.5);--radius:22px;--hcase:none;--hls:-.03em}
-body[data-theme="bus"] .hero h1{font-style:italic}
-main .bus-now{width:auto;margin:0 0 6px}
-.bus-lists{display:grid;grid-template-columns:1fr;gap:6px 24px}
-@media(min-width:720px){.bus-lists{grid-template-columns:1fr 1fr}}
-.bus-col h2{font-size:1.4rem;margin:26px 0 12px}
-.bus-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
-.bus-list li{display:grid;grid-template-columns:84px 1fr auto;align-items:center;gap:12px;padding:12px 16px;border-radius:16px;
-  background:var(--cbg);color:var(--cink);border:1px solid var(--line)}
-.bus-list time{font-weight:700;font-variant-numeric:tabular-nums}
-.bus-list .via{display:block;font-size:.8rem;color:var(--muted)}
-.bus-list li.gone{opacity:.45}
-.bus-list li.next{background:var(--accent);color:var(--on-accent);border-color:transparent;box-shadow:var(--shadow)}
-.bus-list li.next .via{color:inherit;opacity:.85}
-.bus-list li.next .badge{background:rgba(255,255,255,.25)}
+  --bg:#fdf3df;--ink:#2a0d0a;--muted:#7a5a52;--cbg:#fff;--cink:#2a0d0a;--accent:#b3141f;--on-accent:#fff;
+  --line:#2a0d0a;--shadow:4px 4px 0 #2a0d0a;--radius:18px;--hcase:uppercase;--hls:-.02em;--hw:800;
+  --ksy:#ffc414;--ksr:#b3141f;--ksd:#2a0d0a;
+  background:repeating-linear-gradient(135deg,#fdf3df 0 22px,#fbecd0 22px 44px)}
+body[data-theme="bus"] .brand{color:var(--ksr);text-transform:none;white-space:nowrap}
+body[data-theme="bus"] .chip{background:#fff;color:var(--ksd);border:2px solid var(--ksd)}
+body[data-theme="bus"] nav{background:#fff;border:2px solid var(--ksd);box-shadow:4px 4px 0 var(--ksd);backdrop-filter:none}
+body[data-theme="bus"] .tab{color:var(--ksd);font-weight:600}
+body[data-theme="bus"] .tab.active{background:var(--ksr);color:#fff}
+body[data-theme="bus"] .hero h1{font-style:normal;color:var(--ksr);font-weight:800;white-space:pre-line;text-transform:uppercase;letter-spacing:-.02em;line-height:.95}
+body[data-theme="bus"] .sub{color:#5a2d26}
+body[data-theme="bus"] button{border:2px solid var(--ksd)}
+body[data-theme="bus"] footer summary,body[data-theme="bus"] footer .muted{color:#7a5a52}
+
+/* ---------- the road scene ---------- */
+.kb-road{position:relative;height:210px;margin:0 0 20px;overflow:hidden;border:2px solid var(--ksd);border-radius:24px;box-shadow:6px 6px 0 var(--ksd);
+  background:linear-gradient(#ffd98a 0,#ffefc7 70%)}
+.kb-sun{position:absolute;top:18px;right:34px;width:54px;height:54px;border-radius:50%;background:#ffb000;box-shadow:0 0 0 10px rgba(255,176,0,.25),0 0 0 22px rgba(255,176,0,.12);animation:kbsun 5s ease-in-out infinite}
+@keyframes kbsun{50%{box-shadow:0 0 0 14px rgba(255,176,0,.3),0 0 0 30px rgba(255,176,0,.1)}}
+.kb-cloud{position:absolute;height:20px;border-radius:999px;background:#fff;opacity:.9;animation:kbcloud linear infinite}
+.kb-cloud::before{content:"";position:absolute;left:14px;top:-12px;width:28px;height:24px;border-radius:50%;background:inherit}
+.kb-cloud.c1{top:26px;width:72px;animation-duration:38s}
+.kb-cloud.c2{top:62px;width:54px;animation-duration:54s;animation-delay:-20s}
+@keyframes kbcloud{from{left:105%}to{left:-30%}}
+.kb-hill{position:absolute;left:0;right:0;background-repeat:repeat-x}
+.kb-hill.far{bottom:48px;height:78px;opacity:.55;background-image:radial-gradient(90px 78px at 90px 100%,#7aa366 98%,transparent 100%);background-size:180px 78px;animation:kbhill 60s linear infinite}
+.kb-hill.near{bottom:44px;height:54px;background-image:radial-gradient(60px 54px at 60px 100%,#4f8a46 98%,transparent 100%);background-size:120px 54px;animation:kbhill2 26s linear infinite}
+@keyframes kbhill{to{background-position-x:-180px}}
+@keyframes kbhill2{to{background-position-x:-120px}}
+.kb-ground{position:absolute;left:0;right:0;bottom:0;height:48px;background:#2f2a2a;border-top:6px solid #fff3d0}
+.kb-dash{position:absolute;left:0;right:0;top:22px;height:4px;background:repeating-linear-gradient(90deg,var(--ksy) 0 28px,transparent 28px 56px);animation:kbdash .55s linear infinite}
+@keyframes kbdash{to{background-position-x:-56px}}
+.kb-hint{position:absolute;left:14px;bottom:12px;margin:0;font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#fff3d0;opacity:.8}
+
+.kb-bus{position:absolute;left:50%;bottom:22px;width:232px;margin-left:-116px;padding:0;border:0;border-radius:0;background:none;box-shadow:none;cursor:pointer;z-index:2;
+  -webkit-tap-highlight-color:transparent;animation:kbidle 1.1s ease-in-out infinite}
+body[data-theme="bus"] .kb-bus{border:0}
+.kb-bus:hover{transform:none;box-shadow:none}
+.kb-bus svg{display:block;width:100%;height:auto;overflow:visible}
+@keyframes kbidle{50%{translate:0 -2px}}
+.kb-wheel{transform-box:fill-box;transform-origin:center;animation:kbspin .45s linear infinite}
+@keyframes kbspin{to{transform:rotate(360deg)}}
+.kb-lamp{animation:kblamp 1.6s ease-in-out infinite}
+@keyframes kblamp{50%{opacity:.45}}
+.kb-bus.go{animation:kbgo 2.4s cubic-bezier(.5,0,.5,1) 1}
+@keyframes kbgo{0%{transform:translateX(0)}44%{transform:translateX(230%)}45%{transform:translateX(-230%)}100%{transform:translateX(0)}}
+.kb-bus.go .kb-wheel{animation-duration:.18s}
+.kb-bus:focus-visible{outline:3px solid var(--ksy);outline-offset:4px;border-radius:12px}
+
+/* ---------- direction tabs ---------- */
+.kb-tabs{display:flex;gap:10px;margin:0 0 16px}
+.kb-tab{flex:1;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;border-radius:14px;background:#fff;color:var(--ksd);
+  box-shadow:3px 3px 0 var(--ksd);font-weight:700;font-size:.92rem;text-align:left}
+.kb-tab small{font-weight:600;font-size:.72rem;padding:3px 9px;border-radius:999px;background:#ffe9a8;color:var(--ksd);white-space:nowrap}
+.kb-tab[aria-selected="true"]{background:var(--ksr);color:#fff}
+.kb-tab[aria-selected="true"] small{background:var(--ksy)}
+@media(max-width:480px){.kb-tab{flex-direction:column;align-items:flex-start;padding:10px 12px;font-size:.84rem}}
+
+/* ---------- the LED destination board ---------- */
+.kb-led{position:relative;margin:0 0 16px;padding:16px 18px 18px;overflow:hidden;border-radius:18px;background:#120804;color:#ffb000;border:3px solid var(--ksd);
+  box-shadow:6px 6px 0 var(--ksr),inset 0 0 44px rgba(255,176,0,.14)}
+.kb-led::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(rgba(0,0,0,.6) 1px,transparent 1.5px) 0 0/4px 4px;opacity:.5}
+.kb-tag{display:block;font-size:.68rem;font-weight:600;letter-spacing:.2em;opacity:.8;text-transform:uppercase}
+.kb-dest{overflow:hidden;white-space:nowrap;margin:8px 0 6px;font:700 clamp(1.3rem,5.4vw,2rem)/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  letter-spacing:.06em;text-transform:uppercase;text-shadow:0 0 12px rgba(255,176,0,.75)}
+.kb-marq{display:inline-flex;animation:kbmarq 16s linear infinite}
+.kb-marq span{padding-right:3rem}
+@keyframes kbmarq{to{transform:translateX(-50%)}}
+.kb-row{display:flex;align-items:baseline;justify-content:space-between;gap:6px 16px;flex-wrap:wrap}
+.kb-time{font:700 clamp(1.5rem,6vw,2.2rem)/1 ui-monospace,Menlo,Consolas,monospace;text-shadow:0 0 12px rgba(255,176,0,.75)}
+.kb-count{font:600 1rem ui-monospace,Menlo,Consolas,monospace;color:#ffd36a}
+.kb-via{display:block;margin-top:6px;font-size:.78rem;opacity:.8;letter-spacing:.04em}
+.kb-track{position:relative;height:28px;margin-top:14px;--p:0}
+.kb-track::before{content:"";position:absolute;left:0;right:22px;top:13px;height:0;border-top:2px dashed rgba(255,176,0,.55)}
+.kb-track::after{content:"";position:absolute;right:2px;top:7px;width:14px;height:14px;border-radius:50%;background:#ffb000;box-shadow:0 0 10px #ffb000}
+.kb-trackbus{position:absolute;top:0;left:calc(var(--p) * (100% - 44px));font-size:1.35rem;line-height:1;transform:scaleX(-1);transition:left 1s linear}
+.kb-led.none .kb-track{display:none}
+
+/* ---------- pinned "my bus" ticket ---------- */
+.kb-ticket{position:relative;margin:0 0 18px;padding:14px 18px;border-radius:16px;background:#fff6d6;color:var(--ksd);border:2px dashed var(--ksr);animation:rise .3s ease}
+.kb-ticket::before,.kb-ticket::after{content:"";position:absolute;top:50%;width:18px;height:18px;margin-top:-9px;border-radius:50%;background:#fdf3df;border:2px dashed var(--ksr)}
+.kb-ticket::before{left:-11px}.kb-ticket::after{right:-11px}
+.kb-ticket .k{display:block;font-size:.68rem;font-weight:700;letter-spacing:.18em;color:var(--ksr)}
+.kb-ticket strong{display:block;font-size:1.05rem;margin:4px 0 2px}
+.kb-ticket .row{align-items:center}
+.kb-ticket-count{font:700 1.3rem ui-monospace,Menlo,Consolas,monospace;color:var(--ksr)}
+.kb-ticket button{padding:6px 14px;font-size:.78rem;background:#fff;color:var(--ksd);box-shadow:none}
+
+/* ---------- trip list ---------- */
+.bus-lists{display:block}
+.bus-col h2{display:none}
+.kb-list{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.kb-trip{border:2px solid var(--ksd);border-radius:16px;background:#fff;overflow:hidden;box-shadow:3px 3px 0 var(--ksd);color:var(--ksd);transition:transform .15s}
+body[data-theme="bus"] .kb-trip-btn{display:grid;grid-template-columns:86px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;padding:13px 16px;border:0;border-radius:0;
+  background:none;color:inherit;text-align:left;font-weight:500;box-shadow:none}
+.kb-trip-btn:hover{transform:none;box-shadow:none;background:rgba(255,196,20,.18)}
+.kb-trip-btn time{font-weight:800;font-variant-numeric:tabular-nums}
+.kb-trip-btn .via{display:block;font-size:.78rem;color:var(--muted)}
+.kb-trip-btn .chev{font-size:.8rem;transition:transform .2s}
+.kb-trip.open .chev{transform:rotate(180deg)}
+.kb-trip.gone{opacity:.45}
+.kb-trip.next{background:var(--ksr);color:#fff;animation:kbnext 2s ease-in-out infinite}
+.kb-trip.next .via{color:inherit;opacity:.85}
+.kb-trip.next .kb-trip-btn:hover{background:rgba(255,255,255,.12)}
+@keyframes kbnext{50%{box-shadow:3px 3px 0 var(--ksd),0 0 0 4px rgba(255,196,20,.55)}}
+.kb-trip.pinned{outline:3px solid var(--ksy);outline-offset:1px}
+.kb-trip .badge{background:rgba(42,13,10,.12);color:inherit}
+.kb-trip.next .badge{background:rgba(255,255,255,.25)}
+.kb-trip .badge.star{background:var(--ksy);color:var(--ksd)}
+.kb-more{display:none;padding:2px 16px 16px}
+.kb-trip.open .kb-more{display:block;animation:rise .25s ease}
+.kb-more .k{display:block;font-size:.68rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;opacity:.7;margin-bottom:8px}
+.kb-stops{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 14px}
+.kb-stop{padding:5px 12px;border-radius:999px;background:#ffe9a8;color:var(--ksd);font-size:.8rem;font-weight:600}
+.kb-stop.end{background:var(--ksd);color:#fff}
+.kb-stop.me{background:var(--ksr);color:#fff}
+.kb-arrow{opacity:.5;font-size:.8rem}
+.kb-pin{padding:8px 18px;font-size:.85rem;background:var(--ksy);color:var(--ksd);box-shadow:3px 3px 0 var(--ksd)}
+.kb-trip.next .kb-pin{box-shadow:3px 3px 0 #000}
 .bus-note{margin-top:26px}
+
+@media(prefers-reduced-motion:reduce){
+  .kb-marq{animation:none}
+  .kb-trackbus{transition:none}
+}

@@ -887,7 +887,7 @@ function scheduleWhisper() {
   }, 12000 + Math.random() * 18000);
 }
 
-// Called from activateTab.
+// Called from initWall (and off when the tab is hidden).
 function wallActive(on) {
   if (WL.on === on) return;
   WL.on = on;
@@ -1659,51 +1659,191 @@ function initAbout() {
 
 /* =================================================================
    BUS
-   bus.json is written into the page by build_pages.py. Shows the next KSRTC bus each way and the full day list.
+   bus.json is written into the page by build_pages.py. KSRTC-style page: animated road and bus (tap to honk),
+   an LED destination board with a live countdown, direction tabs, tap a trip to see its stops, pin one as "my bus".
 ================================================================= */
 let bus = null;
+const BS = { dir: null, open: null, pin: store.get("busPin", ""), target: null, pinTarget: null, ac: null };
+const secNow = () => { const d = new Date(); return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds(); };
+const fmtCount = (s) => {
+  s = Math.max(0, s);
+  const m = Math.floor(s / 60), r = s % 60;
+  return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : m > 0 ? `${m} min ${pad(r)} s` : `${r} s`;
+};
+const busSecs = (t) => toMin(t.time) * 60;
+const busSorted = (dir) => [...bus.directions[dir]].sort((a, b) => toMin(a.time) - toMin(b.time));
+const nextBusIn = (dir, s) => busSorted(dir).find((t) => busSecs(t) >= s);
+const pinKey = (dir, t) => `${dir}|${t.time}`;
 
 async function initBus() {
   bus = await loadJSON("bus.json");
+  const dirs = Object.keys(bus.directions);
+  const saved = store.get("busDir");
+  const s = secNow();
+  // open on the saved direction, otherwise the one whose next bus leaves first
+  BS.dir = dirs.includes(saved) ? saved : dirs.map((d) => [d, nextBusIn(d, s)]).filter(([, t]) => t)
+    .sort((a, b) => busSecs(a[1]) - busSecs(b[1]))[0]?.[0] || dirs[0];
+
+  $("bus").addEventListener("click", (e) => {
+    const tab = e.target.closest(".kb-tab");
+    const trip = e.target.closest(".kb-trip-btn");
+    const pin = e.target.closest(".kb-pin");
+    const unpin = e.target.closest(".kb-unpin");
+    if (tab) { BS.dir = tab.dataset.dir; BS.open = null; store.set("busDir", BS.dir); renderBus(); }
+    else if (pin) { BS.pin = pin.dataset.key; store.set("busPin", BS.pin); burst(e.clientX, e.clientY, ["🚌", "⭐", "✨"], 8); renderBus(); }
+    else if (unpin) { BS.pin = ""; store.set("busPin", ""); renderBus(); }
+    else if (trip) { const k = trip.dataset.key; BS.open = BS.open === k ? null : k; renderBus(); }
+  });
+  $("kb-bus").addEventListener("click", driveBus);
+
   renderBus();
-  setInterval(() => { if (!document.hidden) renderBus(); }, 30000);
+  setInterval(() => { if (!document.hidden) renderBus(); }, 20000);
+  setInterval(() => { if (!document.hidden) tickBus(); }, 1000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { renderBus(); } });
+}
+
+// Two-tone horn, then the bus drives off the right edge and comes back from the left.
+function driveBus() {
+  const b = $("kb-bus");
+  if (!b.classList.contains("go") && !reduceMotion) {
+    b.classList.add("go");
+    setTimeout(() => b.classList.remove("go"), 2500);
+  }
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const c = BS.ac || (BS.ac = new AC());
+    c.resume?.();
+    const t = c.currentTime;
+    [[392, 0], [311, 0], [392, 0.32], [311, 0.32]].forEach(([f, dt]) => {
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = "square"; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t + dt);
+      g.gain.exponentialRampToValueAtTime(0.07, t + dt + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dt + 0.26);
+      o.connect(g); g.connect(c.destination); o.start(t + dt); o.stop(t + dt + 0.3);
+    });
+  } catch { /* sound is optional */ }
+}
+
+function stopsOf(t) {
+  const via = t.via ? t.via.split(",").map((x) => x.trim()).filter(Boolean) : [];
+  return [...via, t.route];
 }
 
 function renderBus() {
   if (!bus) return;
-  const nm = nowMin();
-  const nowBox = $("bus-now"), listBox = $("bus-lists");
-  nowBox.replaceChildren();
-  listBox.replaceChildren();
-  for (const [dir, list] of Object.entries(bus.directions)) {
-    const trips = [...list].sort((a, b) => toMin(a.time) - toMin(b.time));
-    const next = trips.find((t) => toMin(t.time) >= nm);
-    const label = (t) => `${fmt12(t.time)} · ${t.route}`;
-    let big, small;
-    if (next) {
-      const diff = toMin(next.time) - nm;
-      big = label(next);
-      small = (diff === 0 ? "Leaving now" : `in ${fmtDur(diff)}`) + (next.via ? ` · via ${next.via}` : "");
-    } else {
-      big = "No more buses today";
-      small = trips.length ? `First bus tomorrow: ${label(trips[0])}` : "";
-    }
-    nowBox.append(el("div", {},
-      el("span", { class: "k", text: `Next bus · ${dir}` }),
-      el("strong", { text: big }),
-      el("span", { class: "muted", text: small })
-    ));
+  const s = secNow();
+  const af = document.activeElement;
+  const refocus = af && af.classList && (af.classList.contains("kb-trip-btn") ? `.kb-trip-btn[data-key="${af.dataset.key}"]`
+    : af.classList.contains("kb-tab") ? `.kb-tab[data-dir="${af.dataset.dir}"]` : null);
+  const dirs = Object.keys(bus.directions);
+  const trips = busSorted(BS.dir);
+  const next = trips.find((t) => busSecs(t) >= s);
 
-    const ol = el("ol", { class: "bus-list" });
-    trips.forEach((t) => {
-      const cls = t === next ? "next" : toMin(t.time) < nm ? "gone" : "";
-      ol.append(el("li", { class: cls },
+  // direction tabs
+  $("bus-dirs").replaceChildren(...dirs.map((d) => {
+    const left = bus.directions[d].filter((t) => busSecs(t) >= s).length;
+    return el("button", {
+      type: "button", class: "kb-tab", role: "tab", "data-dir": d, "aria-selected": String(d === BS.dir)
+    }, el("span", { text: d }), el("small", { text: left ? `${left} left today` : "done today" }));
+  }));
+
+  // LED board
+  const led = $("bus-now");
+  led.classList.toggle("none", !next);
+  BS.target = next ? busSecs(next) : null;
+  let destText, sub;
+  if (next) {
+    destText = `${next.route}  ✦  ${BS.dir}  ✦  `;
+    sub = next.via ? `VIA ${next.via.toUpperCase()}` : "FROM DC COLLEGE STOP";
+  } else {
+    destText = `NO MORE BUSES TODAY  ✦  `;
+    sub = trips.length ? `FIRST BUS TOMORROW: ${fmt12(trips[0].time)} · ${trips[0].route}`.toUpperCase() : "";
+  }
+  led.replaceChildren(
+    el("span", { class: "kb-tag", text: `Next bus · ${BS.dir}${next && next.check ? " · unconfirmed" : ""}` }),
+    el("div", { class: "kb-dest", "aria-hidden": "true" }, el("span", { class: "kb-marq" }, el("span", { text: destText }), el("span", { text: destText }))),
+    el("span", { class: "sr-only", text: next ? `${next.route}, ${fmt12(next.time)}` : "No more buses today" }),
+    next ? el("div", { class: "kb-row" },
+      el("strong", { class: "kb-time", text: fmt12(next.time) }),
+      el("span", { class: "kb-count", id: "kb-count" })) : null,
+    next ? el("div", { class: "kb-track", id: "kb-track", "aria-hidden": "true" }, el("i", { class: "kb-trackbus", text: "🚌" })) : null,
+    el("span", { class: "kb-via", text: sub })
+  );
+  // the sign on the bus shows the same destination
+  const sign = $("kb-sign");
+  if (sign) sign.textContent = (next ? next.route : "KSRTC").toUpperCase().slice(0, 14);
+
+  // pinned bus ticket
+  const mine = $("my-bus");
+  mine.replaceChildren();
+  BS.pinTarget = null;
+  if (BS.pin) {
+    const [pd, pt] = BS.pin.split("|");
+    const pt_ = (bus.directions[pd] || []).find((t) => t.time === pt);
+    if (pt_) {
+      const gone = busSecs(pt_) < s;
+      BS.pinTarget = gone ? null : busSecs(pt_);
+      mine.append(el("div", { class: "kb-ticket" },
+        el("span", { class: "k", text: "★ MY BUS" }),
+        el("div", { class: "row" },
+          el("div", {}, el("strong", { text: `${fmt12(pt_.time)} · ${pt_.route}` }), el("span", { class: "muted", text: `${pd}${pt_.via ? ` · via ${pt_.via}` : ""}` })),
+          el("span", { class: "kb-ticket-count", id: "kb-pin-count", text: gone ? "left" : "" })),
+        el("div", { class: "actions" }, el("button", { type: "button", class: "kb-unpin", text: "Unpin" }))
+      ));
+    }
+  }
+
+  // trip list
+  const ol = el("ol", { class: "kb-list" });
+  trips.forEach((t) => {
+    const key = pinKey(BS.dir, t);
+    const isNext = t === next, gone = busSecs(t) < s, open = BS.open === key, pinned = BS.pin === key;
+    const stops = stopsOf(t);
+    const chain = [el("span", { class: "kb-stop me", text: "DC College" })];
+    stops.forEach((st, i) => {
+      chain.push(el("span", { class: "kb-arrow", "aria-hidden": "true", text: "➜" }));
+      chain.push(el("span", { class: "kb-stop" + (i === stops.length - 1 ? " end" : ""), text: st }));
+    });
+    ol.append(el("li", { class: ["kb-trip", isNext && "next", gone && "gone", open && "open", pinned && "pinned"].filter(Boolean).join(" ") },
+      el("button", { type: "button", class: "kb-trip-btn", "data-key": key, "aria-expanded": String(open) },
         el("time", { datetime: t.time, text: fmt12(t.time) }),
         el("span", {}, t.route, t.via ? el("span", { class: "via", text: `via ${t.via}` }) : null),
-        t.check ? el("span", { class: "badge grey", text: "unconfirmed" }) : t === next ? el("span", { class: "badge", text: "next" }) : null
-      ));
-    });
-    listBox.append(el("section", { class: "bus-col" }, el("h2", { text: dir }), ol));
+        el("span", {},
+          pinned ? el("span", { class: "badge star", text: "★ pinned" })
+            : t.check ? el("span", { class: "badge", text: "unconfirmed" })
+            : isNext ? el("span", { class: "badge", text: "next" }) : null,
+          " ", el("span", { class: "chev", "aria-hidden": "true", text: "▼" }))),
+      el("div", { class: "kb-more" },
+        el("span", { class: "k", text: "Stops on this service" }),
+        el("div", { class: "kb-stops" }, chain),
+        gone ? null : pinned ? el("button", { type: "button", class: "kb-unpin", text: "Unpin this bus" })
+          : el("button", { type: "button", class: "kb-pin", "data-key": key, text: "★ Pin as my bus" }))
+    ));
+  });
+  $("bus-lists").replaceChildren(el("section", { class: "bus-col" }, ol));
+  if (refocus) document.querySelector(refocus)?.focus({ preventScroll: true });
+  tickBus();
+}
+
+// Runs every second: only the countdown text and the little bus on the board change.
+function tickBus() {
+  if (!bus) return;
+  const s = secNow();
+  const c = $("kb-count");
+  if (c && BS.target != null) {
+    const left = BS.target - s;
+    if (left < -1) { renderBus(); return; }               // it has gone: show the next one
+    c.textContent = left <= 0 ? "leaving now" : `in ${fmtCount(left)}`;
+    const tr = $("kb-track");
+    if (tr) tr.style.setProperty("--p", String(Math.min(1, Math.max(0, 1 - left / 3600)).toFixed(3)));   // bus rolls in over the last hour
+  }
+  const pc = $("kb-pin-count");
+  if (pc && BS.pinTarget != null) {
+    const left = BS.pinTarget - s;
+    if (left < -1) { renderBus(); return; }
+    pc.textContent = left <= 0 ? "leaving now" : fmtCount(left);
   }
 }
 

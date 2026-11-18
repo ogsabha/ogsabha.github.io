@@ -157,7 +157,7 @@ function showLoadError(err) {
   console.error(err);
   const n = $("setup-note");
   n.hidden = false;
-  n.textContent = "Could not load the menu or timetable file. Check that the JSON files are uploaded and have no typos.";
+  n.textContent = "Could not load the menu, timetable or bus file. Check that the JSON files are uploaded and have no typos.";
 }
 
 function burst(x, y, emojis, n = 10) {
@@ -1657,12 +1657,63 @@ function initAbout() {
   root.querySelector(".ab2-links button").classList.add("on");
 }
 
+/* =================================================================
+   BUS
+   bus.json is written into the page by build_pages.py. Shows the next KSRTC bus each way and the full day list.
+================================================================= */
+let bus = null;
+
+async function initBus() {
+  bus = await loadJSON("bus.json");
+  renderBus();
+  setInterval(() => { if (!document.hidden) renderBus(); }, 30000);
+}
+
+function renderBus() {
+  if (!bus) return;
+  const nm = nowMin();
+  const nowBox = $("bus-now"), listBox = $("bus-lists");
+  nowBox.replaceChildren();
+  listBox.replaceChildren();
+  for (const [dir, list] of Object.entries(bus.directions)) {
+    const trips = [...list].sort((a, b) => toMin(a.time) - toMin(b.time));
+    const next = trips.find((t) => toMin(t.time) >= nm);
+    const label = (t) => `${fmt12(t.time)} · ${t.route}`;
+    let big, small;
+    if (next) {
+      const diff = toMin(next.time) - nm;
+      big = label(next);
+      small = (diff === 0 ? "Leaving now" : `in ${fmtDur(diff)}`) + (next.via ? ` · via ${next.via}` : "");
+    } else {
+      big = "No more buses today";
+      small = trips.length ? `First bus tomorrow: ${label(trips[0])}` : "";
+    }
+    nowBox.append(el("div", {},
+      el("span", { class: "k", text: `Next bus · ${dir}` }),
+      el("strong", { text: big }),
+      el("span", { class: "muted", text: small })
+    ));
+
+    const ol = el("ol", { class: "bus-list" });
+    trips.forEach((t) => {
+      const cls = t === next ? "next" : toMin(t.time) < nm ? "gone" : "";
+      ol.append(el("li", { class: cls },
+        el("time", { datetime: t.time, text: fmt12(t.time) }),
+        el("span", {}, t.route, t.via ? el("span", { class: "via", text: `via ${t.via}` }) : null),
+        t.check ? el("span", { class: "badge grey", text: "unconfirmed" }) : t === next ? el("span", { class: "badge", text: "next" }) : null
+      ));
+    });
+    listBox.append(el("section", { class: "bus-col" }, el("h2", { text: dir }), ol));
+  }
+}
+
 /* ---------- start (each page runs only its own section) ---------- */
 const safe = (fn) => { try { const r = fn(); if (r && r.catch) r.catch((e) => console.error(e)); } catch (e) { console.error(e); } };
 safe(greet);
 setInterval(() => { if (!document.hidden) greet(); }, 60000);
 if (PAGE === "food") initFood().catch(showLoadError);
 else if (PAGE === "classes") initClasses().catch(showLoadError);
+else if (PAGE === "bus") initBus().catch(showLoadError);
 else if (PAGE === "wall") safe(initWall);
 else if (PAGE === "gigs") { safe(initGigs); safe(initGlobe); }
 else if (PAGE === "about") safe(initAbout);

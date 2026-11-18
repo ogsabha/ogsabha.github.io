@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://ogsabha.github.io/</loc><lastmod>2026-11-17</lastmod></url>
-  <url><loc>https://ogsabha.github.io/classes.html</loc><lastmod>2026-11-17</lastmod></url>
-  <url><loc>https://ogsabha.github.io/wall.html</loc><lastmod>2026-11-17</lastmod></url>
-  <url><loc>https://ogsabha.github.io/gigs.html</loc><lastmod>2026-11-17</lastmod></url>
-  <url><loc>https://ogsabha.github.io/about.html</loc><lastmod>2026-11-17</lastmod></url>
-  <url><loc>https://ogsabha.github.io/mess-menu.html</loc><lastmod>2026-11-17</lastmod></url>
-  <url><loc>https://ogsabha.github.io/timetable.html</loc><lastmod>2026-11-17</lastmod></url>
+  <url><loc>https://ogsabha.github.io/</loc><lastmod>2026-11-18</lastmod></url>
+  <url><loc>https://ogsabha.github.io/classes.html</loc><lastmod>2026-11-18</lastmod></url>
+  <url><loc>https://ogsabha.github.io/bus.html</loc><lastmod>2026-11-18</lastmod></url>
+  <url><loc>https://ogsabha.github.io/wall.html</loc><lastmod>2026-11-18</lastmod></url>
+  <url><loc>https://ogsabha.github.io/gigs.html</loc><lastmod>2026-11-18</lastmod></url>
+  <url><loc>https://ogsabha.github.io/about.html</loc><lastmod>2026-11-18</lastmod></url>
+  <url><loc>https://ogsabha.github.io/mess-menu.html</loc><lastmod>2026-11-18</lastmod></url>
+  <url><loc>https://ogsabha.github.io/timetable.html</loc><lastmod>2026-11-18</lastmod></url>
+  <url><loc>https://ogsabha.github.io/bus-timings.html</loc><lastmod>2026-11-18</lastmod></url>
 </urlset>

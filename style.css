@@ -1177,3 +1177,16 @@ body[data-theme="bus"] footer{padding-inline:20px}
   .jp-forest{width:130%}
   .jp-title{font-size:clamp(3.2rem,16vw,5.8rem)}
 }
+
+/* BUS: the red square is a plain home link now (no dropdown); the top links are the only navigation, same as other pages. */
+a.jp-burger{text-decoration:none;color:#fff;font-weight:800;font-size:.8rem;letter-spacing:.06em}
+a.jp-burger:hover{background:#c91f26}
+a.jp-burger:focus-visible{outline:2px solid #111;outline-offset:-4px}
+@media(max-width:820px){
+  .jp-top{flex-wrap:wrap;height:auto;min-height:46px;padding:0 18px 0 64px;row-gap:0}
+  .jp-logo{line-height:46px}
+  .jp-nav{display:flex;order:3;flex:0 0 100%;margin:0;padding:2px 0 10px;gap:22px;overflow-x:auto;justify-content:flex-start;scrollbar-width:none}
+  .jp-nav::-webkit-scrollbar{display:none}
+  .jp-nav a{white-space:nowrap;font-size:.78rem}
+  .jp-ico{height:46px}
+}

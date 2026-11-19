@@ -66,7 +66,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Malayalam:wght@700&display=swap">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Malayalam:wght@700&display=swap"></noscript>
-  <link rel="stylesheet" href="style.css?v=aa4e3f6f">
+  <link rel="stylesheet" href="style.css?v=eba965ae">
   <script type="module" src="app.js?v=170504cc"></script>
 </head>
 <body data-theme="bus" data-page="bus">
@@ -97,9 +97,7 @@
     <section id="bus" class="panel active">
   <div class="jp">
     <aside class="jp-side">
-      <button type="button" class="jp-burger" id="jp-burger" aria-label="Open menu" aria-expanded="false" aria-controls="jp-menu">
-        <svg viewBox="0 0 20 14" width="20" height="14" aria-hidden="true"><path d="M0 1h20M5 7h15M0 13h20" stroke="#fff" stroke-width="1.8" fill="none"/></svg>
-      </button>
+      <a class="jp-burger" href="./" aria-label="Og Sabha home">OS</a>
       <ol class="jp-dots" aria-label="On this page">
         <li><a href="#jp-top" class="on" aria-current="true" aria-label="Top"></a></li>
         <li><a href="#bus-now" aria-label="Next bus"></a></li>
@@ -113,7 +111,6 @@
         <nav class="jp-nav" aria-label="Main"><a href="./">Food</a><a href="classes.html">Classes</a><a href="bus.html" aria-current="page">Bus</a><a href="wall.html">Wall</a><a href="gigs.html">Gigs</a><a href="about.html">About</a></nav>
         <a class="jp-ico" href="#bus-now" aria-label="Jump to the next bus"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M12 7v5l3.4 2" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></a>
       </header>
-      <div class="jp-menu" id="jp-menu" hidden><nav aria-label="All pages"><a href="./">Food</a><a href="classes.html">Classes</a><a href="bus.html" aria-current="page">Bus</a><a href="wall.html">Wall</a><a href="gigs.html">Gigs</a><a href="about.html">About</a><a href="mess-menu.html">Mess menu</a><a href="timetable.html">Class timetable</a><a href="bus-timings.html">Bus timings list</a></nav></div>
 
       <div class="jp-hero" id="jp-top">
         <div class="jp-text">
@@ -165,13 +162,6 @@
   </div>
   <script>
   (function(){
-    var b=document.getElementById("jp-burger"),m=document.getElementById("jp-menu");
-    if(b&&m){
-      var set=function(o){b.setAttribute("aria-expanded",String(o));b.setAttribute("aria-label",o?"Close menu":"Open menu");m.hidden=!o};
-      b.addEventListener("click",function(e){e.stopPropagation();set(m.hidden)});
-      document.addEventListener("click",function(e){if(!m.hidden&&!m.contains(e.target))set(false)});
-      document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!m.hidden){set(false);b.focus()}});
-    }
     var dots=[].slice.call(document.querySelectorAll(".jp-dots a"));
     if(dots.length&&"IntersectionObserver" in window){
       var io=new IntersectionObserver(function(es){es.forEach(function(en){

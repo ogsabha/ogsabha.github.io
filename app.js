@@ -1741,6 +1741,10 @@ function renderBus() {
   const trips = busSorted(BS.dir);
   const next = trips.find((t) => busSecs(t) >= s);
 
+  // big headline on the hero shows where the selected direction goes
+  const jd = $("jp-dest");
+  if (jd) { const nm = BS.dir.replace(/^To\s+/i, ""); jd.textContent = nm + "."; jd.classList.toggle("long", nm.length > 9); }
+
   // direction tabs
   $("bus-dirs").replaceChildren(...dirs.map((d) => {
     const left = bus.directions[d].filter((t) => busSecs(t) >= s).length;

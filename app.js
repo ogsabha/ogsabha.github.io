@@ -708,20 +708,70 @@ async function removeNotice(id) {
 }
 
 /* =================================================================
-   WALL: a confession evidence board.
-   - Every approved post is a pinned file. Red string links them. Words are blacked out until you open the file.
-   - Tap or press Enter on a file to declassify it. Drag it (mouse) and the strings follow.
-   - A dark room with one light: it follows the pointer, rests on the open file, and drifts back to the lamp when idle.
-   - "Lights" makes the room bright. Reduced motion turns off the string draw-in and flip animation.
+   WALL: a haunted wall.
+   - Posts sit dim in the dark. A torch beam follows the mouse (or your finger) and wakes whatever it touches.
+   - Eyes creep in from the edges and slowly get closer. Shine the light on them, or tap them, to drive them off.
+     Ignore them and they lunge.
+   - "Turn on the lights" makes everything readable. Sound is opt-in. Reduced motion turns off the creeping bits.
 ================================================================= */
 let approvedPosts = [];
 let pendingPosts = [];
 let unsubPending = null;
 const reportedKey = "reportedPosts";
 const reportedSet = () => { try { return new Set(JSON.parse(store.get(reportedKey, "[]"))); } catch { return new Set(); } };
-const idHash = (id) => { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
-const WL = { lamp: store.get("wlLamp") === "1", cx: 0, cy: 0, x: 0, y: 0, last: 0, focus: null, pos: {}, drawn: false, intro: 0, raf: 0 };
 
+const EYE_LIFE = 13000;
+const idHash = (id) => { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
+const WL = {
+  on: false, lamp: store.get("wlLamp") === "1",
+  x: innerWidth / 2, y: innerHeight * 0.4, tx: innerWidth / 2, ty: innerHeight * 0.4, r: 190,
+  lastInput: 0, focusEl: null, raf: 0, tick: 0, dipUntil: 0,
+  eyes: [], eyeTimer: 0, beatTimer: 0, dread: 0, posts: [],
+  fx: null, pulse: null, eyesBox: null, watcher: null, title: null, look: 0
+};
+
+/* ---------- sound (opt-in): a low drone, plus a heartbeat that quickens when something is close ---------- */
+const Snd = {
+  ctx: null, master: null, filt: null, on: false, active: true,
+  start() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return false;
+    if (!this.ctx) {
+      const c = (this.ctx = new AC());
+      this.master = c.createGain(); this.master.gain.value = 0; this.master.connect(c.destination);
+      this.filt = c.createBiquadFilter(); this.filt.type = "lowpass"; this.filt.frequency.value = 150; this.filt.Q.value = 3; this.filt.connect(this.master);
+      [[46, "sawtooth", 0.16], [46.7, "sawtooth", 0.16], [92.3, "sine", 0.1], [138, "triangle", 0.03]].forEach(([f, type, g]) => {
+        const o = c.createOscillator(), og = c.createGain();
+        o.type = type; o.frequency.value = f; og.gain.value = g;
+        o.connect(og); og.connect(this.filt); o.start();
+      });
+      const lfo = c.createOscillator(), lg = c.createGain();
+      lfo.frequency.value = 0.07; lg.gain.value = 60; lfo.connect(lg); lg.connect(this.filt.frequency); lfo.start();
+    }
+    this.ctx.resume?.();
+    this.on = true; this.apply();
+    return true;
+  },
+  stop() { this.on = false; this.apply(); },
+  apply() { if (this.master) this.master.gain.setTargetAtTime(this.on && this.active ? 0.55 : 0, this.ctx.currentTime, 0.4); },
+  setActive(a) { this.active = a; this.apply(); },
+  tense(d) { if (this.filt && this.on) this.filt.frequency.setTargetAtTime(150 + d * 260, this.ctx.currentTime, 0.5); },
+  thump(s = 0.6) {
+    if (!this.on || !this.active || !this.ctx) return;
+    const c = this.ctx, t = c.currentTime;
+    [0, 0.19].forEach((dt, i) => {
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(95, t + dt); o.frequency.exponentialRampToValueAtTime(48, t + dt + 0.16);
+      g.gain.setValueAtTime(0.0001, t + dt);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.001, s * (i ? 0.6 : 1) * 0.9), t + dt + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dt + 0.2);
+      o.connect(g); g.connect(this.master); o.start(t + dt); o.stop(t + dt + 0.25);
+    });
+  }
+};
+
+/* ---------- setup ---------- */
 function initWall() {
   const text = $("post-text");
   text.addEventListener("input", () => { $("post-count").textContent = `${text.value.length} / 300`; });
@@ -743,8 +793,8 @@ function initWall() {
       store.set("lastPost", Date.now());
       text.value = "";
       $("post-count").textContent = "0 / 300";
-      msg.textContent = "Filed. A person reads it before it goes on the board.";
-      const s = $("wl-stamp"); s.classList.remove("on"); void s.offsetWidth; s.classList.add("on");
+      msg.textContent = "The wall heard you. It will appear once a person approves it.";
+      carve();
     } catch (err) {
       console.error(err);
       msg.textContent = "Could not post. Try again later.";
@@ -757,152 +807,218 @@ function initWall() {
       renderWall();
     }, (err) => console.warn("Could not read posts:", err.code));
   });
+
   initWallScene();
+  wallActive(true);
+}
+
+// A scratch across the form, then something notices.
+function carve() {
+  const f = $("post-form");
+  f.classList.remove("carved"); void f.offsetWidth; f.classList.add("carved");
+  setTimeout(() => f.classList.remove("carved"), 1100);
+  Snd.thump(0.8);
+  pulse(0.5);
+  setTimeout(() => spawnEye(), 1500);
 }
 
 function syncWallButtons() {
-  const b = $("wl-lamp");
-  if (b) { b.textContent = WL.lamp ? "Lights: on" : "Lights: dim"; b.setAttribute("aria-pressed", String(WL.lamp)); }
+  const lamp = $("wl-lamp"), snd = $("wl-sound");
+  if (lamp) { lamp.textContent = WL.lamp ? "Turn off the lights" : "Turn on the lights"; lamp.setAttribute("aria-pressed", String(WL.lamp)); }
+  if (snd) { snd.textContent = Snd.on ? "Sound: on" : "Sound: off"; snd.setAttribute("aria-pressed", String(Snd.on)); }
 }
-const wallHint = (t) => { const h = $("wl-hint"); if (h) h.textContent = t; };
+function setHint(t) { const h = $("wl-hint"); if (h) h.textContent = t; }
+const aim = (x, y) => { WL.tx = x; WL.ty = y; WL.lastInput = performance.now(); };
+const sizeTorch = () => { WL.r = Math.max(125, Math.min(230, Math.min(innerWidth, innerHeight) * 0.32)); };
 
 function initWallScene() {
-  const room = $("wl-room"), fx = $("wl-fx");
+  WL.fx = $("wl-fx"); WL.pulse = $("wl-pulse"); WL.eyesBox = $("wl-eyes");
+  WL.watcher = $("wl-watcher"); WL.title = document.querySelector(".wl-title");
   document.body.classList.toggle("wl-lamp", WL.lamp);
   syncWallButtons();
-  wallHint(matchMedia("(pointer: coarse)").matches ? "Tap a file to read it in full." : "Click a file to read it in full. Drag files to rearrange the strings.");
+  setHint(matchMedia("(pointer: coarse)").matches
+    ? "Something is watching. Drag your finger to move the light. Tap its eyes."
+    : "Something is watching. Move the light over its eyes.");
 
-  const toggleLights = () => {
+  $("wl-lamp").addEventListener("click", () => {
     WL.lamp = !WL.lamp;
     store.set("wlLamp", WL.lamp ? "1" : "0");
     document.body.classList.toggle("wl-lamp", WL.lamp);
+    if (WL.lamp) { clearEyes(); setHint("The lights are on. It is still there."); }
     syncWallButtons();
-  };
-  $("wl-lamp").addEventListener("click", toggleLights);
-  $("wl-lampsvg").addEventListener("click", toggleLights);
+  });
+  $("wl-sound").addEventListener("click", () => {
+    if (Snd.on) Snd.stop();
+    else if (!Snd.start()) setHint("This browser cannot play the sound.");
+    syncWallButtons();
+  });
   $("wl-down").addEventListener("click", () => goTo("post-form", "center"));
-  $("wl-random").addEventListener("click", () => {
-    const cards = [...document.querySelectorAll("#post-list .wl-card")];
-    if (!cards.length) { wallHint("The board is empty. Be the first to file one."); return; }
-    const c = cards[Math.floor(Math.random() * cards.length)];
-    c.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
-    setTimeout(() => { if (!c.classList.contains("open")) toggleCard(c); }, reduceMotion ? 0 : 450);
-  });
 
-  const aim = (x, y) => { WL.cx = x; WL.cy = y; WL.last = performance.now(); };
-  room.addEventListener("pointermove", (e) => { if (e.pointerType !== "touch") aim(e.clientX, e.clientY); });
-  room.addEventListener("touchmove", (e) => { const t = e.touches[0]; if (t) aim(t.clientX, t.clientY - 60); }, { passive: true });
-  room.addEventListener("touchstart", (e) => { const t = e.touches[0]; if (t) aim(t.clientX, t.clientY - 60); }, { passive: true });
+  window.addEventListener("pointermove", (e) => { if (WL.on && e.pointerType !== "touch") aim(e.clientX, e.clientY); });
+  const onTouch = (e) => { const t = WL.on && e.touches[0]; if (t) aim(t.clientX, t.clientY - 70); }; // beam sits just above the fingertip
+  window.addEventListener("touchstart", onTouch, { passive: true });
+  window.addEventListener("touchmove", onTouch, { passive: true });
+  // while you type, the light rests on the box you are writing in
+  document.addEventListener("focusin", (e) => { if (WL.on && e.target.matches?.("#post-text")) WL.focusEl = e.target; });
+  document.addEventListener("focusout", () => { WL.focusEl = null; });
+  window.addEventListener("resize", sizeTorch);
+  sizeTorch();
+}
 
-  tickFlipClock(); setInterval(tickFlipClock, 10000);
-  addEventListener("resize", drawStrings);
-  if ("ResizeObserver" in window) new ResizeObserver(drawStrings).observe($("post-list"));
-
-  const frame = (now) => {
-    WL.raf = requestAnimationFrame(frame);
-    if (document.hidden) return;
-    const rr = room.getBoundingClientRect();
-    if (rr.bottom < 0 || rr.top > innerHeight) return;
-    let tx = WL.cx, ty = WL.cy;
-    if (WL.focus && WL.focus.isConnected) { const r = WL.focus.getBoundingClientRect(); tx = r.left + r.width / 2; ty = r.top + r.height / 2; }
-    else if (now - WL.last > 3000) {
-      const h = $("wl-lamphead")?.getBoundingClientRect();
-      tx = h && h.width ? h.left + h.width / 2 - 70 : rr.left + rr.width * 0.7;
-      ty = h && h.width ? h.top + h.height / 2 + 150 : rr.top + 160;
+/* ---------- whispers: faint words flash in the dark, now and then ---------- */
+const WHISPERS = ["behind you", "we can see you", "it read this too", "don't turn around", "still here", "you are not alone in here", "it heard that", "keep the light on"];
+let whisperTimer = 0;
+function scheduleWhisper() {
+  clearTimeout(whisperTimer);
+  if (!WL.on || reduceMotion) return;
+  whisperTimer = setTimeout(() => {
+    if (WL.on && !WL.lamp && !document.hidden) {
+      const w = document.createElement("div");
+      w.className = "wl-whisper";
+      w.setAttribute("aria-hidden", "true");
+      w.textContent = WHISPERS[Math.floor(Math.random() * WHISPERS.length)];
+      w.style.left = (6 + Math.random() * 62) + "%";
+      w.style.top = (14 + Math.random() * 68) + "%";
+      w.style.setProperty("--r", (Math.random() * 14 - 7).toFixed(1) + "deg");
+      document.body.append(w);
+      setTimeout(() => w.remove(), 2000);
     }
-    const k = reduceMotion ? 1 : 0.12;
-    WL.x += (tx - rr.left - WL.x) * k; WL.y += (ty - rr.top - WL.y) * k;
-    const r = Math.max(150, Math.min(280, Math.min(innerWidth, innerHeight) * 0.34)) * (reduceMotion ? 1 : 1 + 0.02 * Math.sin(now / 110));
-    fx.style.setProperty("--tx", WL.x.toFixed(1) + "px"); fx.style.setProperty("--ty", WL.y.toFixed(1) + "px"); fx.style.setProperty("--r", r.toFixed(0) + "px");
-  };
-  WL.x = room.getBoundingClientRect().width * 0.65; WL.y = 220;
-  WL.raf = requestAnimationFrame(frame);
+    scheduleWhisper();
+  }, 12000 + Math.random() * 18000);
 }
 
-function tickFlipClock() {
-  const f = $("wl-flip"); if (!f) return;
-  const d = new Date(), v = [d.getHours(), d.getMinutes()].map((n) => String(n).padStart(2, "0"));
-  f.querySelectorAll("b").forEach((b, i) => {
-    if (b.textContent === v[i]) return;
-    b.textContent = v[i];
-    if (!reduceMotion) { b.classList.remove("fl"); void b.offsetWidth; b.classList.add("fl"); }
-  });
-  f.setAttribute("aria-label", `Local time ${v[0]}:${v[1]}`);
+// Called from initWall (and off when the tab is hidden).
+function wallActive(on) {
+  if (WL.on === on) return;
+  WL.on = on;
+  Snd.setActive(on);
+  cancelAnimationFrame(WL.raf); clearTimeout(WL.eyeTimer); clearTimeout(WL.beatTimer); clearTimeout(whisperTimer);
+  if (on) {
+    WL.lastInput = performance.now();
+    WL.raf = requestAnimationFrame(wallFrame);
+    scheduleEye(); beat(); scheduleWhisper();
+  } else {
+    clearEyes();
+  }
 }
 
-/* ---------- strings between pins ---------- */
-let strRaf = 0;
-function drawStrings() {
-  cancelAnimationFrame(strRaf);
-  strRaf = requestAnimationFrame(() => {
-    const svg = $("wl-strings"), grid = svg?.parentElement;
-    if (!svg || !grid) return;
-    const b = grid.getBoundingClientRect();
-    svg.setAttribute("viewBox", `0 0 ${b.width} ${b.height}`);
-    const pts = [...grid.querySelectorAll(".wl-card .wl-pin")].map((p) => { const r = p.getBoundingClientRect(); return [r.left + r.width / 2 - b.left, r.top + r.height / 2 - b.top]; });
-    const seg = (a, c, i, cls, sag) => {
-      const mx = (a[0] + c[0]) / 2, my = (a[1] + c[1]) / 2 + sag + Math.hypot(a[0] - c[0], a[1] - c[1]) * 0.07;
-      return `<path class="${cls}" pathLength="1" style="--i:${i}" data-a="${i}" data-b="${cls === "chord" ? i + 3 : i + 1}" d="M${a[0].toFixed(1)} ${a[1].toFixed(1)}Q${mx.toFixed(1)} ${my.toFixed(1)} ${c[0].toFixed(1)} ${c[1].toFixed(1)}"/>`;
-    };
-    let out = "";
-    for (let i = 0; i < pts.length - 1; i++) out += seg(pts[i], pts[i + 1], i, "s", 10);
-    for (let i = 0; i + 3 < pts.length; i += 3) out += seg(pts[i], pts[i + 3], i, "chord", 24);
-    svg.innerHTML = out;
-    if (!WL.drawn && pts.length > 1) {
-      WL.drawn = true;
-      if (!reduceMotion) { svg.classList.add("intro"); WL.intro = setTimeout(() => svg.classList.remove("intro"), 1200 + pts.length * 80); }
+/* ---------- the loop: torch, what it lights, eyes, dread ---------- */
+function wallFrame(now) {
+  if (!WL.on) return;
+  WL.raf = requestAnimationFrame(wallFrame);
+  if (document.hidden || !WL.fx) return;
+  WL.tick++;
+  const t = now || performance.now();
+
+  let tx = WL.tx, ty = WL.ty;
+  if (WL.focusEl && WL.focusEl.isConnected) {
+    const r = WL.focusEl.getBoundingClientRect();
+    tx = r.left + r.width / 2; ty = r.top + Math.min(r.height / 2, 150);
+  } else if (t - WL.lastInput > 3000 && !reduceMotion) {
+    tx = innerWidth * (0.5 + 0.28 * Math.sin(t / 2300)); ty = innerHeight * (0.45 + 0.22 * Math.sin(t / 1700 + 1)); // nobody holding it: it drifts
+  }
+  const k = reduceMotion ? 1 : 0.1;
+  WL.x += (tx - WL.x) * k; WL.y += (ty - WL.y) * k;
+
+  let r = WL.r;
+  if (!reduceMotion) {
+    r *= 1 + 0.025 * Math.sin(t / 90) + 0.02 * Math.sin(t / 37);
+    if (t < WL.dipUntil) r *= 0.62; else if (Math.random() < 0.004) WL.dipUntil = t + 140; // now and then the beam stutters
+  }
+  const fx = WL.fx.style;
+  fx.setProperty("--tx", `${WL.x.toFixed(1)}px`); fx.setProperty("--ty", `${WL.y.toFixed(1)}px`); fx.setProperty("--r", `${r.toFixed(0)}px`);
+  if (WL.title) {
+    WL.title.style.setProperty("--gx", ((WL.x / innerWidth - 0.5) * 2).toFixed(2));
+    WL.title.style.setProperty("--gy", ((WL.y / innerHeight - 0.5) * 2).toFixed(2));
+  }
+  if (WL.tick % 2) return;
+
+  const reach = WL.r * 0.9;
+  for (const p of WL.posts) {
+    const b = p.getBoundingClientRect();
+    if (b.bottom < 0 || b.top > innerHeight) { p.classList.remove("lit"); continue; }
+    const dx = Math.max(b.left - WL.x, 0, WL.x - b.right), dy = Math.max(b.top - WL.y, 0, WL.y - b.bottom);
+    p.classList.toggle("lit", Math.hypot(dx, dy) < reach);
+  }
+
+  if (WL.watcher) {
+    const b = WL.watcher.getBoundingClientRect();
+    if (b.bottom > 0 && b.top < innerHeight) {
+      const cx = b.left + b.width / 2, cy = b.top + b.height * 0.25;
+      WL.watcher.classList.toggle("lit", Math.hypot(cx - WL.x, cy - WL.y) < reach);
+      const look = Math.max(-1, Math.min(1, (WL.x - cx) / (innerWidth * 0.45)));
+      if (Math.abs(look - WL.look) > 0.03) { WL.look = look; WL.watcher.style.setProperty("--look", look.toFixed(2)); }
     }
-  });
-}
-function heatStrings(i, on) {
-  document.querySelectorAll("#wl-strings path").forEach((p) => {
-    const hit = Number(p.dataset.a) === i || Number(p.dataset.b) === i;
-    p.classList.toggle("hot", on && hit);
-  });
+  }
+
+  const nowMs = performance.now();
+  let dread = 0;
+  for (const it of [...WL.eyes]) {
+    const b = it.e.getBoundingClientRect();
+    const cx = b.left + b.width / 2, cy = b.top + b.height / 2;
+    const dx = WL.x - cx, dy = WL.y - cy, d = Math.hypot(dx, dy) || 1;
+    it.e.style.setProperty("--px", (dx / d).toFixed(2)); it.e.style.setProperty("--py", (dy / d).toFixed(2));
+    const age = nowMs - it.born;
+    if (age > 700 && d < reach * 0.8) { fleeEye(it); setHint("It will be back."); continue; }
+    dread = Math.max(dread, Math.min(1, age / EYE_LIFE));
+  }
+  WL.dread += (dread - WL.dread) * 0.1;
+  Snd.tense(WL.dread);
 }
 
-/* ---------- a file on the board ---------- */
-function redact(text, seed) {
-  let k = seed || 7;
-  return text.split(/(\s+)/).map((w) => {
-    if (!w.trim() || w.length < 4) return w;
-    k = (Math.imul(k, 1103515245) + 12345) >>> 0;
-    return (k >>> 8) % 100 < 24 ? el("span", { class: "rd", text: w }) : w;
-  });
+/* ---------- eyes ---------- */
+function scheduleEye() {
+  clearTimeout(WL.eyeTimer);
+  if (!WL.on || reduceMotion) return;
+  WL.eyeTimer = setTimeout(() => { spawnEye(); scheduleEye(); }, 6000 + Math.random() * 7000);
 }
-function toggleCard(card) {
-  const open = !card.classList.contains("open");
-  document.querySelectorAll("#post-list .wl-card.open").forEach((c) => { c.classList.remove("open"); c.setAttribute("aria-expanded", "false"); });
-  card.classList.toggle("open", open);
-  card.setAttribute("aria-expanded", String(open));
-  WL.focus = open ? card : null;
-  setTimeout(drawStrings, 280);
+function spawnEye() {
+  if (!WL.on || WL.lamp || reduceMotion || document.hidden || !WL.eyesBox) return;
+  if (WL.eyes.length >= (isPhone() ? 1 : 2)) return;
+  const s = isPhone() ? 46 : 60, w = innerWidth, h = innerHeight, side = Math.random();
+  let x, y;
+  if (side < 0.4) { x = 0.07 + Math.random() * 0.1; y = 0.2 + Math.random() * 0.6; }
+  else if (side < 0.8) { x = 0.83 + Math.random() * 0.1; y = 0.2 + Math.random() * 0.6; }
+  else { x = 0.15 + Math.random() * 0.7; y = Math.random() < 0.5 ? 0.1 : 0.9; }
+  const px = Math.min(Math.max(x * w, s), w - s), py = Math.min(Math.max(y * h, s), h - s);
+  const e = el("div", { class: "wl-eye", style: `--x:${px}px;--y:${py}px;--s:${s}px` },
+    el("span", { class: "eb" }, el("b")), el("span", { class: "eb" }, el("b")));
+  const it = { e, born: performance.now(), gone: false };
+  e.addEventListener("click", () => { fleeEye(it); setHint("It will be back."); });
+  WL.eyesBox.append(e); WL.eyes.push(it);
+  requestAnimationFrame(() => requestAnimationFrame(() => e.classList.add("in")));
+  it.timer = setTimeout(() => lungeEye(it), EYE_LIFE);
+  Snd.thump(0.35);
 }
-function wireCard(card, id, idx) {
-  let sx = 0, sy = 0, bx = 0, by = 0, down = false, moved = false;
-  card.addEventListener("pointerdown", (e) => {
-    if (e.target.closest("button")) return;
-    down = true; moved = false; sx = e.clientX; sy = e.clientY;
-    [bx, by] = WL.pos[id] || [0, 0];
-    if (e.pointerType !== "touch") card.setPointerCapture(e.pointerId);
-  });
-  card.addEventListener("pointermove", (e) => {
-    if (!down || e.pointerType === "touch") return;
-    const dx = e.clientX - sx, dy = e.clientY - sy;
-    if (!moved && Math.hypot(dx, dy) < 6) return;
-    moved = true; card.classList.add("drag");
-    WL.pos[id] = [bx + dx, by + dy];
-    card.style.setProperty("--dx", (bx + dx) + "px"); card.style.setProperty("--dy", (by + dy) + "px");
-    drawStrings();
-  });
-  const end = () => { if (!down) return; down = false; card.classList.remove("drag"); if (!moved) toggleCard(card); drawStrings(); };
-  card.addEventListener("pointerup", end);
-  card.addEventListener("pointercancel", () => { down = false; card.classList.remove("drag"); });
-  card.addEventListener("keydown", (e) => { if (e.target === card && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggleCard(card); } });
-  card.addEventListener("pointerenter", () => heatStrings(idx, true));
-  card.addEventListener("pointerleave", () => heatStrings(idx, false));
-  card.addEventListener("focus", () => heatStrings(idx, true));
-  card.addEventListener("blur", () => heatStrings(idx, false));
+function dropEye(it) { it.gone = true; clearTimeout(it.timer); WL.eyes = WL.eyes.filter((x) => x !== it); setTimeout(() => it.e.remove(), 400); }
+function fleeEye(it) {
+  if (it.gone) return;
+  it.e.style.transform = getComputedStyle(it.e).transform; // freeze at the current size, then fade
+  it.e.classList.add("out");
+  dropEye(it);
+}
+function lungeEye(it) { // it got too close
+  if (it.gone) return;
+  it.e.classList.add("lunge");
+  dropEye(it);
+  pulse(0.75); Snd.thump(1);
+  setHint("It was right there.");
+}
+function clearEyes() { [...WL.eyes].forEach((it) => { it.gone = true; clearTimeout(it.timer); it.e.remove(); }); WL.eyes = []; WL.dread = 0; }
+
+/* ---------- heartbeat (the red vignette, and the thump when sound is on) ---------- */
+function pulse(strength) {
+  const p = WL.pulse;
+  if (!p || reduceMotion) return;
+  p.style.setProperty("--pi", strength.toFixed(2));
+  p.classList.remove("b"); void p.offsetWidth; p.classList.add("b");
+}
+function beat() {
+  clearTimeout(WL.beatTimer);
+  if (!WL.on) return;
+  const d = WL.dread;
+  if (d > 0.12) { pulse(Math.min(0.2 + d * 0.45, 0.65)); Snd.thump(0.4 + d * 0.6); }
+  WL.beatTimer = setTimeout(beat, 1500 - 900 * d);
 }
 
 /* ---------- posts ---------- */
@@ -923,35 +1039,33 @@ function renderWall() {
   if (!ready) return;
   const staff = !!currentUser;
   const reported = reportedSet();
+
+  // Students never see posts with 3+ reports. Staff still do, with the count.
   const visible = approvedPosts.filter((p) => staff || (p.reports || 0) < 3).sort(newestFirst);
 
   const list = $("post-list");
-  const openId = list.querySelector(".wl-card.open")?.dataset.id;
   list.replaceChildren();
-  WL.focus = null;
-  if (!visible.length) list.append(el("p", { class: "wl-empty", text: "No files yet. Be the first to file a confession." }));
-  visible.forEach((p, idx) => {
+  if (!visible.length) list.append(el("p", { class: "wl-empty", text: "Nothing on the wall yet. It is waiting for you." }));
+  visible.forEach((p) => {
     const h = idHash(p.id);
     const done = reported.has(p.id);
     const actions = el("div", { class: "wl-act" },
-      el("button", { type: "button", class: "wl-mini", text: done ? "Reported" : "Report", disabled: done ? "" : null, onclick: () => reportPost(p.id) }),
+      el("button", { type: "button", class: "wl-mini", text: done ? "Hushed" : "Hush", disabled: done ? "" : null, onclick: () => reportPost(p.id) }),
       staff ? el("button", { type: "button", class: "wl-mini danger", text: `Delete (${p.reports || 0} reports)`, onclick: () => removePost(p.id) }) : null
     );
-    const [dx, dy] = WL.pos[p.id] || [0, 0];
-    const card = el("article", {
-      class: `wl-card k${h % 4}`, tabindex: "0", role: "button", "aria-expanded": "false", "data-id": p.id,
-      style: `--rot:${((((h >> 3) % 9) - 4) * 0.7).toFixed(2)}deg;--dx:${dx}px;--dy:${dy}px`
-    },
-      el("i", { class: "wl-pin" }),
-      el("p", { class: "wl-text" }, redact(p.text, h)),
-      el("p", { class: "wl-meta", text: `File ${String(visible.length - idx).padStart(3, "0")}, ${postTime(p)}` }),
+    const card = el("article", { class: `wl-post v${h % 4}`, style: `--rot:${((((h >> 3) % 9) - 4) * 0.45).toFixed(2)}deg` },
+      el("p", { class: "wl-text", text: p.text }),
+      el("p", { class: "wl-meta", text: `heard ${postTime(p)}` }),
       actions);
-    wireCard(card, p.id, idx);
+    // touch it and it stirs
+    card.addEventListener("click", (e) => {
+      if (e.target.closest("button")) return;
+      card.classList.remove("stir"); void card.offsetWidth; card.classList.add("stir");
+    });
     list.append(card);
-    if (p.id === openId) { card.classList.add("open"); card.setAttribute("aria-expanded", "true"); WL.focus = card; }
   });
-  $("wl-count").textContent = visible.length ? `${visible.length} ${visible.length === 1 ? "confession" : "confessions"} on file` : "";
-  drawStrings();
+  WL.posts = [...list.querySelectorAll(".wl-post")];
+  $("wl-count").textContent = visible.length ? `${visible.length} ${visible.length === 1 ? "voice" : "voices"} on the wall` : "";
 
   $("pending-box").hidden = !staff;
   const pl = $("pending-list");

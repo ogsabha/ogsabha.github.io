@@ -1,48 +1,61 @@
 <!--TOP-->
+<div class="wl-fx" id="wl-fx" aria-hidden="true"><div class="wl-dark"></div><div class="wl-glow"></div><div class="wl-pulse" id="wl-pulse"></div></div>
+  <div class="wl-eyes" id="wl-eyes" aria-hidden="true"></div>
 <!--MAIN-->
 <section id="wall" class="panel active">
-  <div class="wl-room" id="wl-room">
-    <div class="wl-inner">
-      <div class="wl-copy">
-        <h2 class="wl-title">A confession&rsquo;s trace</h2>
-        <p class="wl-brief">The collected <i class="bar"></i> files let us hear our <i class="bar b2"></i> voices.</p>
-        <p class="wl-lede">Nothing here has a name. A person reads every file before it goes on the board.</p>
-        <div class="wl-tools" role="group" aria-label="Board tools">
-          <button type="button" class="wl-btn" id="wl-random">Pull a random file</button>
-          <button type="button" class="wl-btn" id="wl-lamp" aria-pressed="false">Lights: dim</button>
-          <button type="button" class="wl-btn" id="wl-down">File a confession</button>
+      <div class="wl-scene">
+        <svg class="wl-cracks" viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true">
+          <g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" opacity=".75">
+            <path d="M118 0 L128 46 L112 80 L132 120 L118 152 L140 198 L130 234 L146 300" stroke-width="2.2"/>
+            <path d="M128 46 L164 62 L180 96 L174 120" stroke-width="1.3"/>
+            <path d="M132 120 L96 134 L78 172" stroke-width="1.3"/>
+            <path d="M140 198 L178 212 L192 250" stroke-width="1.1"/>
+            <path d="M312 0 L300 38 L318 72 L298 112 L306 140" stroke-width="1.8"/>
+            <path d="M318 72 L350 84 L362 118" stroke-width="1.1"/>
+            <path d="M0 232 L34 226 L52 244 L90 238" stroke-width="1.2"/>
+          </g>
+        </svg>
+        <div class="wl-watcher" id="wl-watcher" aria-hidden="true">
+          <svg viewBox="0 0 120 360">
+            <path class="w-fill" d="M60 118 C36 124 28 168 26 230 L22 360 L98 360 L94 230 C92 168 84 124 60 118Z"/>
+            <path class="w-arm" d="M34 150 C20 210 16 270 20 330 M86 150 C100 210 104 270 100 330"/>
+            <g class="w-head">
+              <ellipse class="w-fill" cx="60" cy="88" rx="22" ry="31"/>
+              <circle class="w-eye" cx="51" cy="84" r="2.6"/><circle class="w-eye" cx="69" cy="84" r="2.6"/>
+            </g>
+          </svg>
         </div>
-        <p class="wl-hint" id="wl-hint">Tap a file to read it in full. Drag files to rearrange the strings.</p>
-        <div class="wl-flip" id="wl-flip" role="img" aria-label="Local time"><b>--</b><b>--</b></div>
+        <div class="wl-copy">
+          <h2 class="wl-title" data-t="The walls are listening">The walls are listening</h2>
+          <p class="wl-lede">Say what you can't say out loud. Posts carry no name, and a person reads every one before it goes up. The wall keeps everything. Move the light to read what others left behind.</p>
+          <div class="wl-tools" role="group" aria-label="Wall settings">
+            <button type="button" class="wl-btn" id="wl-lamp" aria-pressed="false">Turn on the lights</button>
+            <button type="button" class="wl-btn" id="wl-sound" aria-pressed="false">Sound: off</button>
+          </div>
+          <p class="wl-hint" id="wl-hint">Something is watching. Don't let it get close. Shine the light on its eyes.</p>
+        </div>
+        <button type="button" class="wl-down" id="wl-down" aria-label="Go to the writing spot"><span aria-hidden="true">&darr;</span></button>
       </div>
 
-      <div class="wl-board">
-        <button type="button" class="wl-lampbtn" id="wl-lampsvg" aria-label="Pull the lamp chain">
-          <svg viewBox="0 0 150 190" aria-hidden="true"><path class="lp-arm" d="M30 178 L60 120 L112 52"/><path class="lp-arm" d="M30 178 L92 134 L112 52" opacity=".5"/><path class="lp-shade" d="M86 40 L138 30 L128 78 Z"/><circle id="wl-lamphead" cx="120" cy="64" r="7" fill="#ffe6a8"/><rect x="8" y="176" width="66" height="9" rx="3" class="lp-arm"/></svg>
-        </button>
-        <div class="wl-grid">
-          <svg class="wl-strings" id="wl-strings" aria-hidden="true"></svg>
-          <div id="post-list" class="wl-posts"><p class="wl-empty">Opening the case&hellip;</p></div>
+      <form id="post-form" class="wl-carve">
+        <label for="post-text" class="wl-label">Leave a whisper for the wall. It is listening</label>
+        <textarea id="post-text" maxlength="300" rows="4"
+          placeholder="Whisper something into the dark. Please do not name or target anyone."></textarea>
+        <div class="row">
+          <span id="post-count" class="muted">0 / 300</span>
+          <button type="submit">Whisper it</button>
         </div>
-        <div class="wl-posts-head"><span class="muted" id="wl-count" aria-live="polite"></span></div>
+        <p id="post-msg" class="muted" aria-live="polite"></p>
+      </form>
+
+      <div id="pending-box" hidden>
+        <h2 class="wl-h">Waiting for approval</h2>
+        <div id="pending-list"></div>
       </div>
-    </div>
-    <div class="wl-fx" id="wl-fx" aria-hidden="true"><div class="wl-dark"></div></div>
-  </div>
 
-  <div id="pending-box" class="wl-pendbox" hidden>
-    <h2 class="wl-h">Waiting for approval</h2>
-    <div id="pending-list"></div>
-  </div>
-
-  <form id="post-form" class="wl-file">
-    <span class="wl-stamp" id="wl-stamp" aria-hidden="true">Filed</span>
-    <label for="post-text" class="wl-label">Form 23-55: confession</label>
-    <textarea id="post-text" maxlength="300" rows="5" placeholder="Type what you have never said out loud. Do not name or target anyone."></textarea>
-    <div class="row">
-      <span id="post-count" class="muted">0 / 300</span>
-      <button type="submit">Seal and file</button>
-    </div>
-    <p id="post-msg" class="muted" aria-live="polite"></p>
-  </form>
-</section>
+      <div class="wl-posts-head">
+        <h2 class="wl-h">What the wall remembers</h2>
+        <span class="muted" id="wl-count" aria-live="polite"></span>
+      </div>
+      <div id="post-list" class="wl-posts"><p class="wl-empty">The wall is waking up&hellip;</p></div>
+    </section>

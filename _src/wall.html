@@ -1,61 +1,68 @@
-<!--TOP-->
-<div class="wl-fx" id="wl-fx" aria-hidden="true"><div class="wl-dark"></div><div class="wl-glow"></div><div class="wl-pulse" id="wl-pulse"></div></div>
-  <div class="wl-eyes" id="wl-eyes" aria-hidden="true"></div>
 <!--MAIN-->
 <section id="wall" class="panel active">
       <div class="wl-scene">
-        <svg class="wl-cracks" viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true">
-          <g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" opacity=".75">
-            <path d="M118 0 L128 46 L112 80 L132 120 L118 152 L140 198 L130 234 L146 300" stroke-width="2.2"/>
-            <path d="M128 46 L164 62 L180 96 L174 120" stroke-width="1.3"/>
-            <path d="M132 120 L96 134 L78 172" stroke-width="1.3"/>
-            <path d="M140 198 L178 212 L192 250" stroke-width="1.1"/>
-            <path d="M312 0 L300 38 L318 72 L298 112 L306 140" stroke-width="1.8"/>
-            <path d="M318 72 L350 84 L362 118" stroke-width="1.1"/>
-            <path d="M0 232 L34 226 L52 244 L90 238" stroke-width="1.2"/>
-          </g>
-        </svg>
-        <div class="wl-watcher" id="wl-watcher" aria-hidden="true">
-          <svg viewBox="0 0 120 360">
-            <path class="w-fill" d="M60 118 C36 124 28 168 26 230 L22 360 L98 360 L94 230 C92 168 84 124 60 118Z"/>
-            <path class="w-arm" d="M34 150 C20 210 16 270 20 330 M86 150 C100 210 104 270 100 330"/>
-            <g class="w-head">
-              <ellipse class="w-fill" cx="60" cy="88" rx="22" ry="31"/>
-              <circle class="w-eye" cx="51" cy="84" r="2.6"/><circle class="w-eye" cx="69" cy="84" r="2.6"/>
-            </g>
+        <div class="wl-board" aria-hidden="true">
+          <span class="it np n1"><b>Told no one for three years</b><i></i></span>
+          <span class="it np n2"><b>No name on the note</b><i></i></span>
+          <span class="it ph p1"></span>
+          <span class="it ph p2"></span>
+          <span class="it ph p3"></span>
+          <span class="it map"></span>
+          <span class="it tag">Og Sabha</span>
+          <svg class="wl-string" viewBox="0 0 400 300" preserveAspectRatio="none">
+            <path pathLength="1" d="M208 62 L150 150 L190 156 L128 236 L256 236 L232 170 L208 62 M150 150 L232 170 M190 156 L256 236 M176 112 L240 200 M128 236 L232 170"/>
+            <g><circle cx="208" cy="62" r="3"/><circle cx="150" cy="150" r="3"/><circle cx="190" cy="156" r="3"/><circle cx="128" cy="236" r="3"/><circle cx="256" cy="236" r="3"/><circle cx="232" cy="170" r="3"/></g>
           </svg>
         </div>
+
         <div class="wl-copy">
-          <h2 class="wl-title" data-t="The walls are listening">The walls are listening</h2>
-          <p class="wl-lede">Say what you can't say out loud. Posts carry no name, and a person reads every one before it goes up. The wall keeps everything. Move the light to read what others left behind.</p>
+          <h2 class="wl-title">A student&rsquo;s confession</h2>
+          <p class="wl-lede">The collected <span class="wl-redact"></span> whispers allowed us to hear our <span class="wl-redact"></span> students.</p>
+          <p class="wl-rule">Say what you can&rsquo;t say out loud. No names, not even yours. A person reads every confession before it goes up.</p>
           <div class="wl-tools" role="group" aria-label="Wall settings">
-            <button type="button" class="wl-btn" id="wl-lamp" aria-pressed="false">Turn on the lights</button>
-            <button type="button" class="wl-btn" id="wl-sound" aria-pressed="false">Sound: off</button>
+            <button type="button" class="wl-btn" id="wl-lamp" aria-pressed="false">Turn off the lamp</button>
           </div>
-          <p class="wl-hint" id="wl-hint">Something is watching. Don't let it get close. Shine the light on its eyes.</p>
         </div>
-        <button type="button" class="wl-down" id="wl-down" aria-label="Go to the writing spot"><span aria-hidden="true">&darr;</span></button>
+
+        <div class="wl-lampfig" aria-hidden="true">
+          <i class="wl-halo"></i>
+          <svg viewBox="0 0 200 300">
+            <path d="M140 272 L112 170 L134 78" fill="none" stroke="#0b0e11" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M140 272 L112 170 L134 78" fill="none" stroke="#25323c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(-2 -1)"/>
+            <path d="M140 68 C122 38 70 38 50 92 L98 110 C112 92 126 82 140 68Z" fill="#0d1216" stroke="#2b3944" stroke-width="1.5"/>
+            <ellipse class="wl-bulb" cx="76" cy="102" rx="24" ry="8" transform="rotate(20 76 102)"/>
+            <circle cx="112" cy="170" r="6" fill="#161e25"/><circle cx="134" cy="78" r="6" fill="#161e25"/>
+            <rect x="112" y="268" width="56" height="18" rx="5" fill="#0b0e11"/>
+          </svg>
+        </div>
+
+        <div class="wl-desk" aria-hidden="true">
+          <div class="wl-clock"><b>23</b><b>55</b></div>
+          <div class="wl-cup"></div>
+          <div class="wl-papers"><i></i><i></i><i></i><i></i></div>
+        </div>
+        <button type="button" class="wl-down" id="wl-down" aria-label="Go to the confession form"><span aria-hidden="true">&darr;</span></button>
       </div>
 
       <form id="post-form" class="wl-carve">
-        <label for="post-text" class="wl-label">Leave a whisper for the wall. It is listening</label>
-        <textarea id="post-text" maxlength="300" rows="4"
-          placeholder="Whisper something into the dark. Please do not name or target anyone."></textarea>
+        <label for="post-text" class="wl-label">Confession form. Write it down.</label>
+        <textarea id="post-text" maxlength="300" rows="5"
+          placeholder="What do you need to get off your chest? Please do not name or target anyone."></textarea>
         <div class="row">
           <span id="post-count" class="muted">0 / 300</span>
-          <button type="submit">Whisper it</button>
+          <button type="submit">File confession</button>
         </div>
         <p id="post-msg" class="muted" aria-live="polite"></p>
       </form>
 
       <div id="pending-box" hidden>
-        <h2 class="wl-h">Waiting for approval</h2>
+        <h2 class="wl-h wl-pendh">Waiting for approval</h2>
         <div id="pending-list"></div>
       </div>
 
       <div class="wl-posts-head">
-        <h2 class="wl-h">What the wall remembers</h2>
+        <h2 class="wl-h">Confessions on file</h2>
         <span class="muted" id="wl-count" aria-live="polite"></span>
       </div>
-      <div id="post-list" class="wl-posts"><p class="wl-empty">The wall is waking up&hellip;</p></div>
+      <div id="post-list" class="wl-posts"><p class="wl-empty">Opening the case file&hellip;</p></div>
     </section>

@@ -66,8 +66,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;800&family=DM+Mono:wght@400;500&display=swap">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;800&family=DM+Mono:wght@400;500&display=swap"></noscript>
-  <link rel="stylesheet" href="style.css?v=34f0174b">
-  <script type="module" src="app.js?v=6a6a8924"></script>
+  <link rel="stylesheet" href="style.css?v=30cf08ca">
+  <script type="module" src="app.js?v=4f1e77e8"></script>
 </head>
 <body data-theme="aeline" data-page="classes">
     <div class="topbar">
@@ -94,84 +94,53 @@
   </noscript>
 
   <main>
-    <div class="ax">
-  <section class="ax-hero" aria-label="Today's classes">
-    <div class="ax-sky" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-    <div class="ax-bar">
-      <a class="ax-logo" href="./" aria-label="Og Sabha home"><svg viewBox="0 0 28 22" width="28" height="22" aria-hidden="true"><path d="M3 20 11 3l8 17h-4.4L11 12.2 7.4 20z" fill="currentColor"/><path d="m18 20 3-6.6L24 20z" fill="currentColor" opacity=".7"/></svg><span>Og Sabha</span></a>
-      <nav class="ax-links" id="ax-links" aria-label="Sections"><a href="./">Food</a><a class="on" href="classes.html" aria-current="page">Classes</a><a href="bus.html">Bus</a><a href="wall.html">Wall</a><a href="gigs.html">Gigs</a><a href="about.html">About</a></nav>
-      <button type="button" class="ax-pill" id="ax-class-btn">BBA 2026</button>
-      <button type="button" class="ax-burger" id="ax-burger" aria-expanded="false" aria-controls="ax-links" aria-label="Menu"><i></i><i></i></button>
-    </div>
-    <div class="ax-copy">
-      <p class="ax-h1" aria-hidden="true">Your day at DCSMAT,<br><em>at a glance.</em></p>
-      <p class="ax-sub">Who is teaching, what is next and whether the teacher is in. Live, for BBA and BCA.</p>
-      <div class="ax-btns">
-        <button type="button" class="ax-ghost" id="ax-live">Live now</button>
-        <button type="button" class="ax-cta" id="ax-open"><span>Open timetable</span><b aria-hidden="true"><svg viewBox="0 0 12 12" width="12" height="12"><path d="M2 10 10 2M4 2h6v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></b></button>
-      </div>
-    </div>
-    <div class="ax-stage" id="ax-stage" tabindex="0" role="group" aria-label="Periods of the day. Use the left and right arrow keys."><div class="ax-track" id="ax-track"></div></div>
-    <p class="ax-rated" id="ax-rated" aria-live="polite">Loading your periods...</p>
-    <div class="ax-stars" id="ax-stars"></div>
-  </section>
-
-  <div class="ax-marquee" aria-hidden="true"><div class="ax-mtrack" id="ax-mtrack"></div></div>
-
-  <section class="ax-about" aria-labelledby="ax-big">
-    <p class="ax-eyebrow"><i></i>About your day</p>
-    <h2 class="ax-big" id="ax-big">Your day, planned in one place.</h2>
-    <div class="ax-bento">
-      <article class="ax-b ax-b-now">
-        <p class="ax-bname" id="ax-bname">BBA 2026</p>
-        <a class="ax-bico" href="#ax-plan" aria-label="Jump to the timetable"><svg viewBox="0 0 16 16" width="16" height="16"><path d="M3 13V8M8 13V3M13 13V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></a>
-        <div class="ax-bpanel">
-          <div class="ax-bbig"><span id="ax-now-n">-</span> <small id="ax-now-u"></small></div>
-          <p class="ax-bsmall" id="ax-now-sub">Loading...</p>
-          <div class="ax-prog" id="ax-now-bar" hidden><i></i></div>
+    <section id="classes" class="panel active">
+      <div class="cl-ctrl">
+        <div id="class-chips" class="cl-classes" role="group" aria-label="Your class"></div>
+        <select id="class-select" aria-label="Your class" hidden></select>
+        <div id="day-chips" class="daynav" role="group" aria-label="Day of the week">
+          <button type="button" class="dchip" data-day="Monday" aria-label="Monday">Mon</button><button type="button" class="dchip" data-day="Tuesday" aria-label="Tuesday">Tue</button><button type="button" class="dchip" data-day="Wednesday" aria-label="Wednesday">Wed</button><button type="button" class="dchip" data-day="Thursday" aria-label="Thursday">Thu</button><button type="button" class="dchip" data-day="Friday" aria-label="Friday">Fri</button><button type="button" class="dchip" data-day="Saturday" aria-label="Saturday">Sat</button><button type="button" class="dchip" data-day="Sunday" aria-label="Sunday">Sun</button>
         </div>
-      </article>
-      <article class="ax-b ax-b-quote">
-        <p class="ax-bk">Day progress</p>
-        <p class="ax-bnum" id="ax-pct">-</p>
-        <div class="ax-avatars" id="ax-avatars"></div>
-        <figure class="ax-q"><blockquote id="quote-text"></blockquote><figcaption id="quote-by"></figcaption></figure>
-      </article>
-      <button type="button" class="ax-b ax-b-stat" id="ax-stat" aria-live="polite">
-        <span class="ax-bk" id="ax-stat-k">Periods this week</span>
-        <span class="ax-bnum" id="ax-stat-n">0</span>
-        <span class="ax-bcap" id="ax-stat-c"></span>
-        <span class="ax-sdots" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-      </button>
-      <article class="ax-b ax-b-next">
-        <div><p class="ax-bk" id="ax-next-k">Next up</p><p class="ax-nsub" id="ax-next-sub"></p></div>
-        <p class="ax-ntime" id="ax-next-t">-</p>
-      </article>
-    </div>
-  </section>
+      </div>
 
-  <section class="ax-plan" id="ax-plan" aria-labelledby="ax-plan-h">
-    <p class="ax-eyebrow"><i></i>Timetable</p>
-    <h2 class="ax-plan-h" id="ax-plan-h">Pick your class and day.</h2>
-    <div class="ax-controls">
-      <label class="ax-selwrap"><span>Your class</span><select id="class-select"></select></label>
-      <div id="day-chips" class="ax-days" role="group" aria-label="Day of the week"></div>
-    </div>
-    <div id="notice-box">
-      <div id="notice-list"></div>
-      <details id="notice-compose" hidden>
-        <summary>＋ Post a notice (admins only)</summary>
-        <form id="notice-form">
-          <p class="muted">Posting to <strong id="notice-to"></strong>. Everyone in that class will see it at the top of the timetable.</p>
-          <textarea id="notice-text" maxlength="400" rows="4" required placeholder="Test moved to Friday, bring your ID card..."></textarea>
-          <div class="row"><span id="notice-count" class="muted">0 / 400</span><button type="submit">Publish notice</button></div>
-          <p id="notice-msg" class="muted"></p>
-        </form>
-      </details>
-    </div>
-    <div id="class-table"></div>
-  </section>
-</div>
+      <div id="notice-box">
+        <div id="notice-list"></div>
+        <details id="notice-compose" hidden>
+          <summary>＋ Post a notice (admins only)</summary>
+          <form id="notice-form">
+            <p class="muted">Posting to <strong id="notice-to"></strong>. Everyone in that class will see it at the top of the timetable.</p>
+            <textarea id="notice-text" maxlength="400" rows="4" required placeholder="Test moved to Friday, bring your ID card..."></textarea>
+            <div class="row"><span id="notice-count" class="muted">0 / 400</span><button type="submit">Publish notice</button></div>
+            <p id="notice-msg" class="muted"></p>
+          </form>
+        </details>
+      </div>
+
+      <div id="cl-feature" class="cl-feature" aria-live="polite">
+        <div class="cl-stage">
+          <div class="cl-slab" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="cl-watch" id="cl-watch" role="button" tabindex="0" aria-label="Tap the clock">
+            <div class="bwrap"><svg viewBox="0 0 100 100" class="bw" aria-hidden="true"><path class="ts" fill="none" d="M54.65 5.74L54.97 2.76M59.25 6.47L59.88 3.54M63.75 7.68L64.68 4.82M68.10 9.35L69.32 6.61M76.16 14.00L77.92 11.57M79.78 16.93L81.78 14.70M83.07 20.22L85.30 18.22M86.00 23.84L88.43 22.08M90.65 31.90L93.39 30.68M92.32 36.25L95.18 35.32M93.53 40.75L96.46 40.12M94.26 45.35L97.24 45.03M94.26 54.65L97.24 54.97M93.53 59.25L96.46 59.88M92.32 63.75L95.18 64.68M90.65 68.10L93.39 69.32M86.00 76.16L88.43 77.92M83.07 79.78L85.30 81.78M79.78 83.07L81.78 85.30M76.16 86.00L77.92 88.43M68.10 90.65L69.32 93.39M63.75 92.32L64.68 95.18M59.25 93.53L59.88 96.46M54.65 94.26L54.97 97.24M45.35 94.26L45.03 97.24M40.75 93.53L40.12 96.46M36.25 92.32L35.32 95.18M31.90 90.65L30.68 93.39M23.84 86.00L22.08 88.43M20.22 83.07L18.22 85.30M16.93 79.78L14.70 81.78M14.00 76.16L11.57 77.92M9.35 68.10L6.61 69.32M7.68 63.75L4.82 64.68M6.47 59.25L3.54 59.88M5.74 54.65L2.76 54.97M5.74 45.35L2.76 45.03M6.47 40.75L3.54 40.12M7.68 36.25L4.82 35.32M9.35 31.90L6.61 30.68M14.00 23.84L11.57 22.08M16.93 20.22L14.70 18.22M20.22 16.93L18.22 14.70M23.84 14.00L22.08 11.57M31.90 9.35L30.68 6.61M36.25 7.68L35.32 4.82M40.75 6.47L40.12 3.54M45.35 5.74L45.03 2.76"/><path class="tb" fill="none" d="M50.00 8.50L50.00 2.50M70.75 14.06L73.75 8.86M85.94 29.25L91.14 26.25M91.50 50.00L97.50 50.00M85.94 70.75L91.14 73.75M70.75 85.94L73.75 91.14M50.00 91.50L50.00 97.50M29.25 85.94L26.25 91.14M14.06 70.75L8.86 73.75M8.50 50.00L2.50 50.00M14.06 29.25L8.86 26.25M29.25 14.06L26.25 8.86"/><text class="n" x="67.00" y="20.56">1</text><text class="n" x="79.44" y="33.00">2</text><text class="n" x="84.00" y="50.00">3</text><text class="n" x="79.44" y="67.00">4</text><text class="n" x="67.00" y="79.44">5</text><text class="n" x="50.00" y="84.00">6</text><text class="n" x="33.00" y="79.44">7</text><text class="n" x="20.56" y="67.00">8</text><text class="n" x="16.00" y="50.00">9</text><text class="n" x="20.56" y="33.00">10</text><text class="n" x="33.00" y="20.56">11</text><text class="n" x="50.00" y="16.00">12</text><line class="bh" x1="50" y1="54" x2="50" y2="31"/><line class="bm" x1="50" y1="56" x2="50" y2="19"/><line class="bs" x1="50" y1="60" x2="50" y2="14"/><circle class="bd" cx="50" cy="50" r="2.4"/></svg></div><span class="cl-wname" id="cl-wname"></span>
+          </div>
+          <div class="cl-rail" id="cl-rail" role="group" aria-label="Period"></div>
+        </div>
+        <div class="cl-copy">
+          <span class="cl-badge" id="cl-badge">Loading</span>
+          <h2 id="cl-h2">&nbsp;</h2>
+          <p class="cl-when"><span id="cl-when"></span><small id="cl-when-sub"></small></p>
+          <div class="cl-prog" id="cl-prog" hidden><i></i></div>
+          <p class="cl-desc" id="cl-desc"></p>
+          <div class="cl-ar"><span class="cl-att" id="cl-att" hidden></span><div class="cl-actions" id="cl-actions"></div></div>
+          <a class="cl-btn" href="timetable.html">Full weekly timetable</a>
+        </div>
+      </div>
+
+      <div id="cl-list" class="cl-list"></div>
+      <div id="cl-dots" class="cl-dots"></div>
+      <p id="cl-sum" class="cl-sum"></p>
+
+      <figure class="cl-quote"><blockquote id="quote-text"></blockquote><figcaption id="quote-by"></figcaption></figure>
+    </section>
   </main>
 
   <footer>

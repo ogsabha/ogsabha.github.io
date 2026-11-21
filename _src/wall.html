@@ -1,86 +1,66 @@
-<!--MAIN-->
-<section id="wall" class="panel active">
-      <div class="cf-stage">
-        <div class="cf-frame" id="cf-frame" data-step="1">
-          <div class="cf-left">
-            <div class="cf-rail">
-              <ol class="cf-steps" aria-label="Confession progress">
-                <li class="cf-step" aria-current="step"><span class="cf-vh">Step 1: pick your sin</span></li>
-                <li class="cf-step"><span class="cf-vh">Step 2: say it</span></li>
-                <li class="cf-step"><span class="cf-vh">Step 3: confessed</span></li>
-              </ol>
-              <span class="cf-side" aria-hidden="true">Confession</span>
-            </div>
-            <div class="cf-copy">
-              <p class="cf-tag">You came here. That&#x27;s the first sin.</p>
-              <h2 class="cf-title"><span class="cf-strike">Hide</span><span>Confess</span><span>your sin</span></h2>
-              <p class="wl-hint" id="wl-hint">Something is watching. Don&#x27;t let it get close. Shine the light on its eyes.</p>
-              <div class="cf-actions">
-                <button type="button" class="cf-pill red" id="wl-down">Confess</button>
-                <button type="button" class="cf-pill" id="cf-read">Read the wall</button>
-              </div>
-              <p class="cf-foot" aria-hidden="true">Guilty for <time id="cf-clock">0:00</time> &middot; Nobody signs a confession.</p>
-            </div>
-          </div>
-
-          <div class="cf-card" id="cf-card">
-            <div class="wl-watcher" id="wl-watcher" aria-hidden="true">
-              <svg viewBox="0 0 120 360">
-                <path class="w-fill" d="M60 118 C36 124 28 168 26 230 L22 360 L98 360 L94 230 C92 168 84 124 60 118Z"/>
-                <path class="w-arm" d="M34 150 C20 210 16 270 20 330 M86 150 C100 210 104 270 100 330"/>
-                <g class="w-head">
-                  <ellipse class="w-fill" cx="60" cy="88" rx="22" ry="31"/>
-                  <circle class="w-eye" cx="51" cy="84" r="2.6"/><circle class="w-eye" cx="69" cy="84" r="2.6"/>
-                </g>
-              </svg>
-            </div>
-            <div class="cf-top">
-              <h3 class="cf-card-title">Your confession</h3>
-              <div class="cf-tools" role="group" aria-label="Wall settings">
-                <button type="button" class="wl-btn" id="wl-lamp" aria-pressed="false">Turn on the lights</button>
-                <button type="button" class="wl-btn" id="wl-sound" aria-pressed="false">Sound: off</button>
-              </div>
-            </div>
-            <p class="cf-meta">2026 <i>|</i> <b>Anonymous</b> <i>|</i> 300 characters <i>|</i> Read by a person first</p>
-            <p class="cf-desc">You walked in, so it counts. Pick what you did and say it. The wall keeps it, with no name attached.</p>
-
-            <form id="post-form" class="cf-form">
-              <fieldset class="cf-sins">
-                <legend>Pick your sin</legend>
-                <div class="cf-chips">
-                  <label><input type="radio" name="cf-sin" value="bunk"><span>Bunked a class</span></label>
-                  <label><input type="radio" name="cf-sin" value="proxy"><span>Proxy attendance</span></label>
-                  <label><input type="radio" name="cf-sin" value="copy"><span>Copied homework</span></label>
-                  <label><input type="radio" name="cf-sin" value="crush"><span>A secret crush</span></label>
-                  <label><input type="radio" name="cf-sin" value="food"><span>Wasted mess food</span></label>
-                  <label><input type="radio" name="cf-sin" value="worse"><span>Something worse</span></label>
-                </div>
-              </fieldset>
-              <label for="post-text" class="cf-vh">Your confession</label>
-              <textarea id="post-text" maxlength="300" rows="4"
-                placeholder="Whisper it into the dark. Please do not name or target anyone."></textarea>
-              <div class="cf-row">
-                <div class="cf-meter" id="cf-meter">
-                  <i></i>
-                  <span><span id="cf-meter-txt">Nothing to confess yet.</span> <span id="post-count" class="muted">0 / 300</span></span>
-                </div>
-                <button type="submit" class="cf-pill red">Confess it</button>
-              </div>
-              <p id="post-msg" class="muted" aria-live="polite"></p>
-            </form>
-            <div class="cf-stamp" aria-hidden="true">Confessed</div>
-          </div>
+<section id="wall" class="panel active cn">
+      <header class="cn-intro">
+        <svg class="cn-cross" viewBox="0 0 40 60" width="34" height="52" aria-hidden="true"><path d="M17 2h6v16h14v6H23v34h-6V24H3v-6h14z" fill="currentColor"/></svg>
+        <p class="cn-eyebrow">The confessional <i>&middot;</i> anonymous <i>&middot;</i> read by a person first</p>
+        <h2 class="cn-title">Forgive me,<br>for I have <em>sinned.</em></h2>
+        <p class="cn-lede">Kneel down, name your sin and say it. No name goes on the slip, and the wall keeps it.</p>
+        <div class="cn-cta">
+          <button type="button" class="cn-gold" id="wl-down">Confess</button>
+          <button type="button" class="cn-line" id="cf-read">Read the confessions</button>
         </div>
+        <p class="cn-foot" aria-hidden="true">Kneeling for <time id="cf-clock">0:00</time> &middot; Nobody signs a confession.</p>
+      </header>
+
+      <div class="cn-booth" id="cf-frame" data-step="1">
+        <span class="cn-candle l" aria-hidden="true"><i></i></span>
+        <span class="cn-candle r" aria-hidden="true"><i></i></span>
+        <div class="cn-grille" aria-hidden="true"></div>
+        <ol class="cn-steps" aria-label="Confession progress">
+          <li class="cn-step" aria-current="step"><i class="cn-flame" aria-hidden="true"></i><span>Name it</span></li>
+          <li class="cn-step"><i class="cn-flame" aria-hidden="true"></i><span>Say it</span></li>
+          <li class="cn-step"><i class="cn-flame" aria-hidden="true"></i><span>Absolved</span></li>
+        </ol>
+
+        <form id="post-form" class="cn-form">
+          <fieldset class="cn-sins">
+            <legend>First, name your sin</legend>
+            <div class="cn-chips">
+              <label><input type="radio" name="cf-sin" value="bunk"><span><em>I</em><b>Bunked a class</b><small>Sloth</small></span></label>
+              <label><input type="radio" name="cf-sin" value="proxy"><span><em>II</em><b>Proxy attendance</b><small>Deceit</small></span></label>
+              <label><input type="radio" name="cf-sin" value="copy"><span><em>III</em><b>Copied homework</b><small>Theft</small></span></label>
+              <label><input type="radio" name="cf-sin" value="crush"><span><em>IV</em><b>A secret crush</b><small>Desire</small></span></label>
+              <label><input type="radio" name="cf-sin" value="food"><span><em>V</em><b>Wasted mess food</b><small>Gluttony</small></span></label>
+              <label><input type="radio" name="cf-sin" value="worse"><span><em>VI</em><b>Something worse</b><small>The unspoken</small></span></label>
+            </div>
+          </fieldset>
+
+          <div class="cn-slip" id="cf-card">
+            <p class="cn-slip-top"><span>Bless me, for I have sinned&hellip;</span><span>Anonymous &middot; 300 characters</span></p>
+            <label for="post-text" class="sr-only">Your confession</label>
+            <textarea id="post-text" maxlength="300" rows="5"
+              placeholder="Whisper it through the screen. Please do not name or target anyone."></textarea>
+            <div class="cn-seal" aria-hidden="true"><b>&#10013;</b><span>Confessed</span></div>
+          </div>
+
+          <div class="cn-row">
+            <div class="cn-meter" id="cf-meter">
+              <i></i>
+              <span><span id="cf-meter-txt">Nothing to confess yet.</span> <span id="post-count">0 / 300</span></span>
+            </div>
+            <button type="submit" class="cn-wax">Confess it</button>
+          </div>
+          <p id="post-msg" class="cn-msg" aria-live="polite"></p>
+        </form>
       </div>
 
       <div id="pending-box" hidden>
-        <h2 class="wl-h">Waiting for approval</h2>
+        <h2 class="cn-h">Awaiting absolution</h2>
         <div id="pending-list"></div>
       </div>
 
-      <div class="wl-posts-head" id="wl-posts-head">
-        <h2 class="wl-h">Sins the wall has kept</h2>
-        <span class="muted" id="wl-count" aria-live="polite"></span>
+      <div class="cn-posts-head" id="wl-posts-head">
+        <h2 class="cn-h">What the wall has heard</h2>
+        <span id="wl-count" aria-live="polite"></span>
       </div>
-      <div id="post-list" class="wl-posts"><p class="wl-empty">The wall is waking up&hellip;</p></div>
+      <div id="post-list" class="cn-posts"><p class="cn-empty">The confessional is waking up&hellip;</p></div>
     </section>

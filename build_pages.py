@@ -337,6 +337,7 @@ def app_page(spec, menu, tt, bus):
     else:
         p = parts(key)
         top, main, after = p["TOP"], p["MAIN"], p["AFTER"]
+        main = main.replace("@@CLOCK@@", clock_svg())   # Classes uses the same live watch as Food
         data = inline_data(menu=menu, timetable=tt) if key == "classes" else inline_data(bus=bus) if key == "bus" else ""
 
     def tab(p):

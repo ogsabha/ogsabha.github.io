@@ -7,7 +7,7 @@
   <meta name="description" content="The Og Sabha wall: an anonymous, moderated space for DCSMAT, Vagamon students to say what they can&#x27;t say out loud. A person reads every post before it goes up.">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <link rel="canonical" href="https://ogsabha.github.io/wall.html">
-  <meta name="theme-color" content="#090e13">
+  <meta name="theme-color" content="#0b0908">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Og Sabha">
   <meta property="og:locale" content="en_IN">
@@ -38,7 +38,7 @@
       "name": "Og Sabha | Anonymous Wall for DCSMAT Vagamon Students",
       "description": "The Og Sabha wall: an anonymous, moderated space for DCSMAT, Vagamon students to say what they can't say out loud. A person reads every post before it goes up.",
       "inLanguage": "en-IN",
-      "dateModified": "2026-11-20",
+      "dateModified": "2026-11-18",
       "isPartOf": {
         "@id": "https://ogsabha.github.io/#website"
       }
@@ -64,13 +64,15 @@
 }</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Caveat:wght@500&family=Special+Elite&display=swap">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Caveat:wght@500&family=Special+Elite&display=swap"></noscript>
-  <link rel="stylesheet" href="style.css?v=b7e10f8b">
-  <script type="module" src="app.js?v=cc21158e"></script>
+  <link rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" href="https://fonts.googleapis.com/css2?family=Antonio:wght@700&family=Caveat:wght@500&family=Special+Elite&display=swap">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@700&family=Caveat:wght@500&family=Special+Elite&display=swap"></noscript>
+  <link rel="stylesheet" href="style.css?v=bf753ba6">
+  <script type="module" src="app.js?v=46968e60"></script>
 </head>
 <body data-theme="wall" data-page="wall">
-    <div class="topbar">
+  <div class="wl-fx" id="wl-fx" aria-hidden="true"><div class="wl-dark"></div><div class="wl-glow"></div><div class="wl-pulse" id="wl-pulse"></div></div>
+  <div class="wl-eyes" id="wl-eyes" aria-hidden="true"></div>
+  <div class="topbar">
     <a class="brand" href="./">Og Sabha</a>
     <span class="chip" id="greet">hey</span>
   </div>
@@ -95,71 +97,89 @@
 
   <main>
     <section id="wall" class="panel active">
-      <div class="wl-scene">
-        <div class="wl-board" aria-hidden="true">
-          <span class="it np n1"><b>Told no one for three years</b><i></i></span>
-          <span class="it np n2"><b>No name on the note</b><i></i></span>
-          <span class="it ph p1"></span>
-          <span class="it ph p2"></span>
-          <span class="it ph p3"></span>
-          <span class="it map"></span>
-          <span class="it tag">Og Sabha</span>
-          <svg class="wl-string" viewBox="0 0 400 300" preserveAspectRatio="none">
-            <path pathLength="1" d="M208 62 L150 150 L190 156 L128 236 L256 236 L232 170 L208 62 M150 150 L232 170 M190 156 L256 236 M176 112 L240 200 M128 236 L232 170"/>
-            <g><circle cx="208" cy="62" r="3"/><circle cx="150" cy="150" r="3"/><circle cx="190" cy="156" r="3"/><circle cx="128" cy="236" r="3"/><circle cx="256" cy="236" r="3"/><circle cx="232" cy="170" r="3"/></g>
-          </svg>
-        </div>
+      <div class="cf-stage">
+        <div class="cf-frame" id="cf-frame" data-step="1">
+          <div class="cf-left">
+            <div class="cf-rail">
+              <ol class="cf-steps" aria-label="Confession progress">
+                <li class="cf-step" aria-current="step"><span class="cf-vh">Step 1: pick your sin</span></li>
+                <li class="cf-step"><span class="cf-vh">Step 2: say it</span></li>
+                <li class="cf-step"><span class="cf-vh">Step 3: confessed</span></li>
+              </ol>
+              <span class="cf-side" aria-hidden="true">Confession</span>
+            </div>
+            <div class="cf-copy">
+              <p class="cf-tag">You came here. That&#x27;s the first sin.</p>
+              <h2 class="cf-title"><span class="cf-strike">Hide</span><span>Confess</span><span>your sin</span></h2>
+              <p class="wl-hint" id="wl-hint">Something is watching. Don&#x27;t let it get close. Shine the light on its eyes.</p>
+              <div class="cf-actions">
+                <button type="button" class="cf-pill red" id="wl-down">Confess</button>
+                <button type="button" class="cf-pill" id="cf-read">Read the wall</button>
+              </div>
+              <p class="cf-foot" aria-hidden="true">Guilty for <time id="cf-clock">0:00</time> &middot; Nobody signs a confession.</p>
+            </div>
+          </div>
 
-        <div class="wl-copy">
-          <h2 class="wl-title">A student&rsquo;s confession</h2>
-          <p class="wl-lede">The collected <span class="wl-redact"></span> whispers allowed us to hear our <span class="wl-redact"></span> students.</p>
-          <p class="wl-rule">Say what you can&rsquo;t say out loud. No names, not even yours. A person reads every confession before it goes up.</p>
-          <div class="wl-tools" role="group" aria-label="Wall settings">
-            <button type="button" class="wl-btn" id="wl-lamp" aria-pressed="false">Turn off the lamp</button>
+          <div class="cf-card" id="cf-card">
+            <div class="wl-watcher" id="wl-watcher" aria-hidden="true">
+              <svg viewBox="0 0 120 360">
+                <path class="w-fill" d="M60 118 C36 124 28 168 26 230 L22 360 L98 360 L94 230 C92 168 84 124 60 118Z"/>
+                <path class="w-arm" d="M34 150 C20 210 16 270 20 330 M86 150 C100 210 104 270 100 330"/>
+                <g class="w-head">
+                  <ellipse class="w-fill" cx="60" cy="88" rx="22" ry="31"/>
+                  <circle class="w-eye" cx="51" cy="84" r="2.6"/><circle class="w-eye" cx="69" cy="84" r="2.6"/>
+                </g>
+              </svg>
+            </div>
+            <div class="cf-top">
+              <h3 class="cf-card-title">Your confession</h3>
+              <div class="cf-tools" role="group" aria-label="Wall settings">
+                <button type="button" class="wl-btn" id="wl-lamp" aria-pressed="false">Turn on the lights</button>
+                <button type="button" class="wl-btn" id="wl-sound" aria-pressed="false">Sound: off</button>
+              </div>
+            </div>
+            <p class="cf-meta">2026 <i>|</i> <b>Anonymous</b> <i>|</i> 300 characters <i>|</i> Read by a person first</p>
+            <p class="cf-desc">You walked in, so it counts. Pick what you did and say it. The wall keeps it, with no name attached.</p>
+
+            <form id="post-form" class="cf-form">
+              <fieldset class="cf-sins">
+                <legend>Pick your sin</legend>
+                <div class="cf-chips">
+                  <label><input type="radio" name="cf-sin" value="bunk"><span>Bunked a class</span></label>
+                  <label><input type="radio" name="cf-sin" value="proxy"><span>Proxy attendance</span></label>
+                  <label><input type="radio" name="cf-sin" value="copy"><span>Copied homework</span></label>
+                  <label><input type="radio" name="cf-sin" value="crush"><span>A secret crush</span></label>
+                  <label><input type="radio" name="cf-sin" value="food"><span>Wasted mess food</span></label>
+                  <label><input type="radio" name="cf-sin" value="worse"><span>Something worse</span></label>
+                </div>
+              </fieldset>
+              <label for="post-text" class="cf-vh">Your confession</label>
+              <textarea id="post-text" maxlength="300" rows="4"
+                placeholder="Whisper it into the dark. Please do not name or target anyone."></textarea>
+              <div class="cf-row">
+                <div class="cf-meter" id="cf-meter">
+                  <i></i>
+                  <span><span id="cf-meter-txt">Nothing to confess yet.</span> <span id="post-count" class="muted">0 / 300</span></span>
+                </div>
+                <button type="submit" class="cf-pill red">Confess it</button>
+              </div>
+              <p id="post-msg" class="muted" aria-live="polite"></p>
+            </form>
+            <div class="cf-stamp" aria-hidden="true">Confessed</div>
           </div>
         </div>
-
-        <div class="wl-lampfig" aria-hidden="true">
-          <i class="wl-halo"></i>
-          <svg viewBox="0 0 200 300">
-            <path d="M140 272 L112 170 L134 78" fill="none" stroke="#0b0e11" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M140 272 L112 170 L134 78" fill="none" stroke="#25323c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(-2 -1)"/>
-            <path d="M140 68 C122 38 70 38 50 92 L98 110 C112 92 126 82 140 68Z" fill="#0d1216" stroke="#2b3944" stroke-width="1.5"/>
-            <ellipse class="wl-bulb" cx="76" cy="102" rx="24" ry="8" transform="rotate(20 76 102)"/>
-            <circle cx="112" cy="170" r="6" fill="#161e25"/><circle cx="134" cy="78" r="6" fill="#161e25"/>
-            <rect x="112" y="268" width="56" height="18" rx="5" fill="#0b0e11"/>
-          </svg>
-        </div>
-
-        <div class="wl-desk" aria-hidden="true">
-          <div class="wl-clock"><b>23</b><b>55</b></div>
-          <div class="wl-cup"></div>
-          <div class="wl-papers"><i></i><i></i><i></i><i></i></div>
-        </div>
-        <button type="button" class="wl-down" id="wl-down" aria-label="Go to the confession form"><span aria-hidden="true">&darr;</span></button>
       </div>
 
-      <form id="post-form" class="wl-carve">
-        <label for="post-text" class="wl-label">Confession form. Write it down.</label>
-        <textarea id="post-text" maxlength="300" rows="5"
-          placeholder="What do you need to get off your chest? Please do not name or target anyone."></textarea>
-        <div class="row">
-          <span id="post-count" class="muted">0 / 300</span>
-          <button type="submit">File confession</button>
-        </div>
-        <p id="post-msg" class="muted" aria-live="polite"></p>
-      </form>
-
       <div id="pending-box" hidden>
-        <h2 class="wl-h wl-pendh">Waiting for approval</h2>
+        <h2 class="wl-h">Waiting for approval</h2>
         <div id="pending-list"></div>
       </div>
 
-      <div class="wl-posts-head">
-        <h2 class="wl-h">Confessions on file</h2>
+      <div class="wl-posts-head" id="wl-posts-head">
+        <h2 class="wl-h">Sins the wall has kept</h2>
         <span class="muted" id="wl-count" aria-live="polite"></span>
       </div>
-      <div id="post-list" class="wl-posts"><p class="wl-empty">Opening the case file&hellip;</p></div>
+      <div id="post-list" class="wl-posts"><p class="wl-empty">The wall is waking up&hellip;</p></div>
     </section>
   </main>
 

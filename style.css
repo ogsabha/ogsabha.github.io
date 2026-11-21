@@ -1277,12 +1277,38 @@ body[data-theme="wall"] #post-form.cf-form textarea:focus{outline:none;border-co
 /* the list below keeps its own look; only the headings change typeface */
 body[data-theme="wall"] .wl-h{font-family:var(--head);font-style:normal;font-weight:700;letter-spacing:.03em;text-transform:uppercase}
 
+.cf-chips label{margin:0}
 @media(max-width:860px){
-  .cf-frame{grid-template-columns:1fr;border-radius:26px}
-  .cf-title{font-size:clamp(3.2rem,16vw,5.6rem)}
-  .cf-card{min-height:0;border-width:5px}
-  .cf-card .wl-watcher{height:62%;opacity:.55}
-  .cf-desc{max-width:none}
+  .cf-stage{position:relative;z-index:6;width:calc(100% - 20px);margin-top:12px}
+  .cf-frame{grid-template-columns:1fr;gap:16px;padding:18px 16px;border-radius:26px}
+  .cf-left{display:block}
+  .cf-rail{flex-direction:row;justify-content:space-between;align-items:center;gap:12px;padding:0 0 14px}
+  .cf-rail::before{display:none}
+  .cf-steps{flex-direction:row;gap:12px}
+  .cf-side{writing-mode:horizontal-tb;transform:none;margin:0;font-size:.74rem}
+  .cf-copy{gap:10px}
+  .cf-tag{font-size:1.05rem}
+  .cf-title{font-size:clamp(3rem,15vw,4.4rem)}
+  body[data-theme="wall"] .cf-copy .wl-hint{font-size:1.2rem;max-width:none}
+  .cf-actions{flex-wrap:nowrap}
+  body[data-theme="wall"] button.cf-pill{flex:1 1 0;padding:0 10px;min-height:48px;font-size:.86rem;letter-spacing:.06em;white-space:nowrap}
+  .cf-foot{margin:2px 0 0;font-size:.74rem}
+  .cf-card{min-height:0;gap:10px;padding:16px;border-width:4px;border-radius:24px}
+  .cf-card .wl-watcher{height:46%;right:-6%;opacity:.4}
+  .cf-card-title{font-size:1.7rem}
+  .cf-top{gap:8px}
+  .cf-meta{font-size:.9rem;line-height:1.5}
+  .cf-desc{max-width:none;font-size:.88rem}
+  .cf-chips{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .cf-chips span{display:block;padding:9px 6px;font-size:.74rem;line-height:1.2;text-align:center}
+  body[data-theme="wall"] #post-form.cf-form textarea{min-height:96px;font-size:16px}
+  .cf-row{flex-direction:column;align-items:stretch;gap:10px}
+  .cf-meter{flex:0 0 auto}
+  .cf-top{flex-direction:column;align-items:flex-start}
+  .cf-tools{flex-wrap:nowrap}
+  body[data-theme="wall"] .cf-tools .wl-btn{white-space:nowrap;padding:5px 12px}
+  .cf-row .cf-pill{width:100%}
+  .cf-stamp{font-size:2.6rem;padding:2px 14px;border-width:4px}
 }
 @media(prefers-reduced-motion:reduce){
   .cf-strike::before,.cf-strike::after{animation:none;clip-path:none}

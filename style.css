@@ -1487,3 +1487,9 @@ body[data-theme="aeline"] footer{width:min(1240px,calc(100% - 32px))}
   .ax-days{width:100%}.ax-days button{flex:1;padding:11px 0}
 }
 @media(prefers-reduced-motion:reduce){.ax-sky i,.ax-mtrack{animation:none}.ax-card,.ax-more,.ax-prog i{transition:none}}
+
+/* Wall: wider layout on larger screens */
+@media(min-width:900px){
+  body[data-theme="wall"] main,body[data-theme="wall"] nav,body[data-theme="wall"] .topbar,body[data-theme="wall"] footer{width:min(1480px,calc(100% - 48px))}
+  body[data-theme="wall"] .cf-stage{width:100%}
+}

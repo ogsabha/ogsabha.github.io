@@ -83,7 +83,7 @@ def ld_script(obj):
 # ---------------------------------------------------------------- fonts: each page loads only what it uses
 FONT_QS = {
     "food": "family=Poppins:wght@400;500;600;700",
-    "classes": "family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Playfair+Display:ital,wght@1,600&family=Caveat:wght@500&family=Poppins:wght@400;500;600",
+    "classes": "family=Inter+Tight:wght@400;500;600;800&family=DM+Mono:wght@400;500",
     "bus": "family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Malayalam:wght@700",
     "wall": "family=Antonio:wght@700&family=Caveat:wght@500&family=Special+Elite",
     "gigs": "family=Inter:wght@400;500;600",
@@ -199,10 +199,10 @@ PAGES = [
         sub="Mess menu, live classes, an anonymous wall and a skill board. Made by UG 2026 students, Vagamon.",
     ),
     dict(
-        key="classes", file="classes.html", href="classes.html", url=SITE + "/classes.html", nav="Classes", crumb="Classes", theme="#C8D8BC",
+        key="classes", file="classes.html", href="classes.html", url=SITE + "/classes.html", nav="Classes", crumb="Classes", theme="#2f8fe6", body_theme="aeline",
         title="Og Sabha | DCSMAT Vagamon Live Class Timetable (BBA & BCA)",
         desc="Live class timetable for BBA 2026 and BCA 2026 at DCSMAT, Vagamon: the current period, today's teachers, class notices and live teacher present or absent status. Made by students.",
-        h1="DCSMAT Vagamon live class timetable for BBA and BCA", vis="your day,\nat a glance.",
+        h1="DCSMAT Vagamon live class timetable for BBA and BCA", vis=None,
         sub="Stay on top of your day: who is teaching, and when.",
     ),
     dict(
@@ -365,7 +365,8 @@ def app_page(spec, menu, tt, bus):
 
     head_html = head(url=spec["url"], title=spec["title"], desc=spec["desc"], theme_color=spec["theme"], fonts=key,
                      ld=ld, og_title=spec.get("og_title"), og_desc=spec.get("og_desc"), verify=verify, extra=extra)
-    now = '  <div id="now-strip" class="now" aria-live="polite"></div>\n' if key == "classes" else ""
+    now = ""
+    theme = spec.get("body_theme", key)
     about = ABOUT_BLOCK if key == "food" else ""
     top = (top.strip() + "\n") if top.strip() else ""
     after = ("  " + after.strip() + "\n") if after.strip() else ""
@@ -373,7 +374,7 @@ def app_page(spec, menu, tt, bus):
     return f"""<!DOCTYPE html>
 <html lang="en-IN">
 {head_html}
-<body data-theme="{key}" data-page="{key}">
+<body data-theme="{theme}" data-page="{key}">
   {top}  <div class="topbar">
     <a class="brand" href="./">Og Sabha</a>
     <span class="chip" id="greet">hey</span>

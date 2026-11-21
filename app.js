@@ -488,11 +488,12 @@ async function rate(meal, stars) {
 }
 
 /* =================================================================
-   CLASSES
+   CLASSES (hero cards, bento stats, timetable)
 ================================================================= */
 let classDay = todayName();
 let notices = [];
 let unsubNotices = null;
+const AX = { idx: 0, touched: false, key: "", stat: 0, open: new Set(), moved: false, S: null, mkey: "" };
 
 const QUOTES = [
   ["Showing up is half the marks. The other half is the notes.", "back bench philosopher"],
@@ -509,11 +510,25 @@ const QUOTES = [
   ["Be kind to the teacher who never gives up on the last bench.", "Og Sabha"]
 ];
 const dayOfYear = () => Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 864e5);
-
 function renderQuote() {
   const [text, by] = QUOTES[dayOfYear() % QUOTES.length];
   $("quote-text").textContent = text;
   $("quote-by").textContent = by;
+}
+
+const axPer = (no) => tt.periods.find((p) => p.no === no);
+const axTeachers = (slots) => [...new Set(slots.flatMap((s) => (s.teacher || "").split(" / ")).map((t) => t.trim()).filter((t) => t && t !== "-" && t !== "Whole class"))];
+const axInit = (n) => n.replace(/^(Prof|Dr)\.?\s+/i, "").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "•";
+const axPlural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+const AX_ICON = { blue: '<svg viewBox="0 0 12 12"><path d="M2 6.5 5 9l5-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>', lime: '<svg viewBox="0 0 12 12"><circle cx="6" cy="5" r="3" fill="currentColor"/><path d="M4.6 10h2.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>' };
+const axIco = (k) => { const s = el("span", { class: `ax-ico ${k}`, "aria-hidden": "true" }); s.innerHTML = AX_ICON[k]; return s; };
+
+function axState() {
+  const cls = $("class-select").value, isToday = classDay === todayName(), nm = nowMin();
+  const rows = [...((tt.classes[cls] || {})[classDay] || [])].sort((a, b) => a.period - b.period)
+    .map((s) => ({ s, p: axPer(s.period) })).filter((r) => r.p)
+    .map((r) => { const st = toMin(r.p.start), en = toMin(r.p.end); return { ...r, st, en, state: !isToday ? "plan" : nm >= en ? "past" : nm >= st ? "live" : "next" }; });
+  return { cls, isToday, nm, rows, live: rows.find((r) => r.state === "live") || null, upcoming: rows.find((r) => r.state === "next") || null };
 }
 
 async function initClasses() {
@@ -527,17 +542,14 @@ async function initClasses() {
   const chips = $("day-chips");
   chips.replaceChildren();
   F.cchips = WEEK.map((d) => {
-    const b = el("button", {
-      type: "button", class: "chip-day" + (d === todayName() ? " today" : ""), text: d.slice(0, 3), "aria-label": d,
-      onclick: () => { classDay = d; renderClasses(); }
-    });
-    b.classList.add("day-chip");
+    const b = el("button", { type: "button", class: "day-chip" + (d === todayName() ? " today" : ""), text: d.slice(0, 3), "aria-label": d, onclick: () => { classDay = d; renderClasses(); } });
     chips.append(b);
     return b;
   });
 
   renderQuote();
   initNoticeForm();
+  axWire();
   subscribeNotices();
   renderClasses();
 
@@ -552,88 +564,190 @@ async function initClasses() {
   setInterval(() => { if (!document.hidden) renderClasses(); }, 30000);
 }
 
-function statusBadge(cls, period) {
+function axWire() {
+  const stage = $("ax-stage");
+  let x0 = null;
+  const go = (n) => { AX.idx += n; AX.touched = true; axPlace(); };
+  stage.addEventListener("pointerdown", (e) => { if (!e.button) { x0 = e.clientX; AX.moved = false; } });
+  addEventListener("pointermove", (e) => { if (x0 != null && Math.abs(e.clientX - x0) > 8) { AX.moved = true; stage.classList.add("drag"); } });
+  addEventListener("pointerup", (e) => {
+    if (x0 == null) return;
+    const dx = e.clientX - x0; x0 = null; stage.classList.remove("drag");
+    if (Math.abs(dx) > 42) go(dx < 0 ? 1 : -1);
+    setTimeout(() => { AX.moved = false; }, 0);
+  });
+  addEventListener("pointercancel", () => { x0 = null; stage.classList.remove("drag"); });
+  stage.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight") { e.preventDefault(); go(1); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
+  });
+  $("ax-class-btn").addEventListener("click", () => {
+    const sel = $("class-select");
+    sel.selectedIndex = (sel.selectedIndex + 1) % sel.options.length;
+    sel.dispatchEvent(new Event("change"));
+  });
+  $("ax-burger").addEventListener("click", (e) => {
+    const open = $("ax-links").classList.toggle("open");
+    e.currentTarget.setAttribute("aria-expanded", String(open));
+  });
+  $("ax-open").addEventListener("click", () => goTo("ax-plan"));
+  $("ax-live").addEventListener("click", () => {
+    if (classDay !== todayName()) { classDay = todayName(); renderClasses(); }
+    const S = AX.S, r = S && (S.live || S.upcoming);
+    if (r) { AX.idx = S.rows.indexOf(r); AX.touched = true; axPlace(); }
+    goTo("ax-stage", "center");
+  });
+  $("ax-stat").addEventListener("click", () => { AX.stat = (AX.stat + 1) % 4; renderStat(AX.S); });
+}
+
+function axBadge(cls, period) {
   const v = attendance[`${cls}_${period}`];
-  if (v === true) return el("span", { class: "badge good", text: "Teacher present" });
-  if (v === false) return el("span", { class: "badge bad", text: "Teacher absent" });
-  return el("span", { class: "badge grey", text: "Not reported yet" });
+  return el("span", { class: "ax-badge " + (v === true ? "good" : v === false ? "bad" : "grey"), text: v === true ? "Teacher present" : v === false ? "Teacher absent" : "Not reported yet" });
+}
+
+function axCard(r, i, S) {
+  const att = ready && S.isToday ? attendance[`${S.cls}_${r.s.period}`] : undefined;
+  const chip = att === true ? ["good", "Teacher in"] : att === false ? ["bad", "Teacher absent"]
+    : r.state === "live" ? ["live", `Live · ${r.en - S.nm} min`] : r.state === "next" ? ["", `In ${fmtDur(r.st - S.nm)}`]
+    : r.state === "past" ? ["", "Done"] : ["", fmtDur(r.en - r.st)];
+  const t = parts12(r.p.start), v = i % 5;
+  return el("button", { type: "button", class: `ax-card xv${v}`, "aria-label": `Period ${r.s.period}: ${r.s.subject}, ${r.s.teacher}, ${t.t} ${t.ap}`,
+    onclick: () => {
+      if (AX.moved) return;
+      if (AX.idx === i) { AX.open.add(`${S.cls}|${classDay}|${r.s.period}`); renderList(AX.S); goTo("ax-plan"); return; }
+      AX.idx = i; AX.touched = true; axPlace();
+    } },
+    el("span", { class: "ax-ct", text: `P${r.s.period} · ${t.t} ${t.ap}` }),
+    v === 1 ? el("span", { class: "ax-av", text: axInit(r.s.teacher.split(" / ")[0]) }) : null,
+    el("div", { class: "ax-cm" }, el("strong", { class: "ax-cs", text: r.s.subject }), el("span", { class: "ax-ctr", text: r.s.teacher })),
+    el("span", { class: "ax-cchip " + chip[0], text: chip[1] })
+  );
+}
+
+function renderCarousel(S) {
+  const key = `${S.cls}|${classDay}`;
+  const dflt = S.live ? S.rows.indexOf(S.live) : S.upcoming ? S.rows.indexOf(S.upcoming) : S.isToday ? Math.max(0, S.rows.length - 1) : 0;
+  if (AX.key !== key) { AX.key = key; AX.touched = false; }
+  if (!AX.touched) AX.idx = dflt;
+  const track = $("ax-track");
+  track.replaceChildren();
+  if (!S.rows.length) {
+    track.append(el("div", { class: "ax-card xv0 on", style: "--d:0;--a:0;--z:20" },
+      el("span", { class: "ax-ct", text: classDay }), el("div", { class: "ax-cm" }, el("strong", { class: "ax-cs", text: "No classes" }), el("span", { class: "ax-ctr", text: "A free day. Use it well." })), el("span", { class: "ax-cchip live", text: "Free" })));
+  } else S.rows.forEach((r, i) => track.append(axCard(r, i, S)));
+  $("ax-stars").replaceChildren(...S.rows.map((r, i) => el("button", { type: "button", "aria-label": `Go to period ${r.s.period}`, text: "★", onclick: () => { AX.idx = i; AX.touched = true; axPlace(); } })));
+  axPlace();
+}
+
+function axPlace() {
+  const S = AX.S; if (!S) return;
+  const cards = [...$("ax-track").children];
+  if (!S.rows.length) { $("ax-rated").textContent = `No classes on ${classDay}. Enjoy it.`; return; }
+  AX.idx = Math.max(0, Math.min(S.rows.length - 1, AX.idx));
+  cards.forEach((c, i) => {
+    const d = i - AX.idx, a = Math.abs(d);
+    c.style.setProperty("--d", d); c.style.setProperty("--a", Math.min(a, 4)); c.style.setProperty("--z", 20 - a);
+    c.style.visibility = a > 3 ? "hidden" : "";
+    c.classList.toggle("on", d === 0);
+  });
+  [...$("ax-stars").children].forEach((b, i) => b.setAttribute("aria-current", String(i === AX.idx)));
+  const r = S.rows[AX.idx];
+  const tail = r.state === "live" ? ` · ${r.en - S.nm} min left` : r.state === "next" ? ` · starts in ${fmtDur(r.st - S.nm)}` : r.state === "past" ? " · finished" : "";
+  $("ax-rated").textContent = `Period ${r.s.period} · ${fmt12(r.p.start)} – ${fmt12(r.p.end)}${tail}`;
+}
+
+function renderMarquee(S) {
+  if (AX.mkey === S.cls) return;
+  AX.mkey = S.cls;
+  const subs = [...new Set(WEEK.flatMap((d) => (tt.classes[S.cls][d] || []).map((s) => s.subject)))];
+  const item = (n) => el("span", { class: "ax-m" }, el("i"), n);
+  $("ax-mtrack").replaceChildren(...subs.map(item), ...subs.map(item));
+}
+
+function renderBig(S) {
+  const h = $("ax-big"), n = S.rows.length, day = S.isToday ? "Today" : classDay;
+  if (!n) { h.replaceChildren(`${day} has no classes`, el("br"), "so rest, catch up ", axIco("blue"), el("br"), el("span", { class: "mut" }, axIco("lime"), " and plan the week.")); return; }
+  const tn = axTeachers(S.rows.map((r) => r.s)).length, sn = new Set(S.rows.map((r) => r.s.subject)).size;
+  h.replaceChildren(`${day} has ${axPlural(n, "period")}`, el("br"), `with ${axPlural(tn, "teacher")} and `, axIco("blue"), ` ${axPlural(sn, "subject")},`, el("br"),
+    el("span", { class: "mut" }, axIco("lime"), ` from ${fmt12(S.rows[0].p.start)} to ${fmt12(S.rows[n - 1].p.end)}.`));
+}
+
+function renderStat(S) {
+  if (!S) return;
+  const week = WEEK.flatMap((d) => tt.classes[S.cls][d] || []);
+  const mins = week.reduce((m, s) => { const p = axPer(s.period); return m + (p ? toMin(p.end) - toMin(p.start) : 0); }, 0);
+  const subs = new Set(week.map((s) => s.subject).filter((s) => !/^(library|sop meeting|club meeting)$/i.test(s))).size;
+  const o = [["Periods this week", week.length, `Across ${S.cls}, Monday to Saturday.`], ["Hours in class", Math.round(mins / 60), "Scheduled hours, meetings included."],
+    ["Subjects", subs, "Different subjects on your timetable."], ["Teachers", axTeachers(week).length, "People who show up for you each week."]][AX.stat];
+  $("ax-stat-k").textContent = o[0]; $("ax-stat-n").textContent = o[1]; $("ax-stat-c").textContent = o[2];
+  [...document.querySelectorAll(".ax-sdots i")].forEach((d, i) => d.classList.toggle("on", i === AX.stat));
+}
+
+function renderBento(S) {
+  $("ax-bname").textContent = S.cls;
+  const n = $("ax-now-n"), u = $("ax-now-u"), bar = $("ax-now-bar"), sub = $("ax-now-sub");
+  bar.hidden = true;
+  if (S.live) {
+    n.textContent = S.live.en - S.nm; u.textContent = "min left"; sub.textContent = `${S.live.s.subject} with ${S.live.s.teacher}`;
+    bar.hidden = false; bar.firstChild.style.setProperty("--w", `${Math.round(((S.nm - S.live.st) / (S.live.en - S.live.st)) * 100)}%`);
+  } else if (S.upcoming) {
+    n.textContent = S.upcoming.st - S.nm; u.textContent = "min to next class"; sub.textContent = `${S.upcoming.s.subject} · ${S.upcoming.s.teacher}`;
+  } else if (S.isToday) { n.textContent = "Done"; u.textContent = ""; sub.textContent = S.rows.length ? "No more classes today." : "No classes today."; }
+  else { n.textContent = S.rows.length; u.textContent = S.rows.length === 1 ? "period" : "periods"; sub.textContent = `${classDay} for ${S.cls}`; }
+
+  const first = S.rows[0], last = S.rows[S.rows.length - 1];
+  $("ax-pct").textContent = S.isToday && first ? `${Math.max(0, Math.min(100, Math.round(((S.nm - first.st) / (last.en - first.st)) * 100)))}%` : "-";
+  const ts = axTeachers(S.rows.map((r) => r.s)), cols = ["#1b86e8", "#ff7a45", "#7a5cff", "#12a37f", "#e0446a"];
+  const av = ts.slice(0, 5).map((t, i) => el("span", { style: `background:${cols[i % 5]}`, title: t, text: axInit(t) }));
+  if (ts.length > 5) av.push(el("span", { style: "background:#0c0e12", text: `+${ts.length - 5}` }));
+  $("ax-avatars").replaceChildren(...av);
+
+  const nx = S.isToday ? S.upcoming : first;
+  $("ax-next-k").textContent = nx ? (S.isToday ? "Next up" : "First class") : S.rows.length ? "All done" : "Free day";
+  $("ax-next-sub").textContent = nx ? nx.s.subject : "";
+  $("ax-next-t").textContent = nx ? fmt12(nx.p.start) : S.rows.length ? "See you" : "-";
+  renderStat(S);
+}
+
+function renderList(S) {
+  const table = $("class-table");
+  table.replaceChildren();
+  if (!S.rows.length) { table.append(el("div", { class: "ax-empty" }, el("strong", { text: `No classes on ${classDay}.` }))); return; }
+  const ol = el("ol", { class: "ax-list" });
+  S.rows.forEach((r, i) => {
+    const k = `${S.cls}|${classDay}|${r.s.period}`, tp = parts12(r.p.start), staff = ready && S.isToday;
+    const li = el("li", { class: `ax-row ${r.state === "live" ? "live" : r.state === "past" ? "past" : ""} ${AX.open.has(k) ? "open" : ""}` });
+    const head = el("button", { type: "button", class: "ax-head", "aria-expanded": String(AX.open.has(k)),
+      onclick: (e) => {
+        const o = li.classList.toggle("open"); e.currentTarget.setAttribute("aria-expanded", String(o));
+        o ? AX.open.add(k) : AX.open.delete(k);
+        AX.idx = i; AX.touched = true; axPlace();
+      } },
+      el("span", { class: "ax-rt" }, el("b", { text: `${tp.t} ${tp.ap}` }), el("small", { text: `Period ${r.s.period}` })),
+      el("span", {}, el("span", { class: "ax-rs", text: r.s.subject }), el("span", { class: "ax-rtr", text: r.s.teacher })),
+      el("span", { class: "ax-rr" }, staff ? axBadge(S.cls, r.s.period) : r.state === "live" ? el("span", { class: "ax-badge now", text: "Live now" }) : null,
+        el("span", { class: "ax-chev", "aria-hidden": "true" }, "⌄")));
+    const info = r.state === "live" ? `${r.en - S.nm} min left` : r.state === "next" ? `starts in ${fmtDur(r.st - S.nm)}` : r.state === "past" ? "finished" : "";
+    li.append(head);
+    if (r.state === "live") li.append(el("div", { class: "ax-prog" }, el("i", { style: `--w:${Math.round(((S.nm - r.st) / (r.en - r.st)) * 100)}%` })));
+    li.append(el("div", { class: "ax-more" }, el("div", {}, el("div", { class: "ax-in" },
+      el("p", { text: `${fmt12(r.p.start)} – ${fmt12(r.p.end)} · ${fmtDur(r.en - r.st)}${info ? " · " + info : ""}` }),
+      staff && currentUser ? el("div", { class: "actions" },
+        el("button", { text: "Mark present", onclick: () => setAttendance(S.cls, r.s.period, true) }),
+        el("button", { class: "danger", text: "Mark absent", onclick: () => setAttendance(S.cls, r.s.period, false) }),
+        el("button", { class: "ghost", text: "Clear", onclick: () => clearAttendance(S.cls, r.s.period) })) : null))));
+    ol.append(li);
+  });
+  table.append(ol);
 }
 
 function renderClasses() {
   if (!tt) return;
-  const cls = $("class-select").value;
-  const isToday = classDay === todayName();
-  const slots = (tt.classes[cls] || {})[classDay] || [];
-  const periodOf = (no) => tt.periods.find((p) => p.no === no);
-  const nm = nowMin();
-
-  // The day chips live inside #day-chips; style them like the old pill buttons.
+  const S = AX.S = axState();
   (F.cchips || []).forEach((b, i) => b.classList.toggle("active", WEEK[i] === classDay));
-
-  const current = isToday ? slots.find((s) => { const p = periodOf(s.period); return p && nm >= toMin(p.start) && nm < toMin(p.end); }) : null;
-  const next = isToday ? slots.find((s) => { const p = periodOf(s.period); return p && toMin(p.start) > nm; }) : null;
-
-  renderNow();
-  renderNotices();
-
-  const nowBox = $("class-now");
-  nowBox.replaceChildren();
-  if (!isToday) {
-    nowBox.append(el("div", { class: "card" },
-      el("h3", { text: `📅 ${classDay}` }),
-      el("p", { class: "muted", text: slots.length ? `${slots.length} period${slots.length > 1 ? "s" : ""} on ${classDay}.` : `No classes on ${classDay}.` })
-    ));
-  } else if (current) {
-    const p = periodOf(current.period);
-    const startM = toMin(p.start), endM = toMin(p.end);
-    const pct = Math.round(((nm - startM) / (endM - startM)) * 100);
-    nowBox.append(el("div", { class: "card live" },
-      el("div", { class: "row" }, el("h3", { text: "🔴 Now" }), ready ? statusBadge(cls, current.period) : null),
-      el("p", { text: `Period ${current.period} · ${current.subject}` }),
-      el("p", { class: "muted", text: `${current.teacher} · ${fmt12(p.start)} – ${fmt12(p.end)} · ${endM - nm} min left` }),
-      el("div", { class: "bar", "aria-hidden": "true" }, el("i", { style: `--w:${pct}%` }))
-    ));
-  } else {
-    nowBox.append(el("div", { class: "card" },
-      el("h3", { text: "😴 No class right now" }),
-      next
-        ? el("p", { class: "muted", text: `Next: ${next.subject} with ${next.teacher} at ${fmt12(periodOf(next.period).start)}` })
-        : el("p", { class: "muted", text: slots.length ? "No more classes today." : "No classes today." })
-    ));
-  }
-
-  const table = $("class-table");
-  table.replaceChildren();
-  if (!slots.length) {
-    table.append(el("p", { class: "muted", text: `No classes on ${classDay}.` }));
-    return;
-  }
-
-  const tl = el("ol", { class: "timeline" });
-  [...slots].sort((a, b) => a.period - b.period).forEach((s) => {
-    const p = periodOf(s.period);
-    const tp = p ? parts12(p.start) : { t: `P${s.period}`, ap: "" };
-    const card = el("div", { class: "slot-card" },
-      el("strong", { text: s.subject }),
-      el("p", { class: "muted", text: s.teacher })
-    );
-    if (ready && isToday) {
-      card.append(statusBadge(cls, s.period));
-      if (currentUser) {
-        card.append(el("div", { class: "actions" },
-          el("button", { text: "Mark present", onclick: () => setAttendance(cls, s.period, true) }),
-          el("button", { class: "danger", text: "Mark absent", onclick: () => setAttendance(cls, s.period, false) }),
-          el("button", { class: "ghost", text: "Clear", onclick: () => clearAttendance(cls, s.period) })
-        ));
-      }
-    }
-    tl.append(el("li", { class: "slot" + (s === current ? " current" : "") },
-      el("div", { class: "slot-time" }, el("b", { text: tp.t }), el("span", { text: tp.ap }), el("em", { text: `Period ${s.period}` })),
-      el("div", { class: "dot" }),
-      card
-    ));
-  });
-  table.append(tl);
+  $("ax-class-btn").textContent = S.cls;
+  $("ax-class-btn").setAttribute("aria-label", `Class ${S.cls}. Tap to switch class.`);
+  renderCarousel(S); renderMarquee(S); renderBig(S); renderBento(S); renderList(S); renderNotices();
 }
 
 async function setAttendance(cls, period, present) {
@@ -671,8 +785,8 @@ function renderNotices() {
   $("notice-to").textContent = $("class-select").value || "";
   list.replaceChildren();
   [...notices].sort(newestFirst).slice(0, 5).forEach((n) => {
-    list.append(el("div", { class: "card" },
-      el("p", { class: "notice-head", text: `Notice · ${postTime(n)}` }),
+    list.append(el("div", { class: "ax-notice" },
+      el("p", { class: "ax-tag", text: `Notice · ${postTime(n)}` }),
       el("p", { text: n.text }),
       staff ? el("div", { class: "actions" }, el("button", { class: "danger", text: "Delete", onclick: () => removeNotice(n.id) })) : null
     ));

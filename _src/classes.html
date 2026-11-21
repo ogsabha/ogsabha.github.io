@@ -1,29 +1,79 @@
 <!--MAIN-->
-<section id="classes" class="panel active">
-      <label>Your class
-        <select id="class-select"></select>
-      </label>
-      <div id="day-chips" class="day-chips" role="group" aria-label="Day of the week"></div>
-      <figure class="quote" id="quote">
-        <blockquote id="quote-text"></blockquote>
-        <figcaption id="quote-by"></figcaption>
-      </figure>
-      <div id="notice-box">
-        <div id="notice-list"></div>
-        <details id="notice-compose" hidden>
-          <summary>＋ Post a notice (admins only)</summary>
-          <form id="notice-form">
-            <p class="muted">Posting to <strong id="notice-to"></strong>. Everyone in that class will see it at the top of the timetable.</p>
-            <textarea id="notice-text" maxlength="400" rows="4" required placeholder="Test moved to Friday, bring your ID card..."></textarea>
-            <div class="row">
-              <span id="notice-count" class="muted">0 / 400</span>
-              <button type="submit">Publish notice</button>
-            </div>
-            <p id="notice-msg" class="muted"></p>
-          </form>
-        </details>
+<div class="ax">
+  <section class="ax-hero" aria-label="Today's classes">
+    <div class="ax-sky" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="ax-bar">
+      <a class="ax-logo" href="./" aria-label="Og Sabha home"><svg viewBox="0 0 28 22" width="28" height="22" aria-hidden="true"><path d="M3 20 11 3l8 17h-4.4L11 12.2 7.4 20z" fill="currentColor"/><path d="m18 20 3-6.6L24 20z" fill="currentColor" opacity=".7"/></svg><span>Og Sabha</span></a>
+      <nav class="ax-links" id="ax-links" aria-label="Sections"><a href="./">Food</a><a class="on" href="classes.html" aria-current="page">Classes</a><a href="bus.html">Bus</a><a href="wall.html">Wall</a><a href="gigs.html">Gigs</a><a href="about.html">About</a></nav>
+      <button type="button" class="ax-pill" id="ax-class-btn">BBA 2026</button>
+      <button type="button" class="ax-burger" id="ax-burger" aria-expanded="false" aria-controls="ax-links" aria-label="Menu"><i></i><i></i></button>
+    </div>
+    <div class="ax-copy">
+      <p class="ax-h1" aria-hidden="true">Your day at DCSMAT,<br><em>at a glance.</em></p>
+      <p class="ax-sub">Who is teaching, what is next and whether the teacher is in. Live, for BBA and BCA.</p>
+      <div class="ax-btns">
+        <button type="button" class="ax-ghost" id="ax-live">Live now</button>
+        <button type="button" class="ax-cta" id="ax-open"><span>Open timetable</span><b aria-hidden="true"><svg viewBox="0 0 12 12" width="12" height="12"><path d="M2 10 10 2M4 2h6v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></b></button>
       </div>
-      <div id="class-now"></div>
-      <h2>Timetable</h2>
-      <div id="class-table"></div>
-    </section>
+    </div>
+    <div class="ax-stage" id="ax-stage" tabindex="0" role="group" aria-label="Periods of the day. Use the left and right arrow keys."><div class="ax-track" id="ax-track"></div></div>
+    <p class="ax-rated" id="ax-rated" aria-live="polite">Loading your periods...</p>
+    <div class="ax-stars" id="ax-stars"></div>
+  </section>
+
+  <div class="ax-marquee" aria-hidden="true"><div class="ax-mtrack" id="ax-mtrack"></div></div>
+
+  <section class="ax-about" aria-labelledby="ax-big">
+    <p class="ax-eyebrow"><i></i>About your day</p>
+    <h2 class="ax-big" id="ax-big">Your day, planned in one place.</h2>
+    <div class="ax-bento">
+      <article class="ax-b ax-b-now">
+        <p class="ax-bname" id="ax-bname">BBA 2026</p>
+        <a class="ax-bico" href="#ax-plan" aria-label="Jump to the timetable"><svg viewBox="0 0 16 16" width="16" height="16"><path d="M3 13V8M8 13V3M13 13V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></a>
+        <div class="ax-bpanel">
+          <div class="ax-bbig"><span id="ax-now-n">-</span> <small id="ax-now-u"></small></div>
+          <p class="ax-bsmall" id="ax-now-sub">Loading...</p>
+          <div class="ax-prog" id="ax-now-bar" hidden><i></i></div>
+        </div>
+      </article>
+      <article class="ax-b ax-b-quote">
+        <p class="ax-bk">Day progress</p>
+        <p class="ax-bnum" id="ax-pct">-</p>
+        <div class="ax-avatars" id="ax-avatars"></div>
+        <figure class="ax-q"><blockquote id="quote-text"></blockquote><figcaption id="quote-by"></figcaption></figure>
+      </article>
+      <button type="button" class="ax-b ax-b-stat" id="ax-stat" aria-live="polite">
+        <span class="ax-bk" id="ax-stat-k">Periods this week</span>
+        <span class="ax-bnum" id="ax-stat-n">0</span>
+        <span class="ax-bcap" id="ax-stat-c"></span>
+        <span class="ax-sdots" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      </button>
+      <article class="ax-b ax-b-next">
+        <div><p class="ax-bk" id="ax-next-k">Next up</p><p class="ax-nsub" id="ax-next-sub"></p></div>
+        <p class="ax-ntime" id="ax-next-t">-</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="ax-plan" id="ax-plan" aria-labelledby="ax-plan-h">
+    <p class="ax-eyebrow"><i></i>Timetable</p>
+    <h2 class="ax-plan-h" id="ax-plan-h">Pick your class and day.</h2>
+    <div class="ax-controls">
+      <label class="ax-selwrap"><span>Your class</span><select id="class-select"></select></label>
+      <div id="day-chips" class="ax-days" role="group" aria-label="Day of the week"></div>
+    </div>
+    <div id="notice-box">
+      <div id="notice-list"></div>
+      <details id="notice-compose" hidden>
+        <summary>＋ Post a notice (admins only)</summary>
+        <form id="notice-form">
+          <p class="muted">Posting to <strong id="notice-to"></strong>. Everyone in that class will see it at the top of the timetable.</p>
+          <textarea id="notice-text" maxlength="400" rows="4" required placeholder="Test moved to Friday, bring your ID card..."></textarea>
+          <div class="row"><span id="notice-count" class="muted">0 / 400</span><button type="submit">Publish notice</button></div>
+          <p id="notice-msg" class="muted"></p>
+        </form>
+      </details>
+    </div>
+    <div id="class-table"></div>
+  </section>
+</div>

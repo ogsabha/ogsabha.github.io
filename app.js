@@ -1614,11 +1614,11 @@ function initAbout() {
 
 /* =================================================================
    BUS
-   bus.json is written into the page by build_pages.py. KSRTC-style page: animated road and bus (tap to honk),
-   an LED destination board with a live countdown, direction tabs, tap a trip to see its stops, pin one as "my bus".
+   bus.json is written into the page by build_pages.py. Same layout as Food and Classes: a feature panel for the chosen bus
+   (direction rail, big time disc, live countdown, stops, pin), a grid of trip tiles and dots. The hero keeps the tap-to-honk bus.
 ================================================================= */
 let bus = null;
-const BS = { dir: null, open: null, pin: store.get("busPin", ""), target: null, pinTarget: null, ac: null };
+const BS = { dir: null, sel: null, touched: false, key: "", pin: store.get("busPin", ""), target: null, pinTarget: null, ac: null, rb: {}, tiles: [], dots: [], stopsKey: "" };
 const secNow = () => { const d = new Date(); return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds(); };
 const fmtCount = (s) => {
   s = Math.max(0, s);
@@ -1639,15 +1639,33 @@ async function initBus() {
   BS.dir = dirs.includes(saved) ? saved : dirs.map((d) => [d, nextBusIn(d, s)]).filter(([, t]) => t)
     .sort((a, b) => busSecs(a[1]) - busSecs(b[1]))[0]?.[0] || dirs[0];
 
+  // direction rail (built once; the counts and the highlight are updated in place)
+  $("bus-dirs").replaceChildren(...dirs.map((d) => {
+    const small = el("small");
+    const btn = el("button", { type: "button", class: "kb-rb", "data-dir": d, "aria-pressed": "false" }, el("span", { text: d }), small);
+    BS.rb[d] = { btn, small };
+    return btn;
+  }));
+
+  const pick = (time, scroll) => {
+    BS.sel = time; BS.touched = true; renderBus();
+    if (scroll && isPhone()) $("bus-now").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
+  };
   $("bus").addEventListener("click", (e) => {
-    const tab = e.target.closest(".kb-tab");
-    const trip = e.target.closest(".kb-trip-btn");
-    const pin = e.target.closest(".kb-pin");
+    const rb = e.target.closest(".kb-rb");
+    const tile = e.target.closest(".kb-tile");
+    const dot = e.target.closest("#bus-dots button");
+    const pinBtn = e.target.closest("#kb-pinbtn");
     const unpin = e.target.closest(".kb-unpin");
-    if (tab) { BS.dir = tab.dataset.dir; BS.open = null; store.set("busDir", BS.dir); renderBus(); }
-    else if (pin) { BS.pin = pin.dataset.key; store.set("busPin", BS.pin); burst(e.clientX, e.clientY, ["🚌", "⭐", "✨"], 8); renderBus(); }
+    if (rb) { BS.dir = rb.dataset.dir; store.set("busDir", BS.dir); renderBus(); }
+    else if (pinBtn) {
+      if (BS.pin === pinBtn.dataset.key) { BS.pin = ""; }
+      else { BS.pin = pinBtn.dataset.key; burst(e.clientX, e.clientY, ["🚌", "⭐", "✨"], 8); }
+      store.set("busPin", BS.pin); renderBus();
+    }
     else if (unpin) { BS.pin = ""; store.set("busPin", ""); renderBus(); }
-    else if (trip) { const k = trip.dataset.key; BS.open = BS.open === k ? null : k; renderBus(); }
+    else if (tile) pick(tile.dataset.time, true);
+    else if (dot) pick(dot.dataset.time, false);
   });
   $("kb-bus").addEventListener("click", driveBus);
 
@@ -1686,51 +1704,92 @@ function stopsOf(t) {
   return [...via, t.route];
 }
 
+// Tiles and dots are rebuilt only when the direction changes; everything else updates in place.
+function busBuild(trips) {
+  BS.tiles = trips.map((t) => {
+    const p = parts12(t.time);
+    const btn = el("button", { type: "button", class: "kb-tile", "data-time": t.time, "aria-label": `${p.t} ${p.ap}, ${t.route}` },
+      el("span", { class: "kb-tp", "aria-hidden": "true", text: "🚌" }),
+      el("span", { class: "kb-tt", text: `${p.t} ${p.ap}` }),
+      el("span", { class: "kb-tn", text: t.route }),
+      el("span", { class: "kb-ts", text: t.via ? `via ${t.via}` : "From DC College" }),
+      el("span", { class: "kb-tf" }, el("span"), el("span", { "aria-hidden": "true", text: "view →" })));
+    return { t, btn, note: btn.querySelector(".kb-tf span") };
+  });
+  BS.dots = trips.map((t) => el("button", { type: "button", "data-time": t.time, "aria-label": `${fmt12(t.time)}, ${t.route}` }));
+  $("bus-lists").replaceChildren(...BS.tiles.map((x) => x.btn));
+  $("bus-dots").replaceChildren(...BS.dots);
+  BS.stopsKey = "";
+}
+
 function renderBus() {
   if (!bus) return;
   const s = secNow();
-  const af = document.activeElement;
-  const refocus = af && af.classList && (af.classList.contains("kb-trip-btn") ? `.kb-trip-btn[data-key="${af.dataset.key}"]`
-    : af.classList.contains("kb-tab") ? `.kb-tab[data-dir="${af.dataset.dir}"]` : null);
   const dirs = Object.keys(bus.directions);
   const trips = busSorted(BS.dir);
-  const next = trips.find((t) => busSecs(t) >= s);
+  const next = trips.find((t) => busSecs(t) >= s) || null;
+  if (BS.key !== BS.dir) { BS.key = BS.dir; BS.touched = false; busBuild(trips); }
+  if (!BS.touched || !trips.some((t) => t.time === BS.sel)) BS.sel = (next || trips[0]).time;
+  const sel = trips.find((t) => t.time === BS.sel);
+  const selKey = pinKey(BS.dir, sel);
+  const isNext = sel === next, gone = busSecs(sel) < s, tomorrow = gone && !next && !BS.touched;
 
-  // big headline on the hero shows where the selected direction goes
+  // the big headline on the hero shows where the chosen direction goes
   const jd = $("jp-dest");
   if (jd) { const nm = BS.dir.replace(/^To\s+/i, ""); jd.textContent = nm + "."; jd.classList.toggle("long", nm.length > 9); }
 
-  // direction tabs
-  $("bus-dirs").replaceChildren(...dirs.map((d) => {
+  // direction rail
+  dirs.forEach((d) => {
+    const r = BS.rb[d], on = d === BS.dir;
     const left = bus.directions[d].filter((t) => busSecs(t) >= s).length;
-    return el("button", {
-      type: "button", class: "kb-tab", role: "tab", "data-dir": d, "aria-selected": String(d === BS.dir)
-    }, el("span", { text: d }), el("small", { text: left ? `${left} left today` : "done today" }));
-  }));
+    r.btn.classList.toggle("on", on);
+    r.btn.setAttribute("aria-pressed", String(on));
+    setText(r.small, left ? `${left} left today` : "done today");
+  });
 
-  // LED board
-  const led = $("bus-now");
-  led.classList.toggle("none", !next);
-  BS.target = next ? busSecs(next) : null;
-  let destText, sub;
-  if (next) {
-    destText = `${next.route}  ✦  ${BS.dir}  ✦  `;
-    sub = next.via ? `VIA ${next.via.toUpperCase()}` : "FROM DC COLLEGE STOP";
-  } else {
-    destText = `NO MORE BUSES TODAY  ✦  `;
-    sub = trips.length ? `FIRST BUS TOMORROW: ${fmt12(trips[0].time)} · ${trips[0].route}`.toUpperCase() : "";
+  // the feature: disc, badge, route, countdown, stops, pin
+  const p = parts12(sel.time);
+  setText($("kb-d-t"), p.t);
+  setText($("kb-d-ap"), p.ap);
+  const badge = $("kb-badge");
+  setText(badge, tomorrow ? "First bus tomorrow" : isNext ? "Next bus" : gone ? "Left earlier" : "Later today");
+  badge.className = "kb-badge" + (isNext ? " live" : "");
+  setText($("kb-h"), sel.route);
+  setText($("kb-when"), fmt12(sel.time));
+  setText($("kb-desc"), `${sel.via ? `Via ${sel.via}.` : "Direct from the DC College stop."}${sel.check ? " Timing not confirmed yet, check at the stop." : ""}`);
+  BS.target = gone ? null : busSecs(sel);
+  $("kb-prog").hidden = gone;
+  if (gone) setText($("kb-when-sub"), tomorrow ? "no more buses today" : "left earlier today");
+
+  if (BS.stopsKey !== selKey) {
+    BS.stopsKey = selKey;
+    const stops = stopsOf(sel);
+    const chain = [el("span", { class: "kb-stop me", text: "DC College" })];
+    stops.forEach((st, i) => {
+      chain.push(el("span", { class: "kb-arrow", "aria-hidden": "true", text: "➜" }));
+      chain.push(el("span", { class: "kb-stop" + (i === stops.length - 1 ? " end" : ""), text: st }));
+    });
+    $("kb-stops").replaceChildren(...chain);
   }
-  led.replaceChildren(
-    el("span", { class: "kb-tag", text: `Next bus · ${BS.dir}${next && next.check ? " · unconfirmed" : ""}` }),
-    el("div", { class: "kb-dest", "aria-hidden": "true" }, el("span", { class: "kb-marq" }, el("span", { text: destText }), el("span", { text: destText }))),
-    el("span", { class: "sr-only", text: next ? `${next.route}, ${fmt12(next.time)}` : "No more buses today" }),
-    next ? el("div", { class: "kb-row" },
-      el("strong", { class: "kb-time", text: fmt12(next.time) }),
-      el("span", { class: "kb-count", id: "kb-count" })) : null,
-    next ? el("div", { class: "kb-track", id: "kb-track", "aria-hidden": "true" }, el("i", { class: "kb-trackbus", text: "🚌" })) : null,
-    el("span", { class: "kb-via", text: sub })
-  );
-  // the sign on the bus shows the same destination
+  const pb = $("kb-pinbtn"), pinned = BS.pin === selKey;
+  pb.hidden = gone;
+  pb.dataset.key = selKey;
+  setText(pb, pinned ? "Unpin this bus" : "★ Pin as my bus");
+
+  // tiles and dots
+  BS.tiles.forEach((x, i) => {
+    const tg = busSecs(x.t) < s, tn = x.t === next, tp = BS.pin === pinKey(BS.dir, x.t), on = x.t === sel;
+    x.btn.classList.toggle("on", on);
+    x.btn.classList.toggle("next", tn);
+    x.btn.classList.toggle("gone", tg);
+    x.btn.setAttribute("aria-pressed", String(on));
+    setText(x.note, tp ? "★ pinned" : tg ? "left" : tn ? `next · in ${fmtDur(Math.max(1, Math.round((busSecs(x.t) - s) / 60)))}` : x.t.check ? "unconfirmed" : `in ${fmtDur(Math.max(1, Math.round((busSecs(x.t) - s) / 60)))}`);
+    BS.dots[i].classList.toggle("on", on);
+  });
+  const left = trips.filter((t) => busSecs(t) >= s).length;
+  setText($("kb-sum"), `${trips.length} buses · ${fmt12(trips[0].time)} – ${fmt12(trips[trips.length - 1].time)} · ${left ? `${left} left today` : "done for today"}`);
+
+  // the sign on the hero bus shows the next destination
   const sign = $("kb-sign");
   if (sign) sign.textContent = (next ? next.route : "KSRTC").toUpperCase().slice(0, 14);
 
@@ -1742,61 +1801,30 @@ function renderBus() {
     const [pd, pt] = BS.pin.split("|");
     const pt_ = (bus.directions[pd] || []).find((t) => t.time === pt);
     if (pt_) {
-      const gone = busSecs(pt_) < s;
-      BS.pinTarget = gone ? null : busSecs(pt_);
+      const g2 = busSecs(pt_) < s;
+      BS.pinTarget = g2 ? null : busSecs(pt_);
       mine.append(el("div", { class: "kb-ticket" },
         el("span", { class: "k", text: "★ MY BUS" }),
         el("div", { class: "row" },
           el("div", {}, el("strong", { text: `${fmt12(pt_.time)} · ${pt_.route}` }), el("span", { class: "muted", text: `${pd}${pt_.via ? ` · via ${pt_.via}` : ""}` })),
-          el("span", { class: "kb-ticket-count", id: "kb-pin-count", text: gone ? "left" : "" })),
+          el("span", { class: "kb-ticket-count", id: "kb-pin-count", text: g2 ? "left" : "" })),
         el("div", { class: "actions" }, el("button", { type: "button", class: "kb-unpin", text: "Unpin" }))
       ));
     }
   }
-
-  // trip list
-  const ol = el("ol", { class: "kb-list" });
-  trips.forEach((t) => {
-    const key = pinKey(BS.dir, t);
-    const isNext = t === next, gone = busSecs(t) < s, open = BS.open === key, pinned = BS.pin === key;
-    const stops = stopsOf(t);
-    const chain = [el("span", { class: "kb-stop me", text: "DC College" })];
-    stops.forEach((st, i) => {
-      chain.push(el("span", { class: "kb-arrow", "aria-hidden": "true", text: "➜" }));
-      chain.push(el("span", { class: "kb-stop" + (i === stops.length - 1 ? " end" : ""), text: st }));
-    });
-    ol.append(el("li", { class: ["kb-trip", isNext && "next", gone && "gone", open && "open", pinned && "pinned"].filter(Boolean).join(" ") },
-      el("button", { type: "button", class: "kb-trip-btn", "data-key": key, "aria-expanded": String(open) },
-        el("time", { datetime: t.time, text: fmt12(t.time) }),
-        el("span", {}, t.route, t.via ? el("span", { class: "via", text: `via ${t.via}` }) : null),
-        el("span", {},
-          pinned ? el("span", { class: "badge star", text: "★ pinned" })
-            : t.check ? el("span", { class: "badge", text: "unconfirmed" })
-            : isNext ? el("span", { class: "badge", text: "next" }) : null,
-          " ", el("span", { class: "chev", "aria-hidden": "true", text: "▼" }))),
-      el("div", { class: "kb-more" },
-        el("span", { class: "k", text: "Stops on this service" }),
-        el("div", { class: "kb-stops" }, chain),
-        gone ? null : pinned ? el("button", { type: "button", class: "kb-unpin", text: "Unpin this bus" })
-          : el("button", { type: "button", class: "kb-pin", "data-key": key, text: "★ Pin as my bus" }))
-    ));
-  });
-  $("bus-lists").replaceChildren(el("section", { class: "bus-col" }, ol));
-  if (refocus) document.querySelector(refocus)?.focus({ preventScroll: true });
   tickBus();
 }
 
-// Runs every second: only the countdown text and the little bus on the board change.
+// Runs every second: only the countdown text and the progress bar change.
 function tickBus() {
   if (!bus) return;
   const s = secNow();
-  const c = $("kb-count");
-  if (c && BS.target != null) {
+  if (BS.target != null) {
     const left = BS.target - s;
     if (left < -1) { renderBus(); return; }               // it has gone: show the next one
-    c.textContent = left <= 0 ? "leaving now" : `in ${fmtCount(left)}`;
-    const tr = $("kb-track");
-    if (tr) tr.style.setProperty("--p", String(Math.min(1, Math.max(0, 1 - left / 3600)).toFixed(3)));   // bus rolls in over the last hour
+    setText($("kb-when-sub"), left <= 0 ? "leaving now" : `leaves in ${fmtCount(left)}`);
+    const pr = $("kb-prog");
+    if (pr && pr.firstChild) pr.firstChild.style.setProperty("--w", `${Math.round(Math.min(1, Math.max(0, 1 - left / 3600)) * 100)}%`);   // fills over the last hour
   }
   const pc = $("kb-pin-count");
   if (pc && BS.pinTarget != null) {

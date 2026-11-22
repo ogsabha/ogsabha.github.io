@@ -1,4 +1,3 @@
-<!--MAIN-->
 <section id="bus" class="panel active">
   <div class="jp">
     <aside class="jp-side">
@@ -57,10 +56,33 @@
       <div class="jp-body">
         <p class="jp-kick">Timings</p>
         <h2 class="jp-h2">All buses, today.</h2>
-        <div class="kb-tabs" id="bus-dirs" role="tablist" aria-label="Direction"></div>
-        <div id="bus-now" class="kb-led" aria-live="polite"></div>
         <div id="my-bus"></div>
-        <div id="bus-lists" class="bus-lists"><p class="muted">Loading bus timings&hellip;</p></div>
+        <div id="bus-now" class="kb-feature" aria-live="polite">
+          <div class="kb-stage">
+            <div class="kb-slab" aria-hidden="true"></div>
+            <div class="kb-disc" aria-hidden="true">
+              <span class="kb-d-k">KSRTC</span>
+              <b class="kb-d-t" id="kb-d-t">--:--</b>
+              <span class="kb-d-ap" id="kb-d-ap"></span>
+            </div>
+            <div class="kb-rail" id="bus-dirs" role="group" aria-label="Direction"></div>
+          </div>
+          <div class="kb-copy">
+            <span class="kb-badge" id="kb-badge">Loading</span>
+            <h3 class="kb-h" id="kb-h">&nbsp;</h3>
+            <p class="kb-when"><span id="kb-when"></span><small id="kb-when-sub"></small></p>
+            <div class="kb-prog" id="kb-prog" hidden><i></i></div>
+            <p class="kb-desc" id="kb-desc"></p>
+            <div class="kb-stops" id="kb-stops"></div>
+            <div class="kb-actions">
+              <button type="button" class="kb-pinbtn" id="kb-pinbtn" hidden></button>
+              <a class="kb-btn" href="bus-timings.html">Plain timings list</a>
+            </div>
+          </div>
+        </div>
+        <div id="bus-lists" class="kb-list"><p class="muted">Loading bus timings&hellip;</p></div>
+        <div id="bus-dots" class="kb-dots"></div>
+        <p id="kb-sum" class="kb-sum"></p>
         <p class="muted bus-note" id="jp-note">KSRTC timings at DC College, copied from the notice on campus. They can change, and Sundays or holidays may differ, so confirm with the KSRTC depot when it matters. Tap a bus to see its stops and pin it as your bus. Prefer a plain page? See the <a href="bus-timings.html">bus timings list</a>.</p>
       </div>
     </div>

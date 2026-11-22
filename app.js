@@ -767,6 +767,7 @@ async function removeNotice(id) {
 ================================================================= */
 let approvedPosts = [];
 let pendingPosts = [];
+let wallShuffle = false, wallSeed = 0;
 let unsubPending = null;
 const reportedKey = "reportedPosts";
 const reportedSet = () => { try { return new Set(JSON.parse(store.get(reportedKey, "[]"))); } catch { return new Set(); } };
@@ -815,6 +816,9 @@ function initConfession() {
     const c = picked(); if (c) c.checked = false;
     text.placeholder = base;
     sync(); setStep(3);
+    const r = card.getBoundingClientRect();
+    burst(r.left + r.width / 2, r.top + r.height / 2, ["🫶", "✨", "🤫", "💌", "🩷"], 14);
+    navigator.vibrate?.(30);
   };
   $("wl-down")?.addEventListener("click", () => {
     goTo("post-form", "start");
@@ -827,6 +831,73 @@ function initConfession() {
     const s = Math.floor((Date.now() - t0) / 1000);
     clock.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   }, 1000);
+}
+
+/* ---------- play: headline words, cloud, parallax, prompt dice, tilt, shuffle ---------- */
+function initWallFx() {
+  const hero = document.querySelector(".cn-hero"), word = $("cn-word"), cloud = $("cn-cloud"), text = $("post-text"), slip = $("cf-card");
+  const fine = matchMedia("(hover: hover)").matches;
+  const WORDS = ["Unsigned.", "Unsaid.", "Untold.", "Unheard."];
+  let wi = 0, timer = null;
+  const nextWord = () => {
+    if (!word) return;
+    wi = (wi + 1) % WORDS.length;
+    word.textContent = WORDS[wi];
+    word.classList.remove("swap"); void word.offsetWidth; word.classList.add("swap");
+  };
+  const arm = () => { clearInterval(timer); if (!reduceMotion) timer = setInterval(() => { if (!document.hidden) nextWord(); }, 4200); };
+  arm();
+
+  if (hero && !reduceMotion && fine) {
+    hero.addEventListener("pointermove", (e) => {
+      const r = hero.getBoundingClientRect();
+      hero.style.setProperty("--mx", (((e.clientX - r.left) / r.width) * 2 - 1).toFixed(3));
+      hero.style.setProperty("--my", (((e.clientY - r.top) / r.height) * 2 - 1).toFixed(3));
+    });
+    hero.addEventListener("pointerleave", () => { hero.style.setProperty("--mx", 0); hero.style.setProperty("--my", 0); });
+  }
+
+  cloud?.addEventListener("click", (e) => {
+    const r = cloud.getBoundingClientRect();
+    burst(e.clientX || r.left + r.width / 2, e.clientY || r.top + r.height / 2, ["☁️", "✨", "🩷", "💭"], 12);
+    cloud.classList.remove("poof"); void cloud.offsetWidth; cloud.classList.add("poof");
+    nextWord(); arm();
+  });
+
+  $("cn-dice")?.addEventListener("click", () => {
+    const keys = Object.keys(SINS), k = keys[Math.floor(Math.random() * keys.length)];
+    const radio = document.querySelector(`input[name="cf-sin"][value="${k}"]`);
+    if (radio) { radio.checked = true; radio.dispatchEvent(new Event("change", { bubbles: true })); }
+    text?.focus({ preventScroll: true });
+  });
+
+  text?.addEventListener("input", () => {
+    if (text.value.length >= 300 && slip) { slip.classList.remove("full"); void slip.offsetWidth; slip.classList.add("full"); }
+  });
+
+  const list = $("post-list");
+  if (list && !reduceMotion && fine) {
+    list.addEventListener("pointermove", (e) => {
+      const c = e.target.closest?.(".cn-post"); if (!c) return;
+      const r = c.getBoundingClientRect(), px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
+      c.style.setProperty("--ry", `${((px - 0.5) * 8).toFixed(2)}deg`);
+      c.style.setProperty("--rx", `${((0.5 - py) * 8).toFixed(2)}deg`);
+      c.style.setProperty("--px", `${(px * 100).toFixed(1)}%`);
+      c.style.setProperty("--py", `${(py * 100).toFixed(1)}%`);
+    });
+    list.addEventListener("pointerout", (e) => {
+      const c = e.target.closest?.(".cn-post");
+      if (c && !c.contains(e.relatedTarget)) { c.style.setProperty("--rx", "0deg"); c.style.setProperty("--ry", "0deg"); c.style.setProperty("--py", "-60%"); }
+    });
+  }
+
+  const sortBtns = [...document.querySelectorAll(".cn-sortb")];
+  sortBtns.forEach((b) => b.addEventListener("click", () => {
+    wallShuffle = b.dataset.sort === "shuffle";
+    wallSeed = Math.floor(Math.random() * 1e9);
+    sortBtns.forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    renderWall();
+  }));
 }
 
 /* ---------- setup ---------- */
@@ -867,6 +938,7 @@ function initWall() {
   });
 
   initConfession();
+  initWallFx();
 }
 
 /* ---------- posts ---------- */
@@ -889,7 +961,7 @@ function renderWall() {
   const reported = reportedSet();
 
   // Students never see posts with 3+ reports. Staff still do, with the count.
-  const visible = approvedPosts.filter((p) => staff || (p.reports || 0) < 3).sort(newestFirst);
+  const visible = approvedPosts.filter((p) => staff || (p.reports || 0) < 3).sort(wallShuffle ? (a, b) => ((idHash(a.id) ^ wallSeed) >>> 0) - ((idHash(b.id) ^ wallSeed) >>> 0) : newestFirst);
 
   const list = $("post-list");
   list.replaceChildren();

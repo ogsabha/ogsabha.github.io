@@ -1211,7 +1211,42 @@ body[data-theme="wall"] .note a{color:var(--cloud)}
 .cn-booth[data-step="1"] .cn-step:nth-child(1) .cn-flame,
 .cn-booth[data-step="2"] .cn-step:nth-child(-n+2) .cn-flame,
 .cn-booth[data-step="3"] .cn-step .cn-flame{background:#fff}
-.cn-cloud{position:absolute;z-index:2;right:-5%;top:1%;width:min(62%,470px);height:auto;pointer-events:none;animation:cndrift 9s ease-in-out infinite}
+.cn-cloudbtn{position:absolute;z-index:2;right:-5%;top:1%;width:min(62%,470px);padding:0;border:0;border-radius:0;background:none;box-shadow:none;cursor:pointer;
+  transform:translate(calc(var(--mx,0)*16px),calc(var(--my,0)*10px));transition:transform .25s ease-out}
+.cn-cloudbtn:hover{transform:translate(calc(var(--mx,0)*16px),calc(var(--my,0)*10px))}
+.cn-cloudbtn:focus-visible{outline:3px solid var(--cloud);outline-offset:-6px;border-radius:30px}
+.cn-cloudbtn.poof{animation:cnpoof .55s cubic-bezier(.3,1.6,.5,1)}
+@keyframes cnpoof{0%{scale:1}25%{scale:.9 1.07}55%{scale:1.07 .95}100%{scale:1}}
+.cn-cloud{display:block;width:100%;height:auto;animation:cndrift 9s ease-in-out infinite}
+.cn-word{display:inline-block}
+.cn-word.swap{animation:cnword .5s cubic-bezier(.2,.9,.3,1)}
+@keyframes cnword{from{transform:translateY(34%);opacity:0}}
+.cn-title{transform:translate(calc(var(--mx,0)*-8px),calc(var(--my,0)*-5px));transition:transform .3s ease-out}
+.cn-hint{margin:0;padding:6px 12px;border-radius:999px;background:rgba(21,16,28,.82);border:1px solid rgba(255,255,255,.25);font:600 .72rem var(--body);color:#fff}
+/* ticker */
+.cn-ticker{overflow:hidden;background:var(--red);color:#15101c;border-block:1px solid #050407;white-space:nowrap}
+.cn-track{display:flex;width:max-content;animation:cntick 28s linear infinite}
+.cn-track>div{display:flex;align-items:center;gap:18px;padding:9px 9px;font:800 .8rem/1 var(--head);letter-spacing:-.01em}
+.cn-track i{font-style:normal;font-size:.9rem}
+@keyframes cntick{to{transform:translateX(-50%)}}
+.cn-ticker:hover .cn-track{animation-play-state:paused}
+/* prompt dice, emoji chips */
+.cn-dice{margin:0 0 14px;padding:8px 15px;background:transparent;color:var(--cloud);border:1px dashed var(--cloud);font:700 .82rem var(--body)}
+.cn-dice:hover{background:rgba(242,205,230,.12);box-shadow:none}
+.cn-chips b{display:inline-block;margin-right:7px;font-weight:400;transition:transform .2s}
+.cn-chips label:hover b,.cn-chips input:checked+span b{transform:scale(1.3) rotate(-8deg)}
+.cn-slip.full{animation:cnshake .35s}
+@keyframes cnshake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+/* feed: sort toggle, tilt and glow */
+.cn-sort{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.cn-sortg{display:flex;gap:6px}
+button.cn-sortb{padding:7px 15px;background:transparent;color:var(--ink);border:1.5px solid var(--ink);font:700 .8rem var(--body)}
+button.cn-sortb:hover{box-shadow:none;transform:none;background:rgba(26,20,32,.08)}
+button.cn-sortb[aria-pressed="true"]{background:var(--ink);color:#fff}
+.cn-post{transform:perspective(800px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .18s ease-out;
+  background-image:radial-gradient(220px circle at var(--px,50%) var(--py,-60%),rgba(242,205,230,.16),transparent 70%)}
+.cn-post:hover{z-index:1}
+
 @keyframes cndrift{50%{transform:translateY(7px)}}
 .cn-base{position:relative;z-index:3;margin-top:auto;padding-top:34px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
 .cn-acts{display:flex;gap:22px;flex-wrap:wrap}
@@ -1272,8 +1307,8 @@ button.cn-mini:disabled{opacity:.5}
 
 @media(max-width:620px){
   .cn-booth{border-width:4px;border-radius:20px}
-  .cn-cloud{width:60%;right:-14%;top:34%}
+  .cn-cloudbtn{width:60%;right:-14%;top:34%}
   .cn-row{flex-direction:column;align-items:stretch}
   .cn-wax{width:100%}
 }
-@media(prefers-reduced-motion:reduce){.cn-cloud{animation:none}.cn-flame,.cn-meter i::after{transition:none}.cn-slip.confessed .cn-seal{animation:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.cn-cloud,.cn-track,.cn-cloudbtn.poof,.cn-word.swap,.cn-slip.full{animation:none}.cn-post,.cn-title,.cn-cloudbtn{transition:none}.cn-flame,.cn-meter i::after{transition:none}.cn-slip.confessed .cn-seal{animation:none;opacity:1}}

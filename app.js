@@ -817,7 +817,7 @@ function initConfession() {
     text.placeholder = base;
     sync(); setStep(3);
     const r = card.getBoundingClientRect();
-    burst(r.left + r.width / 2, r.top + r.height / 2, ["🫶", "✨", "🤫", "💌", "🩷"], 14);
+    burst(r.left + r.width / 2, r.top + r.height / 2, ["🫧", "💗", "✨", "🤫"], 14);
     navigator.vibrate?.(30);
   };
   $("wl-down")?.addEventListener("click", () => {
@@ -833,11 +833,11 @@ function initConfession() {
   }, 1000);
 }
 
-/* ---------- play: headline words, cloud, parallax, prompt dice, tilt, shuffle ---------- */
+/* ---------- play: jellyfish, headline words, prompt dice, tilt, shuffle ---------- */
 function initWallFx() {
-  const hero = document.querySelector(".cn-hero"), word = $("cn-word"), cloud = $("cn-cloud"), text = $("post-text"), slip = $("cf-card");
+  const hero = $("cn-hero"), jelly = $("cn-jelly"), word = $("cn-word"), btn = $("cn-cloud"), text = $("post-text"), slip = $("cf-card");
   const fine = matchMedia("(hover: hover)").matches;
-  const WORDS = ["Unsigned.", "Unsaid.", "Untold.", "Unheard."];
+  const WORDS = ["Unsigned", "Unsaid", "Untold", "Unheard"];
   let wi = 0, timer = null;
   const nextWord = () => {
     if (!word) return;
@@ -848,21 +848,65 @@ function initWallFx() {
   const arm = () => { clearInterval(timer); if (!reduceMotion) timer = setInterval(() => { if (!document.hidden) nextWord(); }, 4200); };
   arm();
 
-  if (hero && !reduceMotion && fine) {
+  /* the jellyfish: a spring that drifts on its own, or chases the pointer when the toggle is on */
+  const tents = [...document.querySelectorAll("#cn-jelly path[data-k]")].map((p) => ({
+    p, x0: +p.dataset.x, y0: +p.dataset.y, len: +p.dataset.l, amp: +p.dataset.a, sp: +p.dataset.s, ph: +p.dataset.ph
+  }));
+  const N = 14;
+  const draw = (time, vx, vy) => {
+    for (const o of tents) {
+      const pts = [];
+      for (let i = 0; i <= N; i++) {
+        const t = i / N;
+        pts.push([o.x0 + o.amp * t * Math.sin(time * o.sp + o.ph - t * 4.2) - vx * t * t * 3.4, o.y0 + o.len * t - vy * t * t * 1.6]);
+      }
+      let d = `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+      for (let i = 1; i < N; i++) d += `Q${pts[i][0].toFixed(1)} ${pts[i][1].toFixed(1)} ${((pts[i][0] + pts[i + 1][0]) / 2).toFixed(1)} ${((pts[i][1] + pts[i + 1][1]) / 2).toFixed(1)}`;
+      d += `L${pts[N][0].toFixed(1)} ${pts[N][1].toFixed(1)}`;
+      o.p.setAttribute("d", d);
+    }
+  };
+  let x = 0, y = 0, vx = 0, vy = 0, mx = 0, px = 0, py = 0, follow = false, on = false, raf = 0;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const frame = (ms) => {
+    raf = 0;
+    const time = ms / 1000, W = hero.clientWidth, H = hero.clientHeight;
+    let tx, ty;
+    if (follow) { tx = clamp(px - W / 2, -W * 0.42, W * 0.42); ty = clamp(py - H * 0.38, -H * 0.18, H * 0.34); }
+    else { tx = mx * 28; ty = Math.sin(time * 0.9) * 14; }
+    vx += (tx - x) * 0.012; vy += (ty - y) * 0.012; vx *= 0.9; vy *= 0.9; x += vx; y += vy;
+    jelly.style.transform = `translate(calc(-50% + ${x.toFixed(1)}px), ${y.toFixed(1)}px) rotate(${clamp(vx * 0.9, -14, 14).toFixed(2)}deg)`;
+    draw(time, vx, vy);
+    if (on) raf = requestAnimationFrame(frame);
+  };
+  const run = () => { if (!on && !reduceMotion) { on = true; raf = requestAnimationFrame(frame); } };
+  const stop = () => { on = false; if (raf) cancelAnimationFrame(raf); raf = 0; };
+  if (hero && jelly && tents.length) {
+    if (reduceMotion) draw(0, 0, 0);
+    else {
+      if ("IntersectionObserver" in window) new IntersectionObserver((es) => es.forEach((en) => (en.isIntersecting ? run() : stop()))).observe(hero);
+      else run();
+      document.addEventListener("visibilitychange", () => (document.hidden ? stop() : run()));
+    }
     hero.addEventListener("pointermove", (e) => {
       const r = hero.getBoundingClientRect();
-      hero.style.setProperty("--mx", (((e.clientX - r.left) / r.width) * 2 - 1).toFixed(3));
-      hero.style.setProperty("--my", (((e.clientY - r.top) / r.height) * 2 - 1).toFixed(3));
+      px = e.clientX - r.left; py = e.clientY - r.top;
+      mx = (px / r.width) * 2 - 1;
+      hero.style.setProperty("--mx", mx.toFixed(3)); hero.style.setProperty("--my", ((py / r.height) * 2 - 1).toFixed(3));
     });
-    hero.addEventListener("pointerleave", () => { hero.style.setProperty("--mx", 0); hero.style.setProperty("--my", 0); });
+    hero.addEventListener("pointerleave", () => { mx = 0; hero.style.setProperty("--mx", 0); hero.style.setProperty("--my", 0); });
   }
-
-  cloud?.addEventListener("click", (e) => {
-    const r = cloud.getBoundingClientRect();
-    burst(e.clientX || r.left + r.width / 2, e.clientY || r.top + r.height / 2, ["☁️", "✨", "🩷", "💭"], 12);
-    cloud.classList.remove("poof"); void cloud.offsetWidth; cloud.classList.add("poof");
-    nextWord(); arm();
+  $("cn-follow")?.addEventListener("change", (e) => {
+    follow = e.target.checked;
+    const t = $("cn-follow-txt"); if (t) t.textContent = follow ? "ON" : "OFF";
   });
+  btn?.addEventListener("click", (e) => {
+    const svg = btn.querySelector("svg"), r = btn.getBoundingClientRect();
+    burst(e.clientX || r.left + r.width / 2, e.clientY || r.top + r.height / 3, ["🫧", "💗", "✨"], 10);
+    svg?.classList.remove("kick"); void svg?.getBoundingClientRect(); svg?.classList.add("kick");
+    vy -= 16; nextWord(); arm();
+  });
+  $("cn-round")?.addEventListener("click", () => goTo("post-form", "start"));
 
   $("cn-dice")?.addEventListener("click", () => {
     const keys = Object.keys(SINS), k = keys[Math.floor(Math.random() * keys.length)];
@@ -870,7 +914,6 @@ function initWallFx() {
     if (radio) { radio.checked = true; radio.dispatchEvent(new Event("change", { bubbles: true })); }
     text?.focus({ preventScroll: true });
   });
-
   text?.addEventListener("input", () => {
     if (text.value.length >= 300 && slip) { slip.classList.remove("full"); void slip.offsetWidth; slip.classList.add("full"); }
   });
@@ -879,18 +922,17 @@ function initWallFx() {
   if (list && !reduceMotion && fine) {
     list.addEventListener("pointermove", (e) => {
       const c = e.target.closest?.(".cn-post"); if (!c) return;
-      const r = c.getBoundingClientRect(), px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
-      c.style.setProperty("--ry", `${((px - 0.5) * 8).toFixed(2)}deg`);
-      c.style.setProperty("--rx", `${((0.5 - py) * 8).toFixed(2)}deg`);
-      c.style.setProperty("--px", `${(px * 100).toFixed(1)}%`);
-      c.style.setProperty("--py", `${(py * 100).toFixed(1)}%`);
+      const r = c.getBoundingClientRect(), ax = (e.clientX - r.left) / r.width, ay = (e.clientY - r.top) / r.height;
+      c.style.setProperty("--ry", `${((ax - 0.5) * 8).toFixed(2)}deg`);
+      c.style.setProperty("--rx", `${((0.5 - ay) * 8).toFixed(2)}deg`);
+      c.style.setProperty("--px", `${(ax * 100).toFixed(1)}%`);
+      c.style.setProperty("--py", `${(ay * 100).toFixed(1)}%`);
     });
     list.addEventListener("pointerout", (e) => {
       const c = e.target.closest?.(".cn-post");
       if (c && !c.contains(e.relatedTarget)) { c.style.setProperty("--rx", "0deg"); c.style.setProperty("--ry", "0deg"); c.style.setProperty("--py", "-60%"); }
     });
   }
-
   const sortBtns = [...document.querySelectorAll(".cn-sortb")];
   sortBtns.forEach((b) => b.addEventListener("click", () => {
     wallShuffle = b.dataset.sort === "shuffle";

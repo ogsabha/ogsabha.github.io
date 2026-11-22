@@ -761,8 +761,8 @@ async function removeNotice(id) {
 }
 
 /* =================================================================
-   WALL: a cinematic confession wall.
-   Pick what it is about, say it on the slip, a person reads it, then it hangs on the wall.
+   WALL: the last bench.
+   Pick a topic, write the note, a person reads it, then it goes on the wall.
    Posting, the one-minute wait, the word filter, reports and staff approval are unchanged.
 ================================================================= */
 let approvedPosts = [];
@@ -797,7 +797,7 @@ function initConfession() {
   const sync = () => {
     const n = text.value.length;
     meter.style.setProperty("--g", (n / 300).toFixed(3));
-    meterTxt.textContent = n === 0 ? "Nothing to confess yet." : n < 80 ? "A small one." : n < 200 ? "Getting heavy." : "That is a lot to carry.";
+    meterTxt.textContent = n === 0 ? "Nothing written yet." : n < 80 ? "Short and sweet." : n < 200 ? "Getting long." : "Almost at the limit.";
     if (!done) setStep(n ? 2 : picked() ? 2 : 1);
   };
   const reopen = () => { if (done) { done = false; card.classList.remove("confessed"); } };
@@ -817,7 +817,7 @@ function initConfession() {
     sync(); setStep(3);
   };
   $("wl-down")?.addEventListener("click", () => {
-    goTo("cf-frame", "start");
+    goTo("post-form", "start");
     setTimeout(() => text.focus({ preventScroll: true }), reduceMotion ? 0 : 450);
   });
   $("cf-read")?.addEventListener("click", () => goTo("wl-posts-head", "start"));
@@ -842,7 +842,7 @@ function initWall() {
     if (!(await ensureMe())) { msg.textContent = authProblem(); return; }
 
     const last = Number(store.get("lastPost", 0));
-    if (Date.now() - last < 60000) { msg.textContent = "Please wait a minute between confessions."; return; }
+    if (Date.now() - last < 60000) { msg.textContent = "Please wait a minute between notes."; return; }
     const lower = body.toLowerCase();
     if (BAD_WORDS.some((w) => lower.includes(w))) { msg.textContent = "Please remove rude words and try again."; return; }
 
@@ -851,7 +851,7 @@ function initWall() {
       store.set("lastPost", Date.now());
       text.value = "";
       $("post-count").textContent = "0 / 300";
-      msg.textContent = "Confessed. The mask is off. Your slip will hang on the wall once a person has read it.";
+      msg.textContent = "Sent. Your note goes on the wall once a person has read it.";
       CF.done?.();
     } catch (err) {
       console.error(err);
@@ -893,7 +893,7 @@ function renderWall() {
 
   const list = $("post-list");
   list.replaceChildren();
-  if (!visible.length) list.append(el("p", { class: "cn-empty", text: "The wall is quiet. Be the first to take the mask off." }));
+  if (!visible.length) list.append(el("p", { class: "cn-empty", text: "The wall is empty. Write the first note." }));
   visible.forEach((p) => {
     const h = idHash(p.id);
     const done = reported.has(p.id);
@@ -901,12 +901,12 @@ function renderWall() {
       el("button", { type: "button", class: "cn-mini", text: done ? "Reported" : "Report", disabled: done ? "" : null, onclick: () => reportPost(p.id) }),
       staff ? el("button", { type: "button", class: "cn-mini danger", text: `Delete (${p.reports || 0} reports)`, onclick: () => removePost(p.id) }) : null
     );
-    list.append(el("article", { class: `cn-post v${h % 4}`, style: `--rot:${((((h >> 3) % 9) - 4) * 0.45).toFixed(2)}deg` },
+    list.append(el("article", { class: `cn-post cv${h % 4}`, style: `--rot:${((((h >> 3) % 9) - 4) * 0.45).toFixed(2)}deg` },
       el("p", { class: "cn-text", text: p.text }),
-      el("p", { class: "cn-meta", text: `Confessed ${postTime(p)}` }),
+      el("p", { class: "cn-meta", text: `Posted ${postTime(p)}` }),
       actions));
   });
-  $("wl-count").textContent = visible.length ? `${visible.length} ${visible.length === 1 ? "confession" : "confessions"} kept` : "";
+  $("wl-count").textContent = visible.length ? `${visible.length} ${visible.length === 1 ? "note" : "notes"} on the wall` : "";
 
   $("pending-box").hidden = !staff;
   const pl = $("pending-list");

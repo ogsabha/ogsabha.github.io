@@ -795,7 +795,7 @@ a.brand{text-decoration:none;color:inherit}
 /* =================================================================
    BUS: "Travel to ..." look. White card on soft grey, huge black headline, red accent,
    a black-and-white Vagamon forest cut-out over a torn red disc. The bus sits in the forest (tap to honk).
-   Markup lives in _src/bus.html. app.js still fills #bus-dirs, #bus-now, #my-bus, #bus-lists and #jp-dest.
+   Markup lives in _src/bus.html. app.js fills #bus-dirs, #bus-now (feature), #my-bus, #bus-lists (tiles), #bus-dots, #kb-sum and #jp-dest.
 ================================================================= */
 body[data-theme="bus"]{
   --bg:#e9e9ea;--ink:#111;--muted:#6f6f73;--cbg:#fff;--cink:#111;--accent:#e4262d;--on-accent:#fff;--line:#e7e7e9;--jr:#e4262d;
@@ -869,34 +869,10 @@ body[data-theme="bus"] button:hover{transform:none;box-shadow:none}
 @keyframes kbspin{to{transform:rotate(360deg)}}
 @keyframes kblamp{50%{opacity:.45}}
 @keyframes kbgo{0%{transform:translateX(0)}44%{transform:translateX(330%)}45%{transform:translateX(-330%)}100%{transform:translateX(0)}}
-@keyframes kbmarq{to{transform:translateX(-50%)}}
 @keyframes kbnext{50%{box-shadow:0 0 0 7px rgba(228,38,45,.22)}}
 
 .jp-body{padding:40px clamp(22px,5vw,64px) 52px}
 .jp-h2{margin:4px 0 20px;font-size:clamp(1.9rem,4.6vw,2.8rem);font-weight:800;letter-spacing:-.045em;line-height:1.05}
-.kb-tabs{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 18px}
-.kb-tab{display:inline-flex;align-items:center;gap:10px;padding:10px 20px;border-radius:999px;background:#fff;color:#111;border:1.5px solid #dcdce0;font-size:.76rem;font-weight:700;letter-spacing:.03em}
-.kb-tab:hover{border-color:#111}
-.kb-tab small{font-size:.64rem;font-weight:600;padding:2px 9px;border-radius:999px;background:#f0f0f2;color:#555;white-space:nowrap}
-.kb-tab[aria-selected="true"]{background:var(--jr);border-color:var(--jr);color:#fff}
-.kb-tab[aria-selected="true"] small{background:rgba(255,255,255,.24);color:#fff}
-@media(max-width:480px){.kb-tab{flex:1 1 100%;justify-content:space-between}}
-
-.kb-led{position:relative;margin:0 0 16px;padding:22px 24px 20px 30px;overflow:hidden;border-radius:14px;background:#fff;border:1px solid #e7e7e9;box-shadow:0 20px 40px -28px rgba(0,0,0,.4)}
-.kb-led::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--jr)}
-.kb-tag{display:block;color:var(--jr);font-size:.64rem;font-weight:800;letter-spacing:.3em;text-transform:uppercase}
-.kb-dest{overflow:hidden;white-space:nowrap;margin:10px 0 8px;font:800 clamp(1.3rem,4.2vw,2rem)/1.15 Inter,"Helvetica Neue",Arial,sans-serif;letter-spacing:-.01em;text-transform:uppercase;color:#111}
-.kb-marq{display:inline-flex;animation:kbmarq 16s linear infinite}
-.kb-marq span{padding-right:3rem}
-.kb-row{display:flex;align-items:baseline;justify-content:space-between;gap:6px 16px;flex-wrap:wrap}
-.kb-time{font:800 clamp(2.4rem,8vw,3.6rem)/1 Inter,"Helvetica Neue",Arial,sans-serif;letter-spacing:-.045em;font-variant-numeric:tabular-nums}
-.kb-count{font-weight:700;font-size:1rem;color:var(--jr)}
-.kb-via{display:block;margin-top:8px;font-size:.68rem;font-weight:600;letter-spacing:.14em;color:#77777b}
-.kb-track{position:relative;height:28px;margin-top:14px;--p:0}
-.kb-track::before{content:"";position:absolute;left:0;right:22px;top:13px;border-top:2px dashed #d3d3d7}
-.kb-track::after{content:"";position:absolute;right:2px;top:7px;width:14px;height:14px;border-radius:50%;background:var(--jr);box-shadow:0 0 0 5px rgba(228,38,45,.18)}
-.kb-trackbus{position:absolute;top:0;left:calc(var(--p) * (100% - 44px));font-size:1.35rem;line-height:1;transform:scaleX(-1);transition:left 1s linear}
-.kb-led.none .kb-track{display:none}
 
 .kb-ticket{position:relative;margin:0 0 16px;padding:14px 20px;border-radius:14px;background:#fff6f6;color:#111;border:1.5px dashed var(--jr);animation:rise .3s ease}
 .kb-ticket .k{display:block;font-size:.64rem;font-weight:800;letter-spacing:.24em;color:var(--jr)}
@@ -905,36 +881,120 @@ body[data-theme="bus"] button:hover{transform:none;box-shadow:none}
 .kb-ticket-count{font-weight:800;font-size:1.25rem;color:var(--jr)}
 .kb-ticket button{padding:6px 16px;font-size:.74rem;background:#fff;color:#111;border:1.5px solid #dcdce0}
 
-.bus-lists{display:block}
-.bus-col h2{display:none}
-.kb-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
-.kb-trip{border:1px solid #e7e7e9;border-radius:14px;background:#fff;overflow:hidden;color:#111;transition:border-color .15s}
-.kb-trip:hover{border-color:#bdbdc2}
-body[data-theme="bus"] .kb-trip-btn{display:grid;grid-template-columns:90px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;padding:14px 18px;border:0;border-radius:0;background:none;color:inherit;text-align:left;font-weight:600}
-.kb-trip-btn:hover{background:#fafafb}
-.kb-trip-btn time{font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.kb-trip-btn .via{display:block;font-size:.74rem;font-weight:500;color:var(--muted)}
-.kb-trip-btn .chev{font-size:.7rem;transition:transform .2s}
-.kb-trip.open .chev{transform:rotate(180deg)}
-.kb-trip.gone{opacity:.42}
-.kb-trip.next{background:var(--jr);border-color:var(--jr);color:#fff;animation:kbnext 2s ease-in-out infinite}
-.kb-trip.next .via{color:inherit;opacity:.88}
-.kb-trip.next .kb-trip-btn:hover{background:rgba(255,255,255,.12)}
-.kb-trip.pinned{outline:2px solid #111;outline-offset:2px}
-.kb-trip .badge{background:#f0f0f2;color:#444}
-.kb-trip.next .badge{background:rgba(255,255,255,.26);color:#fff}
-.kb-trip .badge.star{background:#111;color:#fff}
-.kb-more{display:none;padding:2px 18px 16px}
-.kb-trip.open .kb-more{display:block;animation:rise .25s ease}
-.kb-more .k{display:block;font-size:.64rem;font-weight:800;letter-spacing:.2em;text-transform:uppercase;opacity:.7;margin-bottom:8px}
-.kb-stops{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 14px}
+/* BUS timings: same layout as Food and Classes (feature panel + trip tiles + dots), kept in the bus colours: red, black, white. */
+.kb-feature{display:grid;grid-template-columns:1fr;gap:26px;align-items:center;margin-top:6px;min-height:clamp(300px,80vw,420px)}
+@media(min-width:760px){.kb-feature{grid-template-columns:1.05fr .95fr;gap:24px}}
+.kb-stage{position:relative;height:clamp(300px,80vw,420px);display:grid;place-items:center}
+.kb-slab{position:absolute;top:0;bottom:0;left:50%;width:min(58%,230px);transform:translateX(-50%);overflow:hidden;border-radius:28px;
+  background:linear-gradient(180deg,#e4262d 0%,#c91f26 60%,#9d151b 100%)}
+.kb-slab::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:4px;transform:translateX(-50%);border-radius:2px;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.7) 0 22px,transparent 22px 44px);animation:kbroad 1.6s linear infinite}
+@keyframes kbroad{to{background-position:0 44px}}
+.kb-disc{position:relative;z-index:1;display:grid;place-content:center;justify-items:center;gap:4px;width:min(88%,330px);aspect-ratio:1;border-radius:50%;text-align:center;
+  background:radial-gradient(circle at 35% 30%,#2a2a2d,#0b0b0d);color:#fff;border:14px solid #fff;
+  box-shadow:0 30px 50px -20px rgba(120,10,15,.6),inset 0 0 0 6px #1b1b1d;animation:plateFloat 6s ease-in-out infinite}
+.kb-d-k{padding-left:.4em;font-size:.62rem;font-weight:800;letter-spacing:.4em;color:#ff6b70}
+.kb-d-t{font:800 clamp(2.6rem,10vw,3.8rem)/1 Inter,"Helvetica Neue",Arial,sans-serif;letter-spacing:-.05em;font-variant-numeric:tabular-nums}
+.kb-d-ap{padding-left:.3em;font-size:.8rem;font-weight:700;letter-spacing:.3em;color:#ff6b70}
+.kb-rail{display:none;position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:2;flex-direction:column;gap:26px}
+@media(min-width:760px){.kb-rail{display:flex}}
+body[data-theme="bus"] button.kb-rb{display:flex;align-items:center;gap:8px;writing-mode:vertical-rl;transform:rotate(180deg);background:none;color:#111;padding:0;border:0;font-size:.82rem;font-weight:600}
+body[data-theme="bus"] button.kb-rb:hover{transform:rotate(180deg);color:var(--jr)}
+body[data-theme="bus"] button.kb-rb.on{color:var(--jr)}
+.kb-rb small{font-size:.62rem;font-weight:700;opacity:.55}
+
+.kb-badge{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;background:#111;color:#fff;font-size:.66rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+.kb-badge.live{background:var(--jr)}
+.kb-badge.live::before{content:"";width:7px;height:7px;border-radius:50%;background:#fff;animation:clblink 1.2s ease-in-out infinite}
+.kb-h{margin:12px 0 0;font-size:clamp(1.9rem,5.6vw,2.9rem);font-weight:800;letter-spacing:-.045em;line-height:1.05;text-transform:none;text-wrap:balance;overflow-wrap:anywhere}
+.kb-when{margin:16px 0 0;line-height:1.1;font-weight:800;font-size:1.5rem;color:var(--jr);letter-spacing:-.03em}
+.kb-when small{display:block;margin-top:5px;color:#77777b;font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.kb-prog{height:6px;max-width:280px;margin-top:14px;border-radius:6px;background:#ececee;overflow:hidden}
+.kb-prog i{display:block;height:100%;width:var(--w,0%);background:var(--jr);border-radius:6px;transition:width 1s linear}
+.kb-desc{max-width:42ch;margin:14px 0 0;color:#555;font-size:.95rem}
+.kb-stops{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:14px 0 0}
 .kb-stop{padding:5px 12px;border-radius:999px;background:#f0f0f2;color:#111;font-size:.76rem;font-weight:600}
 .kb-stop.end{background:#111;color:#fff}
 .kb-stop.me{background:var(--jr);color:#fff}
-.kb-trip.next .kb-stop.me{background:#fff;color:var(--jr)}
 .kb-arrow{opacity:.5;font-size:.8rem}
-.kb-pin{padding:8px 20px;font-size:.74rem;font-weight:800;letter-spacing:.06em;background:var(--jr);color:#fff}
-.kb-trip.next .kb-pin{background:#111}
+.kb-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:16px}
+body[data-theme="bus"] button.kb-pinbtn{padding:10px 22px;background:#fff;color:#111;border:1.5px solid #dcdce0;font-size:.82rem;font-weight:700}
+body[data-theme="bus"] button.kb-pinbtn:hover{border-color:#111}
+.kb-btn{display:inline-block;background:#111;color:#fff;padding:10px 24px;border-radius:4px;text-decoration:none;font-weight:600;font-size:.9rem}
+.kb-btn:hover{background:var(--jr)}
+
+/* trip tiles: same shape as the Food meals and Classes periods */
+.kb-list{display:grid;grid-template-columns:repeat(2,1fr);gap:40px 16px;margin-top:34px}
+@media(min-width:720px){.kb-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
+body[data-theme="bus"] button.kb-tile{position:relative;display:block;width:100%;text-align:left;background:#1c1c1f;color:#fff;border-radius:16px;padding:46px 16px 14px;
+  box-shadow:0 22px 30px -18px rgba(0,0,0,.55);font-weight:400;transition:transform .2s,box-shadow .2s}
+body[data-theme="bus"] button.kb-tile:hover{transform:translateY(-4px)}
+body[data-theme="bus"] button.kb-tile:active{transform:translateY(-1px) scale(.98)}
+body[data-theme="bus"] button.kb-tile.on{box-shadow:0 0 0 3px var(--jr),0 22px 30px -18px rgba(0,0,0,.55)}
+body[data-theme="bus"] button.kb-tile.next{background:linear-gradient(160deg,#e4262d,#a5141b)}
+body[data-theme="bus"] button.kb-tile.next.on{box-shadow:0 0 0 3px #fff,0 0 0 6px var(--jr),0 22px 30px -18px rgba(0,0,0,.55)}
+body[data-theme="bus"] button.kb-tile.gone{background:#3d3d42;opacity:.8}
+.kb-tile.gone .kb-tp{background:#8a3a3e}
+.kb-tp{position:absolute;top:-26px;left:14px;display:grid;place-items:center;width:68px;height:68px;border-radius:50%;border:3px solid #fff;background:var(--jr);
+  font-size:1.7rem;line-height:1;box-shadow:0 10px 18px -8px rgba(0,0,0,.6);transition:transform .25s}
+button.kb-tile:hover .kb-tp{transform:rotate(14deg) scale(1.08)}
+.kb-tile.next .kb-tp{background:#111}
+.kb-tt{position:absolute;top:14px;right:16px;font-weight:800;font-size:.9rem;font-variant-numeric:tabular-nums;color:#ff6b70}
+.kb-tn{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:6px;min-height:2.4em;font-weight:700;font-size:1rem;line-height:1.2;letter-spacing:-.02em}
+.kb-ts{display:block;margin-top:4px;min-height:1.2em;font-size:.74rem;opacity:.65;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kb-tf{display:flex;justify-content:space-between;align-items:center;margin-top:14px;min-height:1em;font-size:.68rem;font-weight:700;letter-spacing:.04em;color:#ff6b70}
+.kb-tile.next .kb-tt,.kb-tile.next .kb-tf{color:#fff}
+.kb-dots{display:flex;gap:10px;justify-content:center;margin:28px 0 0}
+body[data-theme="bus"] .kb-dots button{width:9px;height:9px;padding:0;border-radius:50%;background:#f4b5b8}
+body[data-theme="bus"] .kb-dots button.on{background:var(--jr)}
+.kb-sum{margin:22px 0 0;text-align:center;font-size:.68rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+/* phones: direction pills, one compact red card, trip rows (same idea as Food and Classes) */
+@media(max-width:759px){
+  .kb-feature{grid-template-columns:112px minmax(0,1fr);column-gap:16px;row-gap:0;margin-top:0;min-height:0;padding:14px 16px 18px;border-radius:26px;color:#fff;
+    background:linear-gradient(160deg,#e4262d,#a5141b 85%);box-shadow:0 24px 40px -24px rgba(120,10,15,.6)}
+  .kb-stage,.kb-copy{display:contents}
+  .kb-slab{display:none}
+  .kb-rail{display:flex;position:static;transform:none;flex-direction:row;gap:6px;grid-column:1/-1;grid-row:1;margin:0 0 12px}
+  body[data-theme="bus"] button.kb-rb{writing-mode:horizontal-tb;transform:none;flex:1 1 0;justify-content:center;text-align:center;padding:9px 6px;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font-size:.74rem;min-height:38px}
+  body[data-theme="bus"] button.kb-rb:hover{transform:none;color:#fff}
+  body[data-theme="bus"] button.kb-rb.on{background:#111;color:#fff}
+  .kb-rb small{display:none}
+  .kb-disc{grid-column:1;grid-row:2 / span 3;width:112px;border-width:6px;margin:4px 0;justify-self:center;gap:0;box-shadow:0 14px 22px -10px rgba(60,0,5,.7),inset 0 0 0 3px #1b1b1d}
+  .kb-d-k{font-size:.5rem;letter-spacing:.3em}
+  .kb-d-t{font-size:1.55rem}
+  .kb-d-ap{font-size:.6rem}
+  .kb-badge{grid-column:2;grid-row:2;justify-self:start;align-self:end;margin-bottom:6px;background:rgba(255,255,255,.2)}
+  .kb-badge.live{background:#111}
+  .kb-h{grid-column:2;grid-row:3;font-size:1.45rem;line-height:1.08;margin:0;color:#fff}
+  .kb-when{grid-column:2;grid-row:4;font-size:1.02rem;margin:8px 0 0;color:#fff}
+  .kb-when small{color:#ffd9da}
+  .kb-prog{grid-column:1/-1;grid-row:5;max-width:none;background:rgba(255,255,255,.25)}
+  .kb-prog i{background:#fff}
+  .kb-desc{grid-column:1/-1;grid-row:6;max-width:none;margin:14px 0 0;padding-top:14px;border-top:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.92)}
+  .kb-stops{grid-column:1/-1;grid-row:7}
+  .kb-stop{background:rgba(255,255,255,.2);color:#fff}
+  .kb-stop.end{background:#111}
+  .kb-stop.me{background:#fff;color:var(--jr)}
+  .kb-actions{grid-column:1/-1;grid-row:8;flex-direction:column;align-items:stretch;gap:8px}
+  body[data-theme="bus"] button.kb-pinbtn{border:0;border-radius:14px;padding:14px;font-size:.95rem}
+  .kb-btn{text-align:center;border-radius:14px;padding:14px;font-size:.95rem}
+
+  .kb-list{grid-template-columns:1fr;gap:10px;margin-top:16px}
+  body[data-theme="bus"] button.kb-tile{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;row-gap:2px;align-items:center;padding:14px 14px 12px 88px;min-height:84px;border-radius:20px}
+  body[data-theme="bus"] button.kb-tile:hover{transform:none}
+  .kb-tp{top:calc(50% - 31px);width:62px;height:62px}
+  button.kb-tile:hover .kb-tp{transform:none}
+  .kb-tt{position:static;grid-column:2;grid-row:1}
+  .kb-tn{grid-column:1;grid-row:1;margin:0;min-height:0;font-size:1.05rem}
+  .kb-ts{grid-column:1/-1;grid-row:2;margin:0}
+  .kb-tf{grid-column:1/-1;grid-row:3;margin-top:4px;min-height:0}
+  .kb-tf span[aria-hidden]{display:none}
+  body[data-theme="bus"] button.kb-tile.on{box-shadow:0 0 0 2px var(--jr),0 14px 24px -16px rgba(0,0,0,.55)}
+  body[data-theme="bus"] button.kb-tile.next.on{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--jr),0 14px 24px -16px rgba(0,0,0,.55)}
+  .kb-dots{display:none}
+}
+
 .bus-note{margin-top:28px;font-size:.78rem;line-height:1.7}
 .bus-note a{color:var(--jr)}
 
@@ -955,8 +1015,8 @@ body[data-theme="bus"] .kb-trip-btn{display:grid;grid-template-columns:90px minm
   .kb-hint{left:22%}
 }
 @media(prefers-reduced-motion:reduce){
-  .kb-marq,.kb-bus,.kb-wheel,.kb-lamp,.kb-trip.next{animation:none}
-  .kb-trackbus{transition:none}
+  .kb-bus,.kb-wheel,.kb-lamp,.kb-disc,.kb-slab::after,.kb-tile.next{animation:none}
+  body[data-theme="bus"] button.kb-tile,.kb-tp,.kb-prog i{transition:none}
 }
 
 /* BUS: full-screen version. The card fills the whole window and the hero fills the first screen. */

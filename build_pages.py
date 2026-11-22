@@ -217,7 +217,7 @@ PAGES = [
         title="Og Sabha | Anonymous Wall for DCSMAT Vagamon Students",
         desc="The Og Sabha anonymous wall: DCSMAT, Vagamon students write the notes they can't say out loud. A person reads every note before it goes up.",
         h1="Og Sabha anonymous wall for DCSMAT Vagamon students", vis=None,
-        sub="Write what you can't say out loud. Anonymous, always kind.",
+        sub="Spill what you can't say out loud. Anonymous, always kind.",
     ),
     dict(
         key="gigs", file="gigs.html", href="gigs.html", url=SITE + "/gigs.html", nav="Gigs", crumb="Gigs", theme="#4A1604",

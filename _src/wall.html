@@ -2,14 +2,14 @@
       <div class="cn-booth" id="cf-frame" data-step="1">
         <div class="cn-hero">
           <div class="cn-nav" aria-hidden="true"><span class="cn-logo">OS</span><span>Anonymous</span><span>Read first</span><span class="cn-burger"><i></i><i></i></span></div>
-          <h2 class="cn-title">Unsigned.</h2>
-          <p class="cn-lede">Write what you can&rsquo;t say out loud. No name goes on it, and a person reads every note before it goes up.</p>
+          <h2 class="cn-title"><span class="cn-word" id="cn-word">Unsigned.</span></h2>
+          <p class="cn-lede">Say the thing you can&rsquo;t say out loud. No name goes on it, and a real person reads every note before it goes up.</p>
           <ol class="cn-steps" aria-label="Progress">
             <li class="cn-step" aria-current="step"><i class="cn-flame" aria-hidden="true"></i><span class="sr-only">Pick a topic</span></li>
             <li class="cn-step"><i class="cn-flame" aria-hidden="true"></i><span class="sr-only">Write it</span></li>
             <li class="cn-step"><i class="cn-flame" aria-hidden="true"></i><span class="sr-only">Sent</span></li>
           </ol>
-          <svg class="cn-cloud" viewBox="0 0 440 600" aria-hidden="true" focusable="false">
+          <button type="button" class="cn-cloudbtn" id="cn-cloud" aria-label="Poof the cloud and change the word"><svg class="cn-cloud" viewBox="0 0 440 600" aria-hidden="true" focusable="false">
   <defs>
     <radialGradient id="cg" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#fdeaf5"/><stop offset=".6" stop-color="#f0c6e2"/><stop offset="1" stop-color="#d79bc8"/></radialGradient>
     <linearGradient id="cap" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a4f6b"/><stop offset="1" stop-color="#2f2740"/></linearGradient>
@@ -19,29 +19,33 @@
   <path d="M96 150C92 60 250 20 330 118Z" fill="url(#cap)"/>
   <path d="M30 168C120 112 265 96 372 134C262 160 128 182 30 196Z" fill="#3a3148"/>
   <path d="M30 168C120 112 265 96 372 134C300 128 130 128 30 168Z" fill="#6a5d7c" opacity=".55"/>
-</svg>
+</svg></button>
           <div class="cn-base">
             <div class="cn-acts">
-              <button type="button" class="cn-red" id="wl-down">Write a note</button>
-              <button type="button" class="cn-white" id="cf-read">Read the wall</button>
+              <button type="button" class="cn-red" id="wl-down">Spill it</button>
+              <button type="button" class="cn-white" id="cf-read">Read the tea</button>
             </div>
-            <p class="cn-fine">Please do not name or target anyone.</p>
+            <p class="cn-hint" aria-hidden="true">tap the cloud &#9729;&#65039;</p>
           </div>
           <span id="cf-clock" hidden></span>
         </div>
+
+        <div class="cn-ticker" aria-hidden="true"><div class="cn-track"><div><span>no names</span><i aria-hidden="true">&#10033;</i><span>no screenshots of you</span><i aria-hidden="true">&#10033;</i><span>a human reads it first</span><i aria-hidden="true">&#10033;</i><span>300 characters</span><i aria-hidden="true">&#10033;</i><span>keep it kind</span><i aria-hidden="true">&#10033;</i><span>spill the tea</span><i aria-hidden="true">&#10033;</i></div><div><span>no names</span><i aria-hidden="true">&#10033;</i><span>no screenshots of you</span><i aria-hidden="true">&#10033;</i><span>a human reads it first</span><i aria-hidden="true">&#10033;</i><span>300 characters</span><i aria-hidden="true">&#10033;</i><span>keep it kind</span><i aria-hidden="true">&#10033;</i><span>spill the tea</span><i aria-hidden="true">&#10033;</i></div></div></div>
 
         <form id="post-form" class="cn-form">
           <fieldset class="cn-sins">
             <legend>What is it about?</legend>
             <div class="cn-chips">
-              <label><input type="radio" name="cf-sin" value="bunk"><span>Bunked a class</span></label>
-              <label><input type="radio" name="cf-sin" value="proxy"><span>Proxy attendance</span></label>
-              <label><input type="radio" name="cf-sin" value="copy"><span>Copied homework</span></label>
-              <label><input type="radio" name="cf-sin" value="crush"><span>A secret crush</span></label>
-              <label><input type="radio" name="cf-sin" value="food"><span>Wasted mess food</span></label>
-              <label><input type="radio" name="cf-sin" value="worse"><span>Something else</span></label>
+              <label><input type="radio" name="cf-sin" value="bunk"><span><b aria-hidden="true">🏃</b>Bunked a class</span></label>
+              <label><input type="radio" name="cf-sin" value="proxy"><span><b aria-hidden="true">✍️</b>Proxy attendance</span></label>
+              <label><input type="radio" name="cf-sin" value="copy"><span><b aria-hidden="true">📋</b>Copied homework</span></label>
+              <label><input type="radio" name="cf-sin" value="crush"><span><b aria-hidden="true">🫣</b>A secret crush</span></label>
+              <label><input type="radio" name="cf-sin" value="food"><span><b aria-hidden="true">🍛</b>Wasted mess food</span></label>
+              <label><input type="radio" name="cf-sin" value="worse"><span><b aria-hidden="true">🤐</b>Something else</span></label>
             </div>
           </fieldset>
+
+          <button type="button" class="cn-dice" id="cn-dice">&#127922; Give me a prompt</button>
 
           <div class="cn-slip" id="cf-card">
             <label for="post-text" class="sr-only">Your note</label>
@@ -55,7 +59,7 @@
               <i></i>
               <span><span id="cf-meter-txt">Nothing written yet.</span> <span id="post-count">0 / 300</span></span>
             </div>
-            <button type="submit" class="cn-wax">Post anonymously</button>
+            <button type="submit" class="cn-wax">Send it</button>
           </div>
           <p id="post-msg" class="cn-msg" aria-live="polite"></p>
         </form>
@@ -68,7 +72,7 @@
 
       <div class="cn-posts-head" id="wl-posts-head">
         <h2 class="cn-h">On the wall</h2>
-        <span id="wl-count" aria-live="polite"></span>
+        <div class="cn-sort"><span id="wl-count" aria-live="polite"></span><div class="cn-sortg" role="group" aria-label="Order"><button type="button" class="cn-sortb" data-sort="new" aria-pressed="true">Newest</button><button type="button" class="cn-sortb" data-sort="shuffle" aria-pressed="false">&#128256; Shuffle</button></div></div>
       </div>
       <div id="post-list" class="cn-posts"><p class="cn-empty">Loading the wall&hellip;</p></div>
     </section>

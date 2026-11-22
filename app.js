@@ -761,8 +761,8 @@ async function removeNotice(id) {
 }
 
 /* =================================================================
-   WALL: a confessional.
-   Name a sin, say it on the slip, a person reads it, then it hangs on the wall.
+   WALL: a cinematic confession wall.
+   Pick what it is about, say it on the slip, a person reads it, then it hangs on the wall.
    Posting, the one-minute wait, the word filter, reports and staff approval are unchanged.
 ================================================================= */
 let approvedPosts = [];
@@ -851,7 +851,7 @@ function initWall() {
       store.set("lastPost", Date.now());
       text.value = "";
       $("post-count").textContent = "0 / 300";
-      msg.textContent = "Confessed. Go in peace. Your slip will hang on the wall once a person has read it.";
+      msg.textContent = "Confessed. The mask is off. Your slip will hang on the wall once a person has read it.";
       CF.done?.();
     } catch (err) {
       console.error(err);
@@ -893,7 +893,7 @@ function renderWall() {
 
   const list = $("post-list");
   list.replaceChildren();
-  if (!visible.length) list.append(el("p", { class: "cn-empty", text: "The confessional is quiet. Be the first to kneel." }));
+  if (!visible.length) list.append(el("p", { class: "cn-empty", text: "The wall is quiet. Be the first to take the mask off." }));
   visible.forEach((p) => {
     const h = idHash(p.id);
     const done = reported.has(p.id);

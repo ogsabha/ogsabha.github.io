@@ -85,7 +85,7 @@ FONT_QS = {
     "food": "family=Poppins:wght@400;500;600;700",
     "classes": "family=Inter+Tight:wght@400;500;600;800&family=DM+Mono:wght@400;500",
     "bus": "family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Malayalam:wght@700",
-    "wall": "family=Inter+Tight:wght@500;600;700;800",
+    "wall": "family=Anton&family=DM+Mono:wght@400;500&family=Inter+Tight:wght@500;600;700",
     "gigs": "family=Inter:wght@400;500;600",
     "about": "family=Montserrat:wght@400;500;600;700&family=Instrument+Serif",
 }
@@ -213,7 +213,7 @@ PAGES = [
         sub="The next KSRTC bus from DC College, towards Vagamon and Moolamattom.",
     ),
     dict(
-        key="wall", file="wall.html", href="wall.html", url=SITE + "/wall.html", nav="Wall", crumb="Wall", theme="#dcb6d6",
+        key="wall", file="wall.html", href="wall.html", url=SITE + "/wall.html", nav="Wall", crumb="Wall", theme="#d9dbe8",
         title="Og Sabha | Anonymous Wall for DCSMAT Vagamon Students",
         desc="The Og Sabha anonymous wall: DCSMAT, Vagamon students write the notes they can't say out loud. A person reads every note before it goes up.",
         h1="Og Sabha anonymous wall for DCSMAT Vagamon students", vis=None,

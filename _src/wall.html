@@ -1,196 +1,74 @@
-<section id="wall" class="panel active jk">
-      <!-- The clown figure is drawn once here and reused (hero + the small "read" tile). -->
-      <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
-        <defs>
-          <linearGradient id="jkSkin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eaf6ef"/><stop offset=".55" stop-color="#a9cdbd"/><stop offset="1" stop-color="#4f8a76"/></linearGradient>
-          <linearGradient id="jkCapA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34ad8f"/><stop offset="1" stop-color="#0c4338"/></linearGradient>
-          <linearGradient id="jkCapB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eaf6ef"/><stop offset="1" stop-color="#7fb7a2"/></linearGradient>
-          <linearGradient id="jkLip" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0343f"/><stop offset="1" stop-color="#8d121c"/></linearGradient>
-          <radialGradient id="jkNose" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#ff6b73"/><stop offset="1" stop-color="#a3141f"/></radialGradient>
-          <radialGradient id="jkShade" cx=".3" cy=".28" r=".85"><stop offset=".45" stop-color="#03231d" stop-opacity="0"/><stop offset="1" stop-color="#03231d" stop-opacity=".6"/></radialGradient>
-          <pattern id="jkDia" width="26" height="26" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="26" height="26" fill="#e6f2ec"/><rect width="13" height="13" fill="#0a3a31"/><rect x="13" y="13" width="13" height="13" fill="#0a3a31"/></pattern>
-          <symbol id="jk-fig" viewBox="0 0 640 560">
-            <g transform="rotate(-18 330 280)">
-              <path d="M285 350 L375 350 L392 480 L268 480Z" fill="#5f9b86"/>
-              <path d="M130 480 Q330 405 530 480 L545 560 L115 560Z" fill="#0c4338"/>
-              <g fill="url(#jkCapB)" stroke="#06241e" stroke-width="3">
-                <circle cx="170" cy="480" r="38"/><circle cx="235" cy="460" r="40"/><circle cx="300" cy="454" r="42"/><circle cx="365" cy="454" r="42"/><circle cx="430" cy="460" r="40"/><circle cx="492" cy="480" r="38"/>
-              </g>
-              <g fill="url(#jkCapA)" stroke="#06241e" stroke-width="3">
-                <circle cx="205" cy="515" r="40"/><circle cx="272" cy="510" r="42"/><circle cx="345" cy="510" r="42"/><circle cx="415" cy="512" r="40"/><circle cx="472" cy="520" r="34"/>
-              </g>
-              <circle cx="212" cy="250" r="22" fill="#a9cdbd"/><circle cx="448" cy="250" r="22" fill="#7fb7a2"/>
-              <ellipse cx="330" cy="240" rx="118" ry="150" fill="url(#jkSkin)"/>
-              <ellipse cx="330" cy="240" rx="118" ry="150" fill="url(#jkShade)"/>
-              <path d="M215 175 C160 168 105 140 78 98 C68 80 88 66 102 82 C128 112 180 134 255 126Z" fill="url(#jkCapB)" stroke="#06241e" stroke-width="3"/>
-              <path d="M445 175 C500 168 555 140 582 98 C592 80 572 66 558 82 C532 112 480 134 405 126Z" fill="url(#jkCapA)" stroke="#06241e" stroke-width="3"/>
-              <circle cx="84" cy="92" r="15" fill="#9fe3c4" stroke="#06241e" stroke-width="3"/><circle cx="576" cy="92" r="15" fill="#9fe3c4" stroke="#06241e" stroke-width="3"/>
-              <path d="M210 205 C205 120 260 80 330 80 C400 80 455 120 450 205 C420 170 380 158 330 158 C280 158 240 170 210 205Z" fill="url(#jkCapA)" stroke="#06241e" stroke-width="3"/>
-              <path d="M208 205 C240 170 280 158 330 158 C380 158 420 170 452 205 L452 224 C420 194 380 182 330 182 C280 182 240 194 208 224Z" fill="url(#jkDia)" stroke="#06241e" stroke-width="3"/>
-              <polygon points="292,198 306,170 320,198 306,228" fill="#0b3d33"/><polygon points="340,198 354,170 368,198 354,228" fill="#a3141f"/>
-              <ellipse cx="306" cy="199" rx="10" ry="7" fill="#f4fbf7"/><ellipse cx="354" cy="199" rx="10" ry="7" fill="#f4fbf7"/>
-              <circle cx="308" cy="195" r="4" fill="#06241e"/><circle cx="356" cy="195" r="4" fill="#06241e"/>
-              <path d="M282 164 Q306 150 322 164M338 164 Q354 150 378 164" fill="none" stroke="#06241e" stroke-width="5" stroke-linecap="round"/>
-              <circle cx="258" cy="252" r="10" fill="#c4222d" opacity=".4"/><circle cx="402" cy="252" r="10" fill="#c4222d" opacity=".4"/>
-              <circle cx="330" cy="248" r="16" fill="url(#jkNose)"/>
-              <path d="M244 284 Q222 272 214 246M416 284 Q438 272 446 246" fill="none" stroke="#b01a26" stroke-width="9" stroke-linecap="round"/>
-              <path d="M244 284 Q330 318 416 284 Q330 394 244 284Z" fill="url(#jkLip)" stroke="#5a0a12" stroke-width="3"/>
-              <path d="M264 298 Q330 324 396 298 Q330 342 264 298Z" fill="#f4fbf7" opacity=".95"/>
-            </g>
-          </symbol>
-        </defs>
-      </svg>
-
-      <div class="jk-card" id="jk-top">
-        <span class="jk-rail" aria-hidden="true"></span>
-
-        <header class="jk-bar">
-          <a class="jk-burger" href="#jk-top" aria-label="Back to the top"><i></i><i></i></a>
-          <nav class="jk-links" aria-label="On this page">
-            <a href="#cf-frame">Confess</a><a href="#wl-posts-head">Read</a><a href="#jk-quotes">Quotes</a><a href="#jk-how">Rules</a>
-          </nav>
-        </header>
-
-        <div class="jk-hero">
-          <div class="jk-copy">
-            <h2 class="jk-title">Confess</h2>
-            <p class="jk-lede">Everyone at DCSMAT is wearing a mask by ten o&rsquo;clock. Take yours off for a minute. Say the thing you can&rsquo;t say out loud. No name goes on the slip, a person reads it first, and then the wall keeps it.</p>
-            <button type="button" class="jk-more" id="wl-down"><span>Confess now</span><svg viewBox="0 0 70 12" width="70" height="12" aria-hidden="true"><path d="M0 6h68M62 1l6 5-6 5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button>
-          </div>
-
-          <figure class="jk-art" aria-hidden="true">
-            <img class="jk-photo" src="images/wall-hero.webp" alt="" loading="lazy" decoding="async" onerror="this.remove()">
-            <svg class="jk-fig" viewBox="0 0 640 560" focusable="false"><use href="#jk-fig" width="640" height="560"/></svg>
-          </figure>
-
-          <div class="jk-qwrap">
-            <p class="jk-qk"><b id="jk-qi">01</b><span>On confession</span></p>
-            <div class="jk-qs" id="jk-qs" aria-live="polite">
-              <figure class="jk-q on"><blockquote>&ldquo;Laugh in public. Confess in private.&rdquo;</blockquote><figcaption>Og Sabha</figcaption></figure>
-              <figure class="jk-q"><blockquote>&ldquo;Every mask gets heavy by the end of the day.&rdquo;</blockquote><figcaption>Og Sabha</figcaption></figure>
-              <figure class="jk-q"><blockquote>&ldquo;Confession is good for the soul.&rdquo;</blockquote><figcaption>Old proverb</figcaption></figure>
-              <figure class="jk-q"><blockquote>&ldquo;A secret said out loud weighs half as much.&rdquo;</blockquote><figcaption>Og Sabha</figcaption></figure>
+<section id="wall" class="panel active cn">
+      <div class="cn-booth" id="cf-frame" data-step="1">
+        <div class="cn-hero">
+          <div class="cn-nav" aria-hidden="true"><span class="cn-logo">OS</span><span>Anonymous</span><span>Read first</span><span class="cn-burger"><i></i><i></i></span></div>
+          <h2 class="cn-title">Unsigned.</h2>
+          <p class="cn-lede">Write what you can&rsquo;t say out loud. No name goes on it, and a person reads every note before it goes up.</p>
+          <ol class="cn-steps" aria-label="Progress">
+            <li class="cn-step" aria-current="step"><i class="cn-flame" aria-hidden="true"></i><span class="sr-only">Pick a topic</span></li>
+            <li class="cn-step"><i class="cn-flame" aria-hidden="true"></i><span class="sr-only">Write it</span></li>
+            <li class="cn-step"><i class="cn-flame" aria-hidden="true"></i><span class="sr-only">Sent</span></li>
+          </ol>
+          <svg class="cn-cloud" viewBox="0 0 440 600" aria-hidden="true" focusable="false">
+  <defs>
+    <radialGradient id="cg" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#fdeaf5"/><stop offset=".6" stop-color="#f0c6e2"/><stop offset="1" stop-color="#d79bc8"/></radialGradient>
+    <linearGradient id="cap" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a4f6b"/><stop offset="1" stop-color="#2f2740"/></linearGradient>
+    <filter id="fluff" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".022" numOctaves="3" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="38"/><feGaussianBlur stdDeviation="1.2"/></filter>
+  </defs>
+  <g filter="url(#fluff)"><circle cx="190" cy="208" r="56" fill="url(#cg)"/><circle cx="243" cy="209" r="46" fill="url(#cg)"/><circle cx="244" cy="205" r="34" fill="url(#cg)"/><circle cx="187" cy="195" r="36" fill="url(#cg)"/><circle cx="144" cy="216" r="37" fill="url(#cg)"/><circle cx="209" cy="237" r="67" fill="url(#cg)"/><circle cx="164" cy="173" r="68" fill="url(#cg)"/><circle cx="261" cy="207" r="43" fill="url(#cg)"/><circle cx="212" cy="204" r="44" fill="url(#cg)"/><circle cx="210" cy="169" r="54" fill="url(#cg)"/><circle cx="175" cy="163" r="53" fill="url(#cg)"/><circle cx="212" cy="194" r="40" fill="url(#cg)"/><circle cx="182" cy="156" r="44" fill="url(#cg)"/><circle cx="163" cy="170" r="44" fill="url(#cg)"/><circle cx="216" cy="141" r="42" fill="url(#cg)"/><circle cx="158" cy="171" r="65" fill="url(#cg)"/><circle cx="196" cy="160" r="68" fill="url(#cg)"/><circle cx="231" cy="215" r="60" fill="url(#cg)"/><circle cx="226" cy="223" r="34" fill="url(#cg)"/><circle cx="171" cy="143" r="54" fill="url(#cg)"/><circle cx="225" cy="168" r="58" fill="url(#cg)"/><circle cx="158" cy="165" r="49" fill="url(#cg)"/><circle cx="236" cy="139" r="50" fill="url(#cg)"/><circle cx="193" cy="180" r="58" fill="url(#cg)"/><circle cx="158" cy="140" r="63" fill="url(#cg)"/><circle cx="191" cy="225" r="57" fill="url(#cg)"/><circle cx="283" cy="339" r="46" fill="url(#cg)"/><circle cx="230" cy="342" r="71" fill="url(#cg)"/><circle cx="248" cy="361" r="55" fill="url(#cg)"/><circle cx="232" cy="314" r="57" fill="url(#cg)"/><circle cx="118" cy="302" r="73" fill="url(#cg)"/><circle cx="249" cy="295" r="56" fill="url(#cg)"/><circle cx="150" cy="401" r="79" fill="url(#cg)"/><circle cx="238" cy="358" r="48" fill="url(#cg)"/><circle cx="222" cy="394" r="63" fill="url(#cg)"/><circle cx="215" cy="334" r="56" fill="url(#cg)"/><circle cx="162" cy="382" r="79" fill="url(#cg)"/><circle cx="188" cy="268" r="64" fill="url(#cg)"/><circle cx="206" cy="315" r="76" fill="url(#cg)"/><circle cx="234" cy="240" r="72" fill="url(#cg)"/><circle cx="166" cy="366" r="43" fill="url(#cg)"/><circle cx="201" cy="316" r="41" fill="url(#cg)"/><circle cx="224" cy="362" r="53" fill="url(#cg)"/><circle cx="216" cy="330" r="45" fill="url(#cg)"/><circle cx="263" cy="362" r="40" fill="url(#cg)"/><circle cx="273" cy="278" r="45" fill="url(#cg)"/><circle cx="214" cy="382" r="54" fill="url(#cg)"/><circle cx="286" cy="393" r="80" fill="url(#cg)"/><circle cx="145" cy="344" r="42" fill="url(#cg)"/><circle cx="261" cy="361" r="50" fill="url(#cg)"/><circle cx="233" cy="301" r="39" fill="url(#cg)"/><circle cx="286" cy="310" r="45" fill="url(#cg)"/><circle cx="203" cy="327" r="61" fill="url(#cg)"/><circle cx="315" cy="318" r="68" fill="url(#cg)"/><circle cx="211" cy="384" r="46" fill="url(#cg)"/><circle cx="225" cy="263" r="71" fill="url(#cg)"/><circle cx="194" cy="365" r="73" fill="url(#cg)"/><circle cx="315" cy="321" r="72" fill="url(#cg)"/><circle cx="253" cy="255" r="48" fill="url(#cg)"/><circle cx="156" cy="324" r="40" fill="url(#cg)"/><circle cx="161" cy="427" r="49" fill="url(#cg)"/><circle cx="89" cy="346" r="57" fill="url(#cg)"/><circle cx="202" cy="389" r="79" fill="url(#cg)"/><circle cx="96" cy="445" r="48" fill="url(#cg)"/><circle cx="131" cy="450" r="65" fill="url(#cg)"/><circle cx="186" cy="377" r="59" fill="url(#cg)"/><circle cx="75" cy="362" r="42" fill="url(#cg)"/><circle cx="75" cy="355" r="71" fill="url(#cg)"/><circle cx="120" cy="368" r="46" fill="url(#cg)"/><circle cx="131" cy="379" r="72" fill="url(#cg)"/><circle cx="171" cy="412" r="55" fill="url(#cg)"/><circle cx="190" cy="398" r="46" fill="url(#cg)"/><circle cx="140" cy="439" r="77" fill="url(#cg)"/><circle cx="130" cy="396" r="73" fill="url(#cg)"/><circle cx="189" cy="412" r="53" fill="url(#cg)"/><circle cx="95" cy="413" r="39" fill="url(#cg)"/><circle cx="188" cy="409" r="61" fill="url(#cg)"/><circle cx="170" cy="400" r="75" fill="url(#cg)"/><circle cx="136" cy="392" r="49" fill="url(#cg)"/><circle cx="110" cy="453" r="63" fill="url(#cg)"/><circle cx="117" cy="468" r="44" fill="url(#cg)"/><circle cx="161" cy="397" r="58" fill="url(#cg)"/><circle cx="247" cy="362" r="64" fill="url(#cg)"/><circle cx="372" cy="374" r="70" fill="url(#cg)"/><circle cx="312" cy="399" r="65" fill="url(#cg)"/><circle cx="321" cy="403" r="82" fill="url(#cg)"/><circle cx="347" cy="446" r="79" fill="url(#cg)"/><circle cx="277" cy="386" r="69" fill="url(#cg)"/><circle cx="247" cy="376" r="49" fill="url(#cg)"/><circle cx="284" cy="387" r="57" fill="url(#cg)"/><circle cx="328" cy="347" r="71" fill="url(#cg)"/><circle cx="325" cy="323" r="65" fill="url(#cg)"/><circle cx="275" cy="365" r="69" fill="url(#cg)"/><circle cx="300" cy="353" r="70" fill="url(#cg)"/><circle cx="234" cy="411" r="78" fill="url(#cg)"/><circle cx="382" cy="345" r="56" fill="url(#cg)"/><circle cx="239" cy="371" r="84" fill="url(#cg)"/><circle cx="337" cy="417" r="65" fill="url(#cg)"/><circle cx="354" cy="415" r="48" fill="url(#cg)"/><circle cx="282" cy="339" r="87" fill="url(#cg)"/><circle cx="362" cy="455" r="76" fill="url(#cg)"/><circle cx="372" cy="459" r="90" fill="url(#cg)"/><circle cx="337" cy="477" r="63" fill="url(#cg)"/><circle cx="231" cy="406" r="84" fill="url(#cg)"/><circle cx="349" cy="442" r="69" fill="url(#cg)"/><circle cx="302" cy="426" r="59" fill="url(#cg)"/><circle cx="319" cy="392" r="71" fill="url(#cg)"/><circle cx="312" cy="403" r="60" fill="url(#cg)"/><circle cx="139" cy="457" r="53" fill="url(#cg)"/><circle cx="339" cy="509" r="102" fill="url(#cg)"/><circle cx="264" cy="557" r="52" fill="url(#cg)"/><circle cx="222" cy="459" r="56" fill="url(#cg)"/><circle cx="85" cy="580" r="94" fill="url(#cg)"/><circle cx="207" cy="563" r="99" fill="url(#cg)"/><circle cx="101" cy="473" r="54" fill="url(#cg)"/><circle cx="322" cy="558" r="72" fill="url(#cg)"/><circle cx="340" cy="577" r="84" fill="url(#cg)"/><circle cx="221" cy="491" r="96" fill="url(#cg)"/><circle cx="335" cy="570" r="74" fill="url(#cg)"/><circle cx="154" cy="600" r="100" fill="url(#cg)"/><circle cx="205" cy="559" r="78" fill="url(#cg)"/><circle cx="213" cy="556" r="58" fill="url(#cg)"/><circle cx="265" cy="536" r="66" fill="url(#cg)"/><circle cx="167" cy="628" r="65" fill="url(#cg)"/><circle cx="157" cy="520" r="68" fill="url(#cg)"/><circle cx="275" cy="527" r="50" fill="url(#cg)"/><circle cx="199" cy="426" r="60" fill="url(#cg)"/><circle cx="68" cy="540" r="55" fill="url(#cg)"/><circle cx="248" cy="446" r="76" fill="url(#cg)"/><circle cx="253" cy="454" r="77" fill="url(#cg)"/><circle cx="153" cy="397" r="68" fill="url(#cg)"/><circle cx="270" cy="425" r="84" fill="url(#cg)"/></g>
+  <path d="M96 150C92 60 250 20 330 118Z" fill="url(#cap)"/>
+  <path d="M30 168C120 112 265 96 372 134C262 160 128 182 30 196Z" fill="#3a3148"/>
+  <path d="M30 168C120 112 265 96 372 134C300 128 130 128 30 168Z" fill="#6a5d7c" opacity=".55"/>
+</svg>
+          <div class="cn-base">
+            <div class="cn-acts">
+              <button type="button" class="cn-red" id="wl-down">Write a note</button>
+              <button type="button" class="cn-white" id="cf-read">Read the wall</button>
             </div>
+            <p class="cn-fine">Please do not name or target anyone.</p>
           </div>
-          <div class="jk-qd" id="jk-qd" role="group" aria-label="Choose a quote">
-            <button type="button" aria-label="Quote 1" aria-pressed="true"></button><button type="button" aria-label="Quote 2" aria-pressed="false"></button><button type="button" aria-label="Quote 3" aria-pressed="false"></button><button type="button" aria-label="Quote 4" aria-pressed="false"></button>
-          </div>
+          <span id="cf-clock" hidden></span>
         </div>
-
-        <aside class="jk-side" aria-label="About the wall">
-          <p class="jk-follow">The wall <span class="jk-live"><i></i>Live</span></p>
-          <dl class="jk-facts">
-            <div><dt>Opened by</dt><dd>UG 2026 batch, DCSMAT</dd></div>
-            <div><dt>Editor</dt><dd>A person reads every slip first</dd></div>
-            <div><dt>On stage for</dt><dd><time id="cf-clock">0:00</time></dd></div>
-            <div><dt>Genre</dt><dd>Comedy, tragedy, confession</dd></div>
-          </dl>
-          <button type="button" class="jk-trailer" id="cf-read">
-            <svg class="jk-mini" viewBox="150 60 340 330" aria-hidden="true" focusable="false"><use href="#jk-fig" width="640" height="560"/></svg>
-            <span class="jk-play"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#fff"/><path d="M9.5 7.5v9l7-4.5z" fill="#06241e"/></svg><b>Read the confessions</b></span>
-          </button>
-        </aside>
-      </div>
-
-      <div class="jk-stage cn-booth" id="cf-frame" data-step="1">
-        <header class="jk-sh">
-          <p class="jk-kick">Act one &middot; the booth</p>
-          <h2 class="jk-h">Take the mask off.</h2>
-          <p class="jk-sub">Three steps. No name, no login, no one watching. Please don&rsquo;t name or target anyone.</p>
-        </header>
-
-        <ol class="cn-steps jk-steps" aria-label="Confession progress">
-          <li class="cn-step" aria-current="step"><i class="cn-flame" aria-hidden="true"></i><span>Pick a mask</span></li>
-          <li class="cn-step"><i class="cn-flame" aria-hidden="true"></i><span>Say it</span></li>
-          <li class="cn-step"><i class="cn-flame" aria-hidden="true"></i><span>Absolved</span></li>
-        </ol>
 
         <form id="post-form" class="cn-form">
           <fieldset class="cn-sins">
-            <legend>First, what is it about?</legend>
+            <legend>What is it about?</legend>
             <div class="cn-chips">
-              <label><input type="radio" name="cf-sin" value="bunk"><span><em>01</em><b>Bunked a class</b><small>Sloth</small></span></label>
-              <label><input type="radio" name="cf-sin" value="proxy"><span><em>02</em><b>Proxy attendance</b><small>Deceit</small></span></label>
-              <label><input type="radio" name="cf-sin" value="copy"><span><em>03</em><b>Copied homework</b><small>Theft</small></span></label>
-              <label><input type="radio" name="cf-sin" value="crush"><span><em>04</em><b>A secret crush</b><small>Desire</small></span></label>
-              <label><input type="radio" name="cf-sin" value="food"><span><em>05</em><b>Wasted mess food</b><small>Gluttony</small></span></label>
-              <label><input type="radio" name="cf-sin" value="worse"><span><em>06</em><b>Something worse</b><small>The unspoken</small></span></label>
+              <label><input type="radio" name="cf-sin" value="bunk"><span>Bunked a class</span></label>
+              <label><input type="radio" name="cf-sin" value="proxy"><span>Proxy attendance</span></label>
+              <label><input type="radio" name="cf-sin" value="copy"><span>Copied homework</span></label>
+              <label><input type="radio" name="cf-sin" value="crush"><span>A secret crush</span></label>
+              <label><input type="radio" name="cf-sin" value="food"><span>Wasted mess food</span></label>
+              <label><input type="radio" name="cf-sin" value="worse"><span>Something else</span></label>
             </div>
           </fieldset>
 
           <div class="cn-slip" id="cf-card">
-            <p class="cn-slip-top"><span>One slip &middot; one confession</span><span>Anonymous &middot; 300 characters</span></p>
-            <label for="post-text" class="sr-only">Your confession</label>
+            <label for="post-text" class="sr-only">Your note</label>
             <textarea id="post-text" maxlength="300" rows="5"
-              placeholder="Say it under the mask. Please do not name or target anyone."></textarea>
-            <div class="cn-seal" aria-hidden="true">
-              <b><svg viewBox="0 0 40 24" width="40" height="24"><path d="M3 4 Q20 30 37 4 Q20 16 3 4Z" fill="currentColor"/></svg></b><span>Confessed</span>
-            </div>
+              placeholder="Write it here. Please do not name or target anyone."></textarea>
+            <div class="cn-seal" aria-hidden="true"><span>Sent for review</span></div>
           </div>
 
           <div class="cn-row">
             <div class="cn-meter" id="cf-meter">
               <i></i>
-              <span><span id="cf-meter-txt">Nothing to confess yet.</span> <span id="post-count">0 / 300</span></span>
+              <span><span id="cf-meter-txt">Nothing written yet.</span> <span id="post-count">0 / 300</span></span>
             </div>
-            <button type="submit" class="cn-wax">Confess it</button>
+            <button type="submit" class="cn-wax">Post anonymously</button>
           </div>
           <p id="post-msg" class="cn-msg" aria-live="polite"></p>
         </form>
       </div>
 
       <div id="pending-box" hidden>
-        <h2 class="cn-h">Awaiting a second look</h2>
+        <h2 class="cn-h">Waiting for approval</h2>
         <div id="pending-list"></div>
       </div>
 
       <div class="cn-posts-head" id="wl-posts-head">
-        <div>
-          <p class="jk-kick">Act two &middot; the wall</p>
-          <h2 class="cn-h">What the wall has heard</h2>
-        </div>
+        <h2 class="cn-h">On the wall</h2>
         <span id="wl-count" aria-live="polite"></span>
       </div>
-      <div id="post-list" class="cn-posts"><p class="cn-empty">The wall is waking up&hellip;</p></div>
-
-      <section class="jk-quotes" id="jk-quotes" aria-labelledby="jk-qh">
-        <p class="jk-kick">Interlude</p>
-        <h2 class="jk-h" id="jk-qh">Words on confession.</h2>
-        <div class="jk-pulls">
-          <figure class="jk-pull"><blockquote>&ldquo;Man is least himself when he talks in his own person. Give him a mask, and he will tell you the truth.&rdquo;</blockquote><figcaption>Oscar Wilde<small>The Critic as Artist, 1891</small></figcaption></figure>
-          <figure class="jk-pull"><blockquote>&ldquo;Everyone is a moon, and has a dark side which he never shows to anybody.&rdquo;</blockquote><figcaption>Mark Twain<small>Following the Equator, 1897</small></figcaption></figure>
-          <figure class="jk-pull"><blockquote>&ldquo;Give sorrow words: the grief that does not speak whispers the o&rsquo;er-fraught heart, and bids it break.&rdquo;</blockquote><figcaption>William Shakespeare<small>Macbeth, Act 4</small></figcaption></figure>
-        </div>
-      </section>
-
-      <section class="jk-how" id="jk-how" aria-labelledby="jk-hh">
-        <h2 class="jk-h" id="jk-hh">House rules.</h2>
-        <ol>
-          <li><b>01</b><strong>No name on the slip.</strong><p>Nobody signs a confession. Don&rsquo;t sign anyone else&rsquo;s either.</p></li>
-          <li><b>02</b><strong>A person reads it first.</strong><p>Every slip waits for approval before it goes up on the wall.</p></li>
-          <li><b>03</b><strong>Keep it kind.</strong><p>No targets, no rude words. Slips that get reported three times come down.</p></li>
-        </ol>
-      </section>
-
-      <script>
-      (function(){
-        var qs=[].slice.call(document.querySelectorAll("#jk-qs .jk-q")),
-            ds=[].slice.call(document.querySelectorAll("#jk-qd button")),
-            n=document.getElementById("jk-qi"),i=0,t=null,
-            calm=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
-        if(!qs.length)return;
-        function show(k){
-          i=(k+qs.length)%qs.length;
-          qs.forEach(function(q,j){q.classList.toggle("on",j===i)});
-          ds.forEach(function(d,j){d.setAttribute("aria-pressed",j===i?"true":"false")});
-          if(n)n.textContent=String(i+1).padStart(2,"0");
-        }
-        function play(){if(calm||t)return;t=setInterval(function(){if(!document.hidden)show(i+1)},6000)}
-        function stop(){clearInterval(t);t=null}
-        ds.forEach(function(d,j){d.addEventListener("click",function(){show(j);stop()})});
-        var box=document.getElementById("jk-qs");
-        if(box){box.addEventListener("mouseenter",stop);box.addEventListener("mouseleave",play)}
-        play();
-      })();
-      </script>
+      <div id="post-list" class="cn-posts"><p class="cn-empty">Loading the wall&hellip;</p></div>
     </section>

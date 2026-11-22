@@ -85,7 +85,7 @@ FONT_QS = {
     "food": "family=Poppins:wght@400;500;600;700",
     "classes": "family=Inter+Tight:wght@400;500;600;800&family=DM+Mono:wght@400;500",
     "bus": "family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Malayalam:wght@700",
-    "wall": "family=Unbounded:wght@600;700;800&family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1",
+    "wall": "family=Inter+Tight:wght@500;600;700;800",
     "gigs": "family=Inter:wght@400;500;600",
     "about": "family=Montserrat:wght@400;500;600;700&family=Instrument+Serif",
 }
@@ -213,11 +213,11 @@ PAGES = [
         sub="The next KSRTC bus from DC College, towards Vagamon and Moolamattom.",
     ),
     dict(
-        key="wall", file="wall.html", href="wall.html", url=SITE + "/wall.html", nav="Wall", crumb="Wall", theme="#031511",
+        key="wall", file="wall.html", href="wall.html", url=SITE + "/wall.html", nav="Wall", crumb="Wall", theme="#dcb6d6",
         title="Og Sabha | Anonymous Wall for DCSMAT Vagamon Students",
-        desc="The Og Sabha confession wall: an anonymous space for DCSMAT, Vagamon students to take the mask off and confess what they can't say out loud. A person reads every confession before it goes up.",
-        h1="Og Sabha anonymous confession wall for DCSMAT Vagamon students", vis=None,
-        sub="Take the mask off and confess what you can't say out loud. Anonymous, always kind.",
+        desc="The Og Sabha anonymous wall: DCSMAT, Vagamon students write the notes they can't say out loud. A person reads every note before it goes up.",
+        h1="Og Sabha anonymous wall for DCSMAT Vagamon students", vis=None,
+        sub="Write what you can't say out loud. Anonymous, always kind.",
     ),
     dict(
         key="gigs", file="gigs.html", href="gigs.html", url=SITE + "/gigs.html", nav="Gigs", crumb="Gigs", theme="#4A1604",

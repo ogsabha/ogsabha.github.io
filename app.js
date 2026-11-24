@@ -6,7 +6,7 @@ let initializeApp, getFirestore, collection, doc, setDoc, addDoc, updateDoc, del
 const PAGE = document.body.dataset.page || "food";
 
 /* ---------------------------------------------------------------
-   Og Sabha: DCSMAT Vagamon student hub
+   Og Sabha: the free student hub for Indian colleges
    Sections: core + tabs, Food, Classes, Wall, Gigs (with globe), staff login.
 ---------------------------------------------------------------- */
 const firebaseConfig = {
@@ -1580,8 +1580,8 @@ whenFirebase(() => {
 
 /* ---------- ABOUT: three-step story, 01 --- 03 ---------- */
 const ABOUT_STEPS = [
-  { k: "Our story", t: "Og Sabha", p: "Made by the UG 2026 batch of DCSMAT, Vagamon. We got tired of asking \u201cwhat\u2019s for lunch?\u201d and \u201cwhich hour is this?\u201d, so we built one place for both." },
-  { k: "What you can do", t: "Four tabs", p: "Food: today\u2019s mess menu and meal ratings. Classes: your live timetable and notices. Wall: post anonymously, every post is checked first. Gigs: offer a skill or hire a classmate." },
+  { k: "Our story", t: "Og Sabha", p: "Made by the UG 2026 batch of college students in India. We got tired of asking \u201cwhat\u2019s for lunch?\u201d and \u201cwhich hour is this?\u201d, so we built one place for both." },
+  { k: "What you can do", t: "Five tabs", p: "Food: today\u2019s mess menu and meal ratings. Classes: your live timetable and notices. Bus: the next bus with a live countdown. Wall: post anonymously, every post is checked first. Gigs: offer a skill or hire a classmate." },
   { k: "Say hello", t: "Contact", p: "Found a mistake or want to join the team? Message us on Instagram: @og.sabhaaa" }
 ];
 function initAbout() {
@@ -1712,7 +1712,7 @@ function busBuild(trips) {
       el("span", { class: "kb-tp", "aria-hidden": "true", text: "🚌" }),
       el("span", { class: "kb-tt", text: `${p.t} ${p.ap}` }),
       el("span", { class: "kb-tn", text: t.route }),
-      el("span", { class: "kb-ts", text: t.via ? `via ${t.via}` : "From DC College" }),
+      el("span", { class: "kb-ts", text: t.via ? `via ${t.via}` : "From the college" }),
       el("span", { class: "kb-tf" }, el("span"), el("span", { "aria-hidden": "true", text: "view →" })));
     return { t, btn, note: btn.querySelector(".kb-tf span") };
   });
@@ -1756,7 +1756,7 @@ function renderBus() {
   badge.className = "kb-badge" + (isNext ? " live" : "");
   setText($("kb-h"), sel.route);
   setText($("kb-when"), fmt12(sel.time));
-  setText($("kb-desc"), `${sel.via ? `Via ${sel.via}.` : "Direct from the DC College stop."}${sel.check ? " Timing not confirmed yet, check at the stop." : ""}`);
+  setText($("kb-desc"), `${sel.via ? `Via ${sel.via}.` : "Direct from the college stop."}${sel.check ? " Timing not confirmed yet, check at the stop." : ""}`);
   BS.target = gone ? null : busSecs(sel);
   $("kb-prog").hidden = gone;
   if (gone) setText($("kb-when-sub"), tomorrow ? "no more buses today" : "left earlier today");
@@ -1764,7 +1764,7 @@ function renderBus() {
   if (BS.stopsKey !== selKey) {
     BS.stopsKey = selKey;
     const stops = stopsOf(sel);
-    const chain = [el("span", { class: "kb-stop me", text: "DC College" })];
+    const chain = [el("span", { class: "kb-stop me", text: "College" })];
     stops.forEach((st, i) => {
       chain.push(el("span", { class: "kb-arrow", "aria-hidden": "true", text: "➜" }));
       chain.push(el("span", { class: "kb-stop" + (i === stops.length - 1 ? " end" : ""), text: st }));
